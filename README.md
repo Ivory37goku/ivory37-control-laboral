@@ -1,58 +1,106 @@
-# IVORY37 · Control laboral
+# 工V龱尺㇌7 | Control Laboral Pro 🥋
 
-Aplicación web de una sola página para registrar **jornadas, horas extra, viajes/dietas y nóminas**. Funciona sin conexión, no tiene dependencias externas y guarda los datos únicamente en el navegador.
+> **Dashboard Ejecutivo de Gestión Laboral & Nóminas Automáticas.**  
+> Una solución web moderna, oscura y ultra-rápida para freelancers y trabajadores por cuenta ajena que necesitan controlar horas, extras, viajes y nóminas sin salir del navegador.
 
-## Funciones
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
-- Fichaje de entrada/salida con cálculo real de horas (incluidos turnos nocturnos).
-- **Fichaje automático** por horario habitual, con botón «Según horario» y «Completar mes» para los días sin registro.
-- Registro manual y edición de jornadas, con estado confirmado/provisional y confirmación masiva.
-- Horas extra por jornada y control de su pago.
-- Viajes y dietas con estado cobrado/pendiente.
-- Nóminas mensuales automáticas, confirmación y edición.
-- Panel con **devengado, cobrado, pendiente y horas extra**, saludo personalizado y resumen contextual.
-- **Primeros pasos** con progreso, descarte y recordatorio de copia de seguridad.
-- **Perfil personalizable**: nombre, rol, foto o logo en la barra lateral y en móvil.
-- **Logo de la app** con fondo claro/oscuro, adaptación a logos apaisados y favicon dinámico.
-- Informe imprimible (Guardar como PDF) con logo y cabecera de perfil.
-- Backup JSON, exportación CSV, búsqueda, filtros y paginación.
-- Datos en `localStorage`, con sincronización entre pestañas y aviso de última copia.
+---
 
-## Uso
+## ✨ Características Principales
 
-Abre `index.html` en el navegador. No necesita instalación ni build.
+### 📊 Dashboard Ejecutivo Premium
+- **Visualización en Tiempo Real:** KPIs claros de Total Cobrado, Pendiente, Horas Extra Acumuladas y Valor Económico.
+- **Objetivo Mensual Inteligente:** Gráfica donut que calcula tu ritmo diario necesario para cumplir las 168h/mes (o lo que configures).
+- **Evolución Financiera:** Barras apiladas mostrando exactamente cuánto tienes pendiente de cobrar vs. lo ya liquidado.
+- **Resumen de Nóminas:** Vista rápida de las últimas 3 nóminas generadas automáticamente con su estado (Confirmada/Pendiente).
 
-Para notificaciones y para servirla por HTTP:
+### ⏱️ Fichaje & Jornadas
+- **Botones Rápidos:** Registro de Entrada/Salida con un solo clic. Cálculo automático de horas normales (>8h = extra).
+- **Gestión Flexible:** Editar horarios manualmente, añadir horas extra retrospectivas o confirmar jornadas provisionales en masa.
+- **Filtros Avanzados:** Ver solo Confirmados, Provisionales o Jornadas con Extras.
+- **Exportación Profesional:** Genera informes PDF detallados o exporta a Excel/CSV con un botón.
 
-```bash
-python3 -m http.server 8080
-# http://localhost:8080
-```
+### 💰 Nóminas & Pagos Automatizados
+- **Motor de Nóminas Auto-generadas:** Calcula mensualmente `Horas Normales × Tarifa Base`. No requiere intervención manual constante.
+- **Control de Estado:** Diferencia clara entre nóminas *Automáticas* (pendientes de revisión), *Manuales* y *Confirmadas*.
+- **Gestión de Extras Individuales:** Marca cada jornada con extras como "Pagada" o "Pendiente" independientemente.
+- **Viajes & Dietas:** Registro separado de gastos de desplazamiento con marcaje de cobro.
 
-## Datos
+### 🎨 Personalización Total (White-Label Ready)
+- **Branding Dinámico:** Cambia el nombre de la App y el Color Primario desde Ajustes. La interfaz se adapta instantáneamente.
+- **Logo Propio:** Sube tu logo (JPG/PNG/SVG) vía drag-and-drop o selector de archivos. Se muestra en header y notificaciones.
+- **Tarifas Configurables:** Define tu precio/hora normal y extra. El sistema recalcula todo al guardar.
+- **Modo Offline First:** Funciona sin internet. Los datos se guardan en LocalStorage y se sincronizan cuando vuelves online.
 
-La app guarda todo en la clave `ivory37_data_v1` de `localStorage`. Usa **Ajustes → Backup JSON** con frecuencia y **Restaurar** para recuperarlo. El botón **Borrar todo** elimina los datos de este navegador. El panel recuerda cuándo hiciste la última copia y avisa si han pasado más de 30 días.
+---
 
-### Compatibilidad con backups antiguos
+## 🛠️ Tecnologías Utilizadas
 
-Al importar un backup de la versión anterior se migran automáticamente el logo
-(`app_logo` → `custom_logo`), el nombre corrupto de la app y las claves duplicadas. Las
-jornadas históricas no se borran: «Quitar autogeneradas» solo elimina las creadas con
-«Completar mes».
+- **Frontend Framework:** HTML5 + Vanilla JavaScript (Sin frameworks pesados, máxima velocidad).
+- **Estilos:** Tailwind CSS (CDN) + Custom Glassmorphism CSS.
+- **Gráficas:** Chart.js v4 (Responsive & Dark Theme ready).
+- **Iconos:** Font Awesome 6.
+- **Tipografía:** Inter (UI) + JetBrains Mono (Datos/Números).
+- **Almacenamiento:** Browser LocalStorage (Persistencia local segura).
+- **Servicios:** Service Worker (Cache offline) + Web Notifications API.
+- **Reportes:** jsPDF (Generación de PDF client-side).
 
-## Perfil
+---
 
-En **Ajustes → Mi perfil** puedes poner tu nombre, tu rol y una foto. Si no pones foto se usa el logo de la app (cuando es cuadrado) o tus iniciales.
+## 🚀 Cómo Empezar
 
-## Estructura
+### Opción 1: Uso Directo (Recomendada)
+Simplemente abre la aplicación web:
+👉 **[Ver Demo Live](https://ivory37goku.github.io/ki-control/)**
 
-```
-index.html     Aplicación completa (HTML + CSS + JS, sin dependencias)
-README.md      Este archivo
-MEJORAS.md     Revisión técnica: fallos corregidos y siguientes pasos
-CHANGELOG.md   Historial de versiones
-```
+### Opción 2: Instalación Local
+Si quieres usarla en tu propio equipo o modificarla:
 
-## Estado
+1. **Clona el repositorio:**
+   ```bash
+   git clone https://github.com/Ivory37goku/ki-control.git
+   cd ki-control
 
-Versión 2.2.1. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.
+
+   Abre el archivo:
+Simplemente haz doble clic en index.html o sirve la carpeta con cualquier servidor estático (ej. VS Code Live Server):
+bash
+   # Si tienes Python instalado
+   python -m http.server 8000
+   # Luego visita http://localhost:8000
+Configura tus datos:
+Ve a la pestaña Ajustes.
+Introduce tu Nombre de App, Color y Tarifas Horarias.
+Sube tu Logo si deseas branding personalizado.
+Pulsa Guardar Todo.
+📸 Capturas de Pantalla
+<img width="1920" height="945" alt="Captura de pantalla 2026-11-07 113528" src="https://github.com/user-attachments/assets/491e7dfd-b3d0-4758-9c81-0a1cf5595fa9" />
+<img width="1920" height="927" alt="Captura de pantalla 2026-11-07 113515" src="https://github.com/user-attachments/assets/193387e3-6838-4219-967e-21209e3a8a98" />
+<img width="1920" height="938" alt="Captura de pantalla 2026-11-07 113502" src="https://github.com/user-attachments/assets/63385493-520e-4ae5-9590-19fec71fe8cb" />
+<img width="1920" height="952" alt="Captura de pantalla 2026-11-07 113321" src="https://github.com/user-attachments/assets/9fd5445e-395f-42bd-86e5-3fbc5dc10d16" />
+<img width="1904" height="868" alt="Captura de pantalla 2026-11-07 113135" src="https://github.com/user-attachments/assets/f8bb34c2-36e3-4b7a-b94b-27b57bbdbf5a" />
+
+Dashboard Principal
+Gestión de Nóminas
+Ajustes & Branding
+Nota: Para generar estas imágenes, usa herramientas como Prism o simplemente toma screenshots de tu demo live.
+🔒 Privacidad y Seguridad
+Esta aplicación es 100% Client-Side.
+❌ NO envía datos a servidores externos.
+❌ NO tiene backend ni base de datos remota.
+✅ Todos los registros (jornadas, nóminas, ajustes) se almacenan exclusivamente en el LocalStorage de tu navegador.
+⚠️ Advertencia: Si borras la caché del navegador o usas modo incógnito, perderás los datos. Usa siempre la función "Descargar JSON" en Ajustes para hacer backups periódicos.
+🤝 Contribuir
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+Haz Fork del proyecto.
+Crea una rama para tu feature (git checkout -b feature/AmazingFeature).
+Commit tus cambios (git commit -m 'Add some AmazingFeature').
+Push a la rama (git push origin feature/AmazingFeature).
+Abre un Pull Request.
+📄 Licencia
+Distribuido bajo la licencia MIT. Siéntete libre de usarlo, modificarlo y venderlo como servicio para tus clientes.
+👨‍💻 Autor
+Ivory37goku
+GitHub | Portfolio
+"El control laboral no debería ser complicado. Debería ser elegante."
