@@ -195,7 +195,11 @@
   .clock-time{font-family:var(--mono);font-weight:700;font-size:20px;margin-top:4px}
 
   /* Charts */
-  .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .chart-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chart-toggle{display:flex;gap:2px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:99px;padding:2px}
+  .chart-toggle .chip{padding:3px 9px;font-size:10px;border:0;background:transparent;border-radius:99px}
+  .chart-toggle .chip[aria-pressed="true"]{background:color-mix(in srgb,var(--brand) 18%,transparent);color:var(--brand)}
   .donut-wrap{position:relative;display:grid;place-items:center;padding:8px 0 4px}
   .donut{width:min(210px,60vw);height:auto;display:block}
   .donut circle{fill:none;stroke-width:13}
@@ -205,13 +209,21 @@
   .donut-label strong{display:block;font-family:var(--mono);font-size:30px;letter-spacing:-.03em}
   .donut-label span{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:800}
   .donut-sub{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line-soft);padding-top:12px;margin-top:10px;font-size:12px;color:var(--muted)}
-  .bars{display:flex;align-items:flex-end;gap:8px;height:210px;padding:18px 0 0;overflow-x:auto}
-  .bar-col{flex:1 1 0;min-width:34px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px}
-  .bar-val{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
-  .bar-track{width:100%;max-width:46px;flex:1;min-height:0;display:flex;align-items:flex-end;background:rgba(255,255,255,.035);border-radius:8px;overflow:hidden}
-  .bar-fill{position:relative;width:100%;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--brand),color-mix(in srgb,var(--brand) 45%,#111));min-height:3px}
-  .bar-inside{position:absolute;top:5px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--mono);font-size:9.5px;line-height:1.4;color:#fff;background:rgba(11,18,32,.72);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:0 5px;pointer-events:none}
-  .bar-label{font-size:10.5px;color:var(--muted);text-transform:capitalize}
+  .chart-area{display:grid;grid-template-columns:52px 1fr;grid-template-rows:220px auto;gap:8px 10px;margin-top:4px}
+  .chart-y{grid-column:1;grid-row:1;display:flex;flex-direction:column;justify-content:space-between;text-align:right;font-size:10px;line-height:1;color:var(--muted);padding:0 0 1px}
+  .chart-plot{grid-column:2;grid-row:1;position:relative;height:220px}
+  .chart-grid{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+  .chart-grid span{display:block;border-top:1px dashed rgba(148,163,184,.16)}
+  .chart-bars{position:absolute;inset:0;display:flex;align-items:flex-end;gap:8px;padding:0 4px}
+  .chart-col{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center}
+  .chart-stack{position:relative;width:min(48px,72%);min-height:3px;display:flex;flex-direction:column-reverse;border-radius:8px 8px 0 0;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.05)}
+  .chart-seg{display:block;width:100%}
+  .chart-total{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;font-family:var(--mono);font-size:9.5px;line-height:1.4;color:#fff;background:rgba(11,18,32,.78);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:0 5px;pointer-events:none}
+  .chart-months{grid-column:2;grid-row:2;display:flex;gap:8px;padding:0 4px}
+  .chart-months span{flex:1;min-width:0;text-align:center;font-size:10.5px;color:var(--muted);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:11px;color:var(--muted)}
+  .chart-legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
   .empty-chart{height:190px;display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center}
 
   /* Toolbar / chips */
@@ -377,6 +389,11 @@
     .topbar{display:none}
   }
   @media(max-width:520px){
+    .chart-area{grid-template-columns:42px 1fr;grid-template-rows:190px auto}
+    .chart-y{font-size:9px}
+    .chart-plot{height:190px}
+    .chart-bars,.chart-months{gap:5px;padding:0 2px}
+    .chart-stack{width:min(40px,80%)}
     .kpis{grid-template-columns:1fr 1fr;gap:10px}
     .kpi{padding:14px}
     .kpi strong{font-size:20px}
@@ -562,9 +579,19 @@
           </article>
 
           <article class="card">
-            <div class="chart-head"><h2>Pendiente por mes</h2><span class="badge bad" id="bars-total">0,00 €</span></div>
+            <div class="chart-head">
+              <h2>Pendiente por mes</h2>
+              <div class="chart-tools">
+                <div class="chart-toggle" role="group" aria-label="Contenido de la gráfica">
+                  <button class="chip" type="button" data-action="chart-mode" data-mode="all" aria-pressed="true">Todo</button>
+                  <button class="chip" type="button" data-action="chart-mode" data-mode="extras" aria-pressed="false">Extras</button>
+                </div>
+                <span class="badge bad" id="bars-total">0,00 €</span>
+              </div>
+            </div>
             <div id="bars"></div>
-            <p class="hint" id="bars-caption" style="margin:10px 0 0" hidden>Nóminas + extras + viajes sin cobrar.</p>
+            <div class="chart-legend" id="bars-legend"></div>
+            <p class="hint" id="bars-caption" style="margin:10px 0 0" hidden></p>
           </article>
         </div>
 
@@ -777,7 +804,7 @@
           <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada.</p>
         </article>
 
-        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.2</span> · Sin dependencias externas · Funciona sin conexión</p>
+        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.3</span> · Sin dependencias externas · Funciona sin conexión</p>
       </section>
     </main>
   </div>
@@ -843,7 +870,7 @@
   'use strict';
 
   const KEY = 'ivory37_data_v1';
-  const APP_VERSION = '2.2.2';
+  const APP_VERSION = '2.2.3';
   const NOTIF_KEY = 'ivory37_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -877,7 +904,8 @@
     query: '',
     limit: 30,
     today: '',
-    hour: -1
+    hour: -1,
+    chartMode: 'all'
   };
 
   /* ---------------- Utilidades ---------------- */
@@ -1276,18 +1304,30 @@
     });
   }
 
-  function monthPending(month) {
-    let total = 0;
+  function monthBreakdown(month) {
+    let payroll = 0;
+    let extras = 0;
+    let trips = 0;
     data.pagos.forEach((p) => {
-      if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) total += p.importe;
+      if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) payroll += p.importe;
     });
     data.jornadas.forEach((j) => {
-      if (j.fecha.slice(0, 7) === month && !j.pagado_extras) total += j.horas_extra * rateExtra();
+      if (j.fecha.slice(0, 7) === month && !j.pagado_extras) extras += j.horas_extra * rateExtra();
     });
     data.viajes.forEach((v) => {
-      if (v.fecha.slice(0, 7) === month && !v.pagado) total += v.importe;
+      if (v.fecha.slice(0, 7) === month && !v.pagado) trips += v.importe;
     });
-    return round2(total);
+    payroll = round2(payroll);
+    extras = round2(extras);
+    trips = round2(trips);
+    return { payroll, extras, trips, total: round2(payroll + extras + trips) };
+  }
+
+  function niceScale(max) {
+    const raw = Math.max(max, 1) / 4;
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1))));
+    const step = [1, 2, 2.5, 5, 10].map((x) => x * pow).find((s) => s >= raw) || pow * 10;
+    return { step, max: Math.ceil(max / step) * step };
   }
 
   function renderDataTools() {
@@ -1426,35 +1466,94 @@
     data.jornadas.forEach((j) => months.add(j.fecha.slice(0, 7)));
     data.pagos.forEach((p) => months.add(p.mes_key));
     data.viajes.forEach((v) => months.add(v.fecha.slice(0, 7)));
-    const list = Array.from(months).filter(Boolean).sort()
-      .filter((month) => monthPending(month) > 0)
+
+    const mode = ui.chartMode === 'extras' ? 'extras' : 'all';
+    $$('[data-action="chart-mode"]').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
+    });
+
+    const rows = Array.from(months).filter(Boolean).sort()
+      .map((month) => {
+        const breakdown = monthBreakdown(month);
+        return Object.assign({ month }, breakdown, { value: mode === 'extras' ? breakdown.extras : breakdown.total });
+      })
+      .filter((row) => row.value > 0)
       .slice(-8);
+
     const box = $('#bars');
-    const total = list.reduce((sum, month) => sum + monthPending(month), 0);
+    const legend = $('#bars-legend');
+    const caption = $('#bars-caption');
+    const total = round2(rows.reduce((sum, row) => sum + row.value, 0));
     $('#bars-total').textContent = fmtMoney(total);
 
-    if (!list.length) {
-      box.innerHTML = '<div class="empty-chart">Sin pendientes de cobro.<br>Todo al día.</div>';
-      const caption = $('#bars-caption');
+    if (!rows.length) {
+      box.innerHTML = '<div class="empty-chart">' +
+        (mode === 'extras' ? 'Sin horas extra pendientes.' : 'Sin pendientes de cobro.') +
+        '<br>Todo al día.</div>';
+      if (legend) legend.innerHTML = '';
       if (caption) caption.hidden = true;
       return;
     }
 
-    const values = list.map((m) => monthPending(m));
-    const max = Math.max.apply(null, values.concat([1]));
-    box.innerHTML = '<div class="bars">' + list.map((month, i) => {
-      const value = values[i];
-      const height = Math.max(3, (value / max) * 100);
-      const label = parseKey(month + '-01').toLocaleDateString('es-ES', { month: 'short' });
-      return '<div class="bar-col" title="' + esc(fmtMonth(month) + ': ' + fmtMoney(value)) + '">' +
-        '<div class="bar-track"><div class="bar-fill" style="height:' + height.toFixed(1) + '%">' +
-        '<span class="bar-inside">' + Math.round(value) + ' €</span>' +
-        '</div></div>' +
-        '<span class="bar-label">' + esc(label) + '</span>' +
-        '</div>';
-    }).join('') + '</div>';
-    const caption = $('#bars-caption');
-    if (caption) caption.hidden = false;
+    const max = Math.max.apply(null, rows.map((row) => row.value).concat([1]));
+    const scale = niceScale(max);
+    const yLabels = [];
+    for (let value = scale.max; value >= 0; value -= scale.step) yLabels.push(round2(value));
+    const axisFmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
+    const colors = { payroll: '#60a5fa', extras: '#fbbf24', trips: '#34d399' };
+
+    const legendItems = mode === 'extras'
+      ? [{ label: 'Horas extra', color: colors.extras }]
+      : [
+        { label: 'Nóminas', color: colors.payroll },
+        { label: 'Extras', color: colors.extras },
+        { label: 'Viajes', color: colors.trips }
+      ];
+    if (legend) {
+      legend.innerHTML = legendItems.map((item) =>
+        '<span><i class="legend-dot" style="background:' + item.color + '"></i>' + esc(item.label) + '</span>'
+      ).join('');
+    }
+    if (caption) {
+      caption.hidden = false;
+      caption.textContent = mode === 'extras'
+        ? 'Solo horas extra sin pagar (vista de la versión anterior).'
+        : 'Nóminas + extras + viajes sin cobrar.';
+    }
+
+    const bars = rows.map((row) => {
+      const height = (row.value / scale.max) * 100;
+      const segments = [];
+      if (mode === 'extras') {
+        segments.push({ value: row.extras, color: colors.extras });
+      } else {
+        if (row.payroll > 0) segments.push({ value: row.payroll, color: colors.payroll });
+        if (row.extras > 0) segments.push({ value: row.extras, color: colors.extras });
+        if (row.trips > 0) segments.push({ value: row.trips, color: colors.trips });
+      }
+      const stack = segments.map((segment) =>
+        '<span class="chart-seg" style="height:' + (segment.value / row.value * 100).toFixed(2) + '%;background:' + segment.color + '"></span>'
+      ).join('');
+      const title = fmtMonth(row.month) + ': ' + fmtMoney(row.value);
+      return '<div class="chart-col" title="' + esc(title) + '">' +
+        '<div class="chart-stack" style="height:' + height.toFixed(1) + '%">' +
+        '<span class="chart-total">' + axisFmt.format(Math.round(row.value)) + ' €</span>' +
+        stack +
+        '</div></div>';
+    }).join('');
+
+    const monthsHtml = rows.map((row) =>
+      '<span>' + esc(parseKey(row.month + '-01').toLocaleDateString('es-ES', { month: 'short' })) + '</span>'
+    ).join('');
+
+    box.innerHTML = '<div class="chart-area">' +
+      '<div class="chart-y">' + yLabels.map((value) => '<span>' + axisFmt.format(value) + ' €</span>').join('') + '</div>' +
+      '<div class="chart-plot">' +
+      '<div class="chart-grid">' + yLabels.map(() => '<span></span>').join('') + '</div>' +
+      '<div class="chart-bars">' + bars + '</div>' +
+      '</div>' +
+      '<div class="chart-months">' + monthsHtml + '</div>' +
+      '</div>';
   }
 
   function renderRecentPayrolls() {
@@ -2379,7 +2478,8 @@
         ).join('') +
         '<div class="detail-row total"><div><span>Total pendiente</span></div><b>' + fmtMoney(total) + '</b></div>' +
         '</div>' +
-        '<p class="hint" style="margin:14px 0 0">Para bajarlo: confirma la nómina en Pagos, marca las extras como pagadas y los viajes como cobrados.</p>'
+        (payrollTotal > 0 ? '<p class="hint" style="margin:14px 0 0">Sin la nómina pendiente serían ' + fmtMoney(round2(extraTotal + tripTotal)) + ' (extras + viajes), el importe que mostraba la versión anterior.</p>' : '') +
+        '<p class="hint" style="margin:8px 0 0">Para bajarlo: confirma la nómina en Pagos, marca las extras como pagadas y los viajes como cobrados.</p>'
     });
   }
 
@@ -2668,6 +2768,11 @@
         break;
       }
       case 'pending-detail': pendingModal(); break;
+      case 'chart-mode': {
+        ui.chartMode = el.dataset.mode === 'extras' ? 'extras' : 'all';
+        renderBars();
+        break;
+      }
       case 'request-notif': requestNotifications(); break;
       case 'settings-jump': {
         const target = el.dataset.target ? document.querySelector(el.dataset.target) : null;

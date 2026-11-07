@@ -1,5 +1,13 @@
 # Cambios
 
+## 2.2.3 — Gráfica con ejes y composición
+
+- Gráfica con eje Y, líneas de referencia y barras apiladas por concepto.
+- Selector **Todo / Extras**: «Todo» suma nóminas + extras + viajes (1.540,18 €);
+  «Extras» muestra solo horas extra (852,58 €), como la gráfica antigua.
+- Leyenda de nóminas, extras y viajes, y total dentro de cada barra.
+- El desglose explica los 1.252,58 € de la versión anterior (extras + viajes, sin nómina).
+
 ## 2.2.2 — Pendiente transparente
 
 - El KPI «Pendiente» incluye un enlace **Ver desglose** con nóminas, extras y viajes.

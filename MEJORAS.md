@@ -256,6 +256,15 @@ resultado se obtiene de forma explícita con «Completar mes».
 
 ---
 
+## Actualización 2.2.3 — gráfica con ejes y composición
+
+- Eje Y, líneas de referencia y barras apiladas por concepto.
+- Selector «Todo / Extras» para comparar la vista completa (1.540,18 €) con la
+  histórica de solo extras (852,58 €).
+- Leyenda y total por barra.
+- El desglose aclara los 1.252,58 € de la versión anterior: extras + viajes, sin la
+  nómina pendiente.
+
 ## Actualización 2.2.2 — pendiente transparente
 
 - El KPI de pendiente abre un desglose con nóminas sin confirmar, horas extra sin pagar
