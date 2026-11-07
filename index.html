@@ -523,7 +523,7 @@
             <small>Nóminas conformes, extras y viajes</small>
           </article>
           <article class="card kpi" style="--tone:#f87171">
-            <div class="kpi-top"><span>Pendiente</span><span class="kpi-ico"><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg></span></div>
+            <div class="kpi-top"><span>A cobrar</span><span class="kpi-ico"><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg></span></div>
             <strong id="kpi-pending">0,00 €</strong>
             <small id="kpi-pending-sub">Sin datos</small>
             <button class="kpi-link" type="button" data-action="pending-detail">Ver desglose</button>
@@ -580,18 +580,12 @@
 
           <article class="card">
             <div class="chart-head">
-              <h2>Pendiente por mes</h2>
-              <div class="chart-tools">
-                <div class="chart-toggle" role="group" aria-label="Contenido de la gráfica">
-                  <button class="chip" type="button" data-action="chart-mode" data-mode="all" aria-pressed="true">Todo</button>
-                  <button class="chip" type="button" data-action="chart-mode" data-mode="extras" aria-pressed="false">Extras</button>
-                </div>
-                <span class="badge bad" id="bars-total">0,00 €</span>
-              </div>
+              <h2>Flujo de caja (pend.)</h2>
+              <span class="badge bad" id="bars-total">0,00 €</span>
             </div>
+            <p class="hint" id="bars-caption" style="margin:0 0 10px" hidden></p>
             <div id="bars"></div>
             <div class="chart-legend" id="bars-legend"></div>
-            <p class="hint" id="bars-caption" style="margin:10px 0 0" hidden></p>
           </article>
         </div>
 
@@ -804,7 +798,7 @@
           <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada.</p>
         </article>
 
-        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.3</span> · Sin dependencias externas · Funciona sin conexión</p>
+        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.4</span> · Sin dependencias externas · Funciona sin conexión</p>
       </section>
     </main>
   </div>
@@ -870,7 +864,7 @@
   'use strict';
 
   const KEY = 'ivory37_data_v1';
-  const APP_VERSION = '2.2.3';
+  const APP_VERSION = '2.2.4';
   const NOTIF_KEY = 'ivory37_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -904,8 +898,7 @@
     query: '',
     limit: 30,
     today: '',
-    hour: -1,
-    chartMode: 'all'
+    hour: -1
   };
 
   /* ---------------- Utilidades ---------------- */
@@ -1207,9 +1200,8 @@
     let extraPaid = 0;
     let trips = 0;
     let tripsPaid = 0;
-    let payrollPaid = 0;
+    let autoPaid = 0;
     let payrollPending = 0;
-    let payrollEarned = 0;
     let manualPaid = 0;
     let estimateH = 0;
 
@@ -1234,16 +1226,18 @@
 
     data.pagos.forEach((p) => {
       if (p.tipo === 'nomina_auto') {
-        payrollEarned += p.importe;
-        if (p.confirmado) payrollPaid += p.importe;
+        if (p.confirmado) autoPaid += p.importe;
         else payrollPending += p.importe;
       } else if (p.confirmado) {
-        payrollPaid += p.importe;
         manualPaid += p.importe;
       }
     });
 
-    const earned = round2(payrollEarned + extraH * re + trips + manualPaid);
+    // El panel sigue el criterio de la versión que usas: lo pendiente son las
+    // horas extra y los viajes sin cobrar. La nómina sin confirmar se gestiona
+    // en Pagos y no se suma aquí para no duplicarla.
+    const payrollPaid = autoPaid + manualPaid;
+    const earned = round2(autoPaid + manualPaid + extraH * re + trips);
     const collected = round2(payrollPaid + extraPaid + tripsPaid);
     return {
       normalH: round2(normalH),
@@ -1324,7 +1318,7 @@
   }
 
   function niceScale(max) {
-    const raw = Math.max(max, 1) / 4;
+    const raw = Math.max(max, 1) / 9;
     const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1))));
     const step = [1, 2, 2.5, 5, 10].map((x) => x * pow).find((s) => s >= raw) || pow * 10;
     return { step, max: Math.ceil(max / step) * step };
@@ -1439,7 +1433,7 @@
     $('#kpi-earned').textContent = fmtMoney(t.earned);
     $('#kpi-collected').textContent = fmtMoney(t.collected);
     $('#kpi-pending').textContent = fmtMoney(t.pending);
-    $('#kpi-pending-sub').textContent = t.pending > 0 ? 'Pendiente de cobro' : 'Sin pendientes';
+    $('#kpi-pending-sub').textContent = t.pending > 0 ? 'Extras + viajes sin cobrar' : 'Sin pendientes';
     $('#kpi-extra').textContent = fmtHours(t.extraH);
     $('#kpi-extra-sub').textContent = fmtMoney(t.extraPending) + ' pendientes';
     $('#kpi-est-flag').hidden = !isEstimation();
@@ -1452,8 +1446,8 @@
     $('#donut-sub').textContent = fmtMoney(t.collected) + ' cobrado';
     $('#donut-sub2').textContent = fmtMoney(Math.max(0, t.pending)) + ' pendiente';
     const status = $('#donut-status');
-    status.textContent = pct >= 1 ? 'Al día' : pct >= 0.5 ? 'Parcial' : 'Pendiente';
-    status.className = 'badge ' + (pct >= 1 ? 'ok' : pct >= 0.5 ? 'warn' : 'bad');
+    status.textContent = pct >= 1 ? 'Al día' : pct >= 0.9 ? 'Casi al día' : pct >= 0.5 ? 'Parcial' : 'Pendiente';
+    status.className = 'badge ' + (pct >= 1 ? 'ok' : pct >= 0.9 ? 'warn' : pct >= 0.5 ? 'warn' : 'bad');
 
     renderBars();
     renderRecentPayrolls();
@@ -1467,78 +1461,56 @@
     data.pagos.forEach((p) => months.add(p.mes_key));
     data.viajes.forEach((v) => months.add(v.fecha.slice(0, 7)));
 
-    const mode = ui.chartMode === 'extras' ? 'extras' : 'all';
-    $$('[data-action="chart-mode"]').forEach((btn) => {
-      btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
-    });
-
+    const t = totals();
+    const tripPending = round2(Math.max(0, t.trips - t.tripsPaid));
     const rows = Array.from(months).filter(Boolean).sort()
-      .map((month) => {
-        const breakdown = monthBreakdown(month);
-        return Object.assign({ month }, breakdown, { value: mode === 'extras' ? breakdown.extras : breakdown.total });
-      })
-      .filter((row) => row.value > 0)
+      .map((month) => Object.assign({ month }, monthBreakdown(month)))
+      .filter((row) => row.extras > 0)
       .slice(-8);
 
     const box = $('#bars');
     const legend = $('#bars-legend');
     const caption = $('#bars-caption');
-    const total = round2(rows.reduce((sum, row) => sum + row.value, 0));
-    $('#bars-total').textContent = fmtMoney(total);
+    const extrasTotal = round2(rows.reduce((sum, row) => sum + row.extras, 0));
+    $('#bars-total').textContent = fmtMoney(extrasTotal);
 
     if (!rows.length) {
-      box.innerHTML = '<div class="empty-chart">' +
-        (mode === 'extras' ? 'Sin horas extra pendientes.' : 'Sin pendientes de cobro.') +
-        '<br>Todo al día.</div>';
+      box.innerHTML = '<div class="empty-chart">Sin horas extra pendientes.<br>Todo al día.</div>';
       if (legend) legend.innerHTML = '';
-      if (caption) caption.hidden = true;
+      if (caption) {
+        caption.hidden = false;
+        caption.textContent = tripPending > 0
+          ? 'Sin horas extra. Viajes pendientes: ' + fmtMoney(tripPending) + ' · Total a cobrar: ' + fmtMoney(tripPending) + '.'
+          : 'Sin pendientes de cobro.';
+      }
       return;
     }
 
-    const max = Math.max.apply(null, rows.map((row) => row.value).concat([1]));
+    const max = Math.max.apply(null, rows.map((row) => row.extras).concat([1]));
     const scale = niceScale(max);
     const yLabels = [];
     for (let value = scale.max; value >= 0; value -= scale.step) yLabels.push(round2(value));
     const axisFmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
-    const colors = { payroll: '#60a5fa', extras: '#fbbf24', trips: '#34d399' };
+    const color = '#ef4444';
 
-    const legendItems = mode === 'extras'
-      ? [{ label: 'Horas extra', color: colors.extras }]
-      : [
-        { label: 'Nóminas', color: colors.payroll },
-        { label: 'Extras', color: colors.extras },
-        { label: 'Viajes', color: colors.trips }
-      ];
     if (legend) {
-      legend.innerHTML = legendItems.map((item) =>
-        '<span><i class="legend-dot" style="background:' + item.color + '"></i>' + esc(item.label) + '</span>'
-      ).join('');
+      legend.innerHTML = '<span><i class="legend-dot" style="background:' + color + '"></i>Horas extra pendientes</span>';
     }
     if (caption) {
       caption.hidden = false;
-      caption.textContent = mode === 'extras'
-        ? 'Solo horas extra sin pagar (vista de la versión anterior).'
-        : 'Nóminas + extras + viajes sin cobrar.';
+      caption.textContent = 'Solo horas extra.' +
+        (tripPending > 0
+          ? ' Viajes pendientes: ' + fmtMoney(tripPending) + ' · Total a cobrar: ' + fmtMoney(round2(extrasTotal + tripPending)) + '.'
+          : '');
     }
 
     const bars = rows.map((row) => {
-      const height = (row.value / scale.max) * 100;
-      const segments = [];
-      if (mode === 'extras') {
-        segments.push({ value: row.extras, color: colors.extras });
-      } else {
-        if (row.payroll > 0) segments.push({ value: row.payroll, color: colors.payroll });
-        if (row.extras > 0) segments.push({ value: row.extras, color: colors.extras });
-        if (row.trips > 0) segments.push({ value: row.trips, color: colors.trips });
-      }
-      const stack = segments.map((segment) =>
-        '<span class="chart-seg" style="height:' + (segment.value / row.value * 100).toFixed(2) + '%;background:' + segment.color + '"></span>'
-      ).join('');
-      const title = fmtMonth(row.month) + ': ' + fmtMoney(row.value);
-      return '<div class="chart-col" title="' + esc(title) + '">' +
+      const height = (row.extras / scale.max) * 100;
+      const label = parseKey(row.month + '-01').toLocaleDateString('es-ES', { month: 'short' });
+      return '<div class="chart-col" title="' + esc(fmtMonth(row.month) + ': ' + fmtMoney(row.extras)) + '">' +
         '<div class="chart-stack" style="height:' + height.toFixed(1) + '%">' +
-        '<span class="chart-total">' + axisFmt.format(Math.round(row.value)) + ' €</span>' +
-        stack +
+        '<span class="chart-total">' + axisFmt.format(Math.round(row.extras)) + ' €</span>' +
+        '<span class="chart-seg" style="height:100%;background:' + color + '"></span>' +
         '</div></div>';
     }).join('');
 
@@ -1744,7 +1716,7 @@
     $('#sum-paid').textContent = fmtMoney(t.collected);
 
     const products = data.pagos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-    $('#sum-pending-payrolls-sub').textContent = products.filter((p) => !p.confirmado && p.tipo === 'nomina_auto').length + ' sin confirmar';
+    $('#sum-pending-payrolls-sub').textContent = products.filter((p) => !p.confirmado && p.tipo === 'nomina_auto').length + ' sin confirmar · fuera de «A cobrar»';
 
     const payroll = $('#payroll-list');
     if (!products.length) {
@@ -2454,32 +2426,37 @@
   }
 
   function pendingModal() {
-    const pendingPayrolls = data.pagos.filter((p) => p.tipo === 'nomina_auto' && !p.confirmado);
-    const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
     const unpaidExtras = data.jornadas.filter((j) => j.horas_extra > 0 && !j.pagado_extras);
     const extraHours = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra, 0));
     const extraTotal = round2(extraHours * rateExtra());
     const pendingTrips = data.viajes.filter((v) => !v.pagado);
     const tripTotal = round2(pendingTrips.reduce((sum, v) => sum + v.importe, 0));
-    const total = round2(payrollTotal + extraTotal + tripTotal);
+    const total = round2(extraTotal + tripTotal);
+    const pendingPayrolls = data.pagos.filter((p) => p.tipo === 'nomina_auto' && !p.confirmado);
+    const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
 
     const rows = [
-      { label: 'Nóminas sin confirmar', detail: pendingPayrolls.length === 1 ? '1 nómina' : pendingPayrolls.length + ' nóminas', value: payrollTotal },
       { label: 'Horas extra sin pagar', detail: fmtHours(extraHours) + ' × ' + fmtMoney(rateExtra()) + '/h', value: extraTotal },
       { label: 'Viajes sin cobrar', detail: pendingTrips.length === 1 ? '1 viaje' : pendingTrips.length + ' viajes', value: tripTotal }
     ];
 
+    const payrollNote = pendingPayrolls.length === 0
+      ? ''
+      : pendingPayrolls.length === 1
+        ? 'La nómina sin confirmar (' + fmtMoney(payrollTotal) + ') se gestiona en Pagos y no se suma aquí.'
+        : 'Hay ' + pendingPayrolls.length + ' nóminas sin confirmar (' + fmtMoney(payrollTotal) + ') que se gestionan en Pagos y no se suman aquí.';
+
     openModal({
-      title: 'Composición del pendiente',
+      title: 'Composición de lo pendiente',
       hideSave: true,
       body: '<div class="detail-list">' +
         rows.map((row) =>
           '<div class="detail-row"><div><span>' + esc(row.label) + '</span><small>' + esc(row.detail) + '</small></div><b>' + fmtMoney(row.value) + '</b></div>'
         ).join('') +
-        '<div class="detail-row total"><div><span>Total pendiente</span></div><b>' + fmtMoney(total) + '</b></div>' +
+        '<div class="detail-row total"><div><span>Total a cobrar</span></div><b>' + fmtMoney(total) + '</b></div>' +
         '</div>' +
-        (payrollTotal > 0 ? '<p class="hint" style="margin:14px 0 0">Sin la nómina pendiente serían ' + fmtMoney(round2(extraTotal + tripTotal)) + ' (extras + viajes), el importe que mostraba la versión anterior.</p>' : '') +
-        '<p class="hint" style="margin:8px 0 0">Para bajarlo: confirma la nómina en Pagos, marca las extras como pagadas y los viajes como cobrados.</p>'
+        (payrollNote ? '<p class="hint" style="margin:14px 0 0">' + esc(payrollNote) + '</p>' : '') +
+        '<p class="hint" style="margin:8px 0 0">Para bajarlo: marca las extras como pagadas y los viajes como cobrados.</p>'
     });
   }
 
@@ -2768,11 +2745,6 @@
         break;
       }
       case 'pending-detail': pendingModal(); break;
-      case 'chart-mode': {
-        ui.chartMode = el.dataset.mode === 'extras' ? 'extras' : 'all';
-        renderBars();
-        break;
-      }
       case 'request-notif': requestNotifications(); break;
       case 'settings-jump': {
         const target = el.dataset.target ? document.querySelector(el.dataset.target) : null;

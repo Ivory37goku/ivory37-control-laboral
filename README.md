@@ -10,7 +10,7 @@ Aplicación web de una sola página para registrar **jornadas, horas extra, viaj
 - Horas extra por jornada y control de su pago.
 - Viajes y dietas con estado cobrado/pendiente.
 - Nóminas mensuales automáticas, confirmación y edición.
-- Panel con **devengado, cobrado, pendiente y horas extra**, saludo personalizado y resumen contextual, con desglose del pendiente y gráfica por concepto (nóminas, extras y viajes).
+- Panel con **devengado, cobrado, a cobrar y horas extra**, saludo personalizado y resumen contextual, con desglose de extras + viajes y gráfica de horas extra pendientes.
 - **Primeros pasos** con progreso, descarte y recordatorio de copia de seguridad.
 - **Perfil personalizable**: nombre, rol, foto o logo en la barra lateral y en móvil.
 - **Logo de la app** con fondo claro/oscuro, adaptación a logos apaisados y favicon dinámico.
@@ -55,4 +55,4 @@ CHANGELOG.md   Historial de versiones
 
 ## Estado
 
-Versión 2.2.3. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.
+Versión 2.2.4. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.

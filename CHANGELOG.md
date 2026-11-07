@@ -1,5 +1,15 @@
 # Cambios
 
+## 2.2.4 — A cobrar como la versión que usas
+
+- «A cobrar» = horas extra + viajes sin cobrar (1.252,58 €). La nómina sin confirmar
+  (287,60 €) se gestiona en Pagos y no se suma aquí.
+- «Flujo de caja (pend.)» vuelve a mostrar solo horas extra, como la gráfica antigua
+  (364,27 / 433,18 / 55,13 €), con eje y barras.
+- El pie de la gráfica suma los viajes pendientes y muestra el total a cobrar, para que
+  no parezca que falta dinero.
+- Devengado = cobrado + a cobrar (14.594,58 €), sin duplicar la nómina pendiente.
+
 ## 2.2.3 — Gráfica con ejes y composición
 
 - Gráfica con eje Y, líneas de referencia y barras apiladas por concepto.

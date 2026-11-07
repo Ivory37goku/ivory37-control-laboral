@@ -256,6 +256,15 @@ resultado se obtiene de forma explícita con «Completar mes».
 
 ---
 
+## Actualización 2.2.4 — criterio «A cobrar» de la versión que usas
+
+- «A cobrar» = extras + viajes sin cobrar (1.252,58 €). La nómina sin confirmar
+  (287,60 €) se muestra en Pagos y no se suma al panel.
+- La gráfica vuelve a ser solo de horas extra (364,27 / 433,18 / 55,13 €), con eje,
+  barras y el total a cobrar en el pie (extras + viajes).
+- Devengado = cobrado + a cobrar, sin duplicar la nómina pendiente.
+- La tarjeta de nóminas pendientes de Pagos indica que queda fuera de «A cobrar».
+
 ## Actualización 2.2.3 — gráfica con ejes y composición
 
 - Eje Y, líneas de referencia y barras apiladas por concepto.
