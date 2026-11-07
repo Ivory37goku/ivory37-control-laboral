@@ -223,3 +223,49 @@ por defecto sin fichaje es **provisional**.
 - Sin errores de consola en ninguno de los flujos.
 - DOM sin IDs duplicados, sin iconos rotos, sin campos sin etiqueta y sin recursos
   externos.
+
+---
+
+## Actualización 2.1 — perfil, logo y fichaje automático
+
+Añadido después de la revisión inicial:
+
+- **Mi perfil**: nombre, rol y foto propios en la barra lateral y en la cabecera móvil.
+  Si no hay foto se usa el logo de la app; si tampoco hay logo, las iniciales.
+  El perfil se edita desde la propia barra lateral o desde **Ajustes → Mi perfil**.
+- **Logo mejorado**: `object-fit: contain` (antes se recortaba), fondo claro/oscuro
+  elegible y ensanchado automático para logos apaisados.
+- **Fichaje automático por horario**: si la app está abierta a la hora de entrada,
+  ficha sola; a la hora de salida cierra la jornada. Solo actúa sobre registros
+  creados por el propio automatismo, se marca con la etiqueta «Auto» y se puede
+  desactivar. Nunca rellena días pasados en silencio.
+- **«Según horario»**: crea la jornada de hoy con el horario habitual en un clic.
+- **«Completar mes»**: rellena, con confirmación previa, los días laborables sin
+  registro del mes en curso. Quedan marcados como Auto y se pueden borrar con
+  «Quitar autogeneradas».
+- **Confirmar provisionales**: recupera el antiguo «Confirmar todo», pero sin
+  inventar fichajes ni horas.
+- **Ajustes deduplicados** al importar: si una clave aparece repetida, gana la última.
+- **Cierre de jornadas Auto antiguas**: si una jornada automática quedó abierta,
+  se cierra al día siguiente a la hora de salida.
+
+La generación masiva y silenciosa de jornadas de la versión anterior sigue
+eliminada a propósito: era la causa principal de nóminas infladas. Ahora el mismo
+resultado se obtiene de forma explícita con «Completar mes».
+
+---
+
+## Actualización 2.2 — acabado premium
+
+- **Panel**: saludo según la hora, nombre del perfil y resumen de lo pendiente.
+- **Primeros pasos**: checklist con progreso (perfil, horario, primera jornada y copia de
+  seguridad), descarte y opción de volver a mostrarlo desde Ajustes.
+- **Confianza**: se registra la última copia de seguridad y se recuerda si han pasado más
+  de 30 días.
+- **Marca**: favicon dinámico con el color de la app o el logo, metadatos sociales y logo
+  en el informe impreso.
+- **Ajustes**: navegación por secciones y mejor jerarquía visual.
+- **Móvil**: cabecera de Jornadas con la acción principal a ancho completo y avatar de
+  perfil en la barra superior.
+- **Detalles**: contraste de avatares, logos apaisados en la marca y vista previa del logo
+  sin el icono de reserva superpuesto.

@@ -5,15 +5,18 @@ Aplicación web de una sola página para registrar **jornadas, horas extra, viaj
 ## Funciones
 
 - Fichaje de entrada/salida con cálculo real de horas (incluidos turnos nocturnos).
-- Registro manual y edición de jornadas, con estado confirmado/provisional.
+- **Fichaje automático** por horario habitual, con botón «Según horario» y «Completar mes» para los días sin registro.
+- Registro manual y edición de jornadas, con estado confirmado/provisional y confirmación masiva.
 - Horas extra por jornada y control de su pago.
 - Viajes y dietas con estado cobrado/pendiente.
 - Nóminas mensuales automáticas, confirmación y edición.
-- Panel con devengado, cobrado, pendiente y horas extra.
-- Informe imprimible (Guardar como PDF), backup JSON y exportación CSV.
-- Búsqueda, filtros y paginación.
-- Tema oscuro, logo personalizable y color de marca.
-- Datos en `localStorage`, con sincronización entre pestañas y copia de seguridad.
+- Panel con **devengado, cobrado, pendiente y horas extra**, saludo personalizado y resumen contextual.
+- **Primeros pasos** con progreso, descarte y recordatorio de copia de seguridad.
+- **Perfil personalizable**: nombre, rol, foto o logo en la barra lateral y en móvil.
+- **Logo de la app** con fondo claro/oscuro, adaptación a logos apaisados y favicon dinámico.
+- Informe imprimible (Guardar como PDF) con logo y cabecera de perfil.
+- Backup JSON, exportación CSV, búsqueda, filtros y paginación.
+- Datos en `localStorage`, con sincronización entre pestañas y aviso de última copia.
 
 ## Uso
 
@@ -28,16 +31,21 @@ python3 -m http.server 8080
 
 ## Datos
 
-La app guarda todo en la clave `ivory37_data_v1` de `localStorage`. Usa **Ajustes → Backup JSON** con frecuencia y **Restaurar** para recuperarlo. El botón **Borrar todo** elimina los datos de este navegador.
+La app guarda todo en la clave `ivory37_data_v1` de `localStorage`. Usa **Ajustes → Backup JSON** con frecuencia y **Restaurar** para recuperarlo. El botón **Borrar todo** elimina los datos de este navegador. El panel recuerda cuándo hiciste la última copia y avisa si han pasado más de 30 días.
+
+## Perfil
+
+En **Ajustes → Mi perfil** puedes poner tu nombre, tu rol y una foto. Si no pones foto se usa el logo de la app (cuando es cuadrado) o tus iniciales.
 
 ## Estructura
 
 ```
-index.html    Aplicación completa (HTML + CSS + JS, sin dependencias)
-MEJORAS.md    Revisión técnica: fallos corregidos y siguientes pasos
-README.md     Este archivo
+index.html     Aplicación completa (HTML + CSS + JS, sin dependencias)
+README.md      Este archivo
+MEJORAS.md     Revisión técnica: fallos corregidos y siguientes pasos
+CHANGELOG.md   Historial de versiones
 ```
 
 ## Estado
 
-Versión 2.0. Validada con pruebas de DOM (jsdom): fichaje, edición y borrado de jornadas, viajes, nóminas, ajustes, estimación, importación y migración del formato anterior.
+Versión 2.2. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.

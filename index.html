@@ -6,6 +6,11 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b1220">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y guarda los datos solo en tu dispositivo.">
+<meta name="application-name" content="IVORY37">
+<meta property="og:title" content="IVORY37 · Control laboral">
+<meta property="og:description" content="Control de jornadas, horas extra, viajes y nóminas. Sin dependencias, sin conexión, con tus datos en tu dispositivo.">
+<meta property="og:type" content="website">
+<link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f97316'/%3E%3Cpath d='M36 8 17 36h12l-2 20 20-30H35l1-18Z' fill='%23171004'/%3E%3C/svg%3E">
 <title>IVORY37 · Control laboral</title>
 <style>
   *,*::before,*::after{box-sizing:border-box}
@@ -25,6 +30,7 @@
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   }
   html{color-scheme:dark;scroll-behavior:smooth}
+  ::selection{background:color-mix(in srgb,var(--brand) 38%,transparent);color:#fff}
   body{
     margin:0;min-height:100dvh;
     background:
@@ -62,9 +68,18 @@
     box-shadow:0 0 24px rgba(249,115,22,.25);
   }
   .brand-mark svg{width:22px;height:22px;stroke-width:2.4}
-  .brand-mark img{width:100%;height:100%;object-fit:cover}
+  .brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
+  .brand-mark.has-logo{background:#f8fafc;padding:5px;box-shadow:inset 0 0 0 1px rgba(15,23,42,.08)}
+  .brand-mark.has-logo.logo-on-dark{background:#0b1220;padding:5px;box-shadow:inset 0 0 0 1px var(--line)}
+  .brand-mark.has-logo svg{display:none}
+  .brand-mark.has-logo.logo-wide{width:96px}
+  .topbar .brand-mark.has-logo.logo-wide{width:64px}
+  .avatar.avatar-sm{width:30px;height:30px;font-size:10px;border:1px solid var(--line)}
+  .topbar-right{display:flex;align-items:center;gap:10px}
   .brand strong{display:block;font-size:17px;letter-spacing:-.02em;line-height:1.1}
-  .brand-sub{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:3px}
+  .brand-sub{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:3px}
+  .nav-block{display:flex;flex-direction:column;gap:4px}
+  .nav-label{margin:0 12px 2px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:800}
   .nav{display:flex;flex-direction:column;gap:4px}
   .nav button{
     display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;
@@ -73,10 +88,20 @@
   }
   .nav button:hover{background:rgba(255,255,255,.05);color:var(--text)}
   .nav button.active{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
-  .sidebar-foot{margin-top:auto;padding:14px 10px 0;border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:10px}
-  .avatar{width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--brand) 25%,#1e293b);display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--brand);flex:none}
-  .sidebar-foot p{margin:0;font-size:12.5px;font-weight:600}
-  .sidebar-foot span{font-size:11px;color:var(--muted)}
+  .nav button.active::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand);margin-left:auto;box-shadow:0 0 10px var(--brand)}
+  .sidebar-foot{margin-top:auto;padding:14px 0 0;border-top:1px solid var(--line-soft)}
+  .profile-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:12px;text-align:left;border:1px solid transparent;transition:background .15s,border-color .15s}
+  .profile-btn:hover{background:rgba(255,255,255,.05);border-color:var(--line-soft)}
+  .avatar{width:36px;height:36px;padding:0;border-radius:50%;background:linear-gradient(160deg,#1e293b,#0f172a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--brand);flex:none;overflow:hidden;position:relative}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .avatar.logo{background:#f8fafc}
+  .avatar.logo img{object-fit:contain;padding:4px;background:transparent}
+  .avatar span{line-height:1}
+  .avatar-lg{width:64px;height:64px;font-size:20px;border-radius:18px}
+  .profile-meta{min-width:0;flex:1;display:block}
+  .profile-meta strong{display:block;font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profile-meta small{display:block;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+  .profile-edit{color:var(--muted);width:15px;height:15px;flex:none}
   .main{min-width:0;padding:26px clamp(16px,3vw,40px) 120px}
   .topbar{display:none}
 
@@ -91,17 +116,44 @@
   .card{
     background:linear-gradient(160deg,rgba(30,41,59,.72),rgba(14,23,40,.92));
     border:1px solid var(--line);border-radius:var(--radius);padding:20px;
-    box-shadow:var(--shadow);
+    box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s;
   }
+  .card:hover{border-color:rgba(148,163,184,.26)}
   .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hero{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:26px;margin-bottom:16px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(120deg,color-mix(in srgb,var(--brand) 16%,transparent),rgba(17,27,46,.65) 42%,rgba(11,18,32,.95));box-shadow:var(--shadow)}
+  .hero::before{content:"";position:absolute;right:-70px;top:-120px;width:320px;height:320px;border-radius:50%;background:color-mix(in srgb,var(--brand) 30%,transparent);filter:blur(70px);opacity:.55;pointer-events:none}
+  .hero > *{position:relative;z-index:1}
+  .hero h1{margin:4px 0 8px;font-size:clamp(26px,3.2vw,36px);line-height:1.08;letter-spacing:-.045em}
+  .hero h1 .name{color:var(--brand)}
+  .hero-sub{margin:0;color:var(--muted);font-size:13.5px;max-width:64ch}
+  .hero-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  .setup{margin-bottom:16px;padding:18px}
+  .settings-nav{margin-bottom:14px}
+  #profile-card,#appearance-card,#rates-card,#data-card,#notices-card{scroll-margin-top:80px}
+  .setup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .setup-head h2{font-size:15px}
+  .setup-actions{display:flex;align-items:center;gap:8px}
+  .setup-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:12px 0 8px}
+  .setup-bar span{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--brand),color-mix(in srgb,var(--brand) 55%,#fff));transition:width .35s ease}
+  .setup-list{display:grid;gap:3px}
+  @media(min-width:900px){.setup-list{grid-template-columns:1fr 1fr;gap:3px 18px}}
+  .setup-item{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid transparent;text-align:left;color:var(--text);font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
+  .setup-item:hover{background:rgba(255,255,255,.04);border-color:var(--line-soft)}
+  .setup-check{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.03);display:grid;place-items:center;font-size:11px;flex:none;color:transparent}
+  .setup-item.done{color:var(--muted)}
+  .setup-item.done .setup-check{background:color-mix(in srgb,var(--ok) 18%,transparent);border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
+  .setup-arrow{margin-left:auto;color:var(--muted);font-size:16px;line-height:1}
+  .setup-item.done .setup-arrow{visibility:hidden}
   .grid-2{display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:16px}
+  .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+  @media(min-width:1024px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  @media(max-width:1100px){.kpi-top span:first-child{font-size:9.5px;letter-spacing:.06em}}
   .kpi{position:relative;overflow:hidden;padding:18px}
   .kpi > *{position:relative;z-index:1}
   .kpi::after{content:"";position:absolute;right:-40px;top:-40px;width:120px;height:120px;border-radius:50%;background:color-mix(in srgb,var(--tone,var(--brand)) 12%,transparent);filter:blur(10px);pointer-events:none}
   .kpi-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-  .kpi-top span:first-child{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .kpi-top span:first-child{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
   .kpi-ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--tone,var(--brand));background:color-mix(in srgb,var(--tone,var(--brand)) 12%,transparent)}
   .kpi strong{display:block;font-family:var(--mono);font-size:clamp(22px,2.6vw,28px);letter-spacing:-.03em;line-height:1.1}
   .kpi small{display:block;color:var(--muted);font-size:11.5px;margin-top:6px}
@@ -184,6 +236,7 @@
   .badge.info{color:#93c5fd;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25)}
   .badge.bad{color:#fca5a5;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25)}
   .badge.muted{color:var(--muted);background:rgba(148,163,184,.1);border:1px solid var(--line)}
+  .badge + .badge{margin-left:4px}
   .notes{margin:5px 0 0;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
   /* Jornada mobile cards */
@@ -213,6 +266,13 @@
   .empty strong{display:block;color:var(--text);margin-bottom:4px;font-size:14px}
   .empty svg{width:28px;height:28px;margin-bottom:8px;opacity:.6}
 
+  /* Perfil */
+  .profile-card{display:block;margin-bottom:16px}
+  .profile-card .profile-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .profile-card .profile-head h2{margin:0}
+  .profile-card .profile-head .hint{max-width:52ch}
+  @media(max-width:640px){.profile-card .avatar-lg{width:56px;height:56px}}
+
   /* Forms */
   .field{display:block;margin-bottom:13px}
   .field > span{display:block;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -230,14 +290,17 @@
   .switch b{display:block;font-size:13px}
   .switch small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .logo-zone{display:flex;align-items:center;gap:12px}
-  .logo-zone .preview{width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;color:var(--muted);flex:none}
-  .logo-zone .preview img{width:100%;height:100%;object-fit:cover}
+  .logo-zone .preview{width:64px;height:64px;border-radius:14px;background:#f8fafc;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;color:#64748b;flex:none;padding:5px}
+  .logo-zone .preview.on-dark{background:#0b1220;color:var(--muted)}
+  .logo-zone .preview img{width:100%;height:100%;object-fit:contain}
+  .logo-zone .preview.logo-wide{width:96px}
 
   /* Modal */
   .modal{position:fixed;inset:0;z-index:80;display:grid;place-items:end center}
   .modal-backdrop{position:absolute;inset:0;background:rgba(2,6,23,.78);backdrop-filter:blur(4px)}
+  @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
   .modal-panel{
-    position:relative;width:min(560px,100%);max-height:92dvh;overflow:auto;
+    position:relative;width:min(560px,100%);max-height:92dvh;overflow:auto;animation:modalIn .18s ease-out;
     background:var(--panel);border:1px solid var(--line);border-radius:22px 22px 0 0;
     padding:20px;box-shadow:0 -20px 60px rgba(0,0,0,.6);
   }
@@ -302,11 +365,23 @@
     .topbar{display:none}
   }
   @media(max-width:520px){
+    .kpis{grid-template-columns:1fr 1fr;gap:10px}
+    .kpi{padding:14px}
+    .kpi strong{font-size:20px}
+    .kpi small{font-size:10.5px;line-height:1.35}
+    .kpi-top{margin-bottom:8px}
+    .kpi-ico{width:26px;height:26px}
+    [data-tab-panel="jornadas"] .head-actions{width:100%}
+    [data-tab-panel="jornadas"] .head-actions .btn[data-action="new-jornada"]{order:-1;flex:1 0 100%}
+    .hero{padding:20px}
+    .hero-actions{width:100%}
+    .hero-actions .btn{flex:1}
     .form-grid{grid-template-columns:1fr}
     .row{flex-wrap:wrap}
     .row-actions{width:100%;justify-content:flex-start}
     .clock-actions{width:100%}
     .clock-actions .btn{flex:1}
+    .clock-actions .btn[data-action="fill-today"]{flex:1 0 100%}
   }
 
   /* Print / PDF */
@@ -316,7 +391,9 @@
     html,body{background:#fff!important;color:#111!important}
     .layout,.tabbar,.modal,.toast,.skip{display:none!important}
     #print{display:block!important;font-size:11px;color:#111}
-    #print h1{font-size:20px;margin:0 0 2px;color:#111}
+    #print .print-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+    #print .print-head img{max-height:46px;max-width:130px;object-fit:contain}
+    #print .print-head h1{font-size:20px;margin:0 0 2px;color:#111}
     #print .sub{color:#555;margin:0 0 16px}
     #print h2{font-size:13px;margin:18px 0 6px;color:#111}
     #print table{width:100%;border-collapse:collapse;font-size:9.5px}
@@ -337,8 +414,8 @@
   <aside class="sidebar" aria-label="Navegación principal">
     <div class="brand">
       <div class="brand-mark">
-        <svg id="brand-icon" class="i" aria-hidden="true"><use href="#i-bolt"></use></svg>
-        <img id="brand-img" alt="" hidden>
+        <svg class="brand-icon i" aria-hidden="true"><use href="#i-bolt"></use></svg>
+        <img class="brand-logo" alt="" hidden>
       </div>
       <div>
         <strong class="brand-name">IVORY37</strong>
@@ -346,44 +423,64 @@
       </div>
     </div>
 
-    <nav class="nav">
+    <div class="nav-block">
+      <p class="nav-label">Menú</p>
+      <nav class="nav">
       <button type="button" data-action="tab" data-tab="dashboard"><svg class="i" aria-hidden="true"><use href="#i-gauge"></use></svg> Resumen</button>
       <button type="button" data-action="tab" data-tab="jornadas"><svg class="i" aria-hidden="true"><use href="#i-calendar"></use></svg> Jornadas</button>
       <button type="button" data-action="tab" data-tab="viajes"><svg class="i" aria-hidden="true"><use href="#i-car"></use></svg> Viajes y dietas</button>
       <button type="button" data-action="tab" data-tab="pagos"><svg class="i" aria-hidden="true"><use href="#i-wallet"></use></svg> Pagos</button>
-      <button type="button" data-action="tab" data-tab="ajustes"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg> Ajustes</button>
-    </nav>
+        <button type="button" data-action="tab" data-tab="ajustes"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg> Ajustes</button>
+      </nav>
+    </div>
 
     <div class="sidebar-foot">
-      <div class="avatar">37</div>
-      <div>
-        <p>Datos locales</p>
-        <span id="storage-usage">—</span>
-      </div>
+      <button class="profile-btn" type="button" data-action="open-profile" aria-label="Editar mi perfil">
+        <span class="avatar" id="profile-avatar">
+          <img id="profile-img" alt="" hidden>
+          <span id="profile-initials">37</span>
+        </span>
+        <span class="profile-meta">
+          <strong id="profile-name">IVORY37</strong>
+          <small id="profile-role">Control laboral</small>
+        </span>
+        <svg class="i profile-edit" aria-hidden="true"><use href="#i-pen"></use></svg>
+      </button>
     </div>
   </aside>
 
   <div class="main">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-bolt"></use></svg></div>
+        <div class="brand-mark">
+          <svg class="brand-icon i" aria-hidden="true"><use href="#i-bolt"></use></svg>
+          <img class="brand-logo" alt="" hidden>
+        </div>
         <div><strong class="brand-name">IVORY37</strong></div>
       </div>
-      <span class="clock" id="clock-mobile">—</span>
+      <div class="topbar-right">
+        <span class="clock" id="clock-mobile">—</span>
+        <button class="avatar avatar-sm" id="profile-avatar-mobile" type="button" data-action="open-profile" aria-label="Editar mi perfil">
+          <img id="profile-img-mobile" alt="" hidden>
+          <span id="profile-initials-mobile">37</span>
+        </button>
+      </div>
     </header>
 
     <main id="main">
       <!-- ============ RESUMEN ============ -->
       <section class="panel" data-tab-panel="dashboard">
-        <header class="page-head">
-          <div>
+        <section class="hero">
+          <div class="hero-copy">
             <p class="eyebrow" id="today-label">—</p>
-            <h1>Resumen</h1>
+            <h1><span id="hero-greeting">Buenos días</span>, <span class="name" id="hero-name">IVORY37</span>.</h1>
+            <p class="hero-sub" id="hero-sub">Tu resumen laboral, al día.</p>
           </div>
-          <div class="head-actions">
+          <div class="hero-actions">
             <button class="btn ghost" type="button" data-action="print"><svg class="i" aria-hidden="true"><use href="#i-print"></use></svg> Informe PDF</button>
+            <button class="btn primary" type="button" data-action="new-jornada"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg> Nueva jornada</button>
           </div>
-        </header>
+        </section>
 
         <div class="kpis">
           <article class="card kpi" style="--tone:#34d399">
@@ -411,14 +508,30 @@
 
         <article class="card clock-card">
           <div>
-            <h2><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg> Fichaje de hoy</h2>
-            <p class="status" id="today-status"><span class="dot"></span> Sin actividad registrada</p>
+            <h2><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg> Fichaje de hoy <span class="badge info" id="auto-badge" hidden></span></h2>
+            <p class="status" id="today-status" aria-live="polite"><span class="dot"></span> Sin actividad registrada</p>
             <p class="clock-time" id="today-hours" hidden></p>
           </div>
           <div class="clock-actions">
             <button class="btn primary" type="button" data-action="clock-in"><svg class="i" aria-hidden="true"><use href="#i-login"></use></svg> Entrada</button>
             <button class="btn danger-ghost" type="button" data-action="clock-out"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg> Salida</button>
+            <button class="btn ghost sm" type="button" data-action="fill-today" title="Crear la jornada de hoy según el horario habitual"><svg class="i" aria-hidden="true"><use href="#i-calendar"></use></svg> Según horario</button>
           </div>
+        </article>
+
+        <article class="card setup" id="setup-card" hidden>
+          <div class="setup-head">
+            <div>
+              <h2>Primeros pasos</h2>
+              <p class="muted small" style="margin:2px 0 0">Deja la app a tu medida en un minuto.</p>
+            </div>
+            <div class="setup-actions">
+              <span class="badge info" id="setup-progress">0/3</span>
+              <button class="icon-btn" type="button" data-action="setup-dismiss" aria-label="Ocultar primeros pasos" title="Ocultar"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
+            </div>
+          </div>
+          <div class="setup-bar"><span id="setup-bar"></span></div>
+          <div class="setup-list" id="setup-list"></div>
         </article>
 
         <div class="grid-2">
@@ -454,6 +567,7 @@
           <div class="head-actions">
             <button class="btn ghost" type="button" data-action="print"><svg class="i" aria-hidden="true"><use href="#i-print"></use></svg> PDF</button>
             <button class="btn ghost" type="button" data-action="export-csv"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> CSV</button>
+            <button class="btn ghost" type="button" data-action="confirm-all" id="confirm-all-btn" hidden><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg> <span id="confirm-all-label">Confirmar provisionales</span></button>
             <button class="btn primary" type="button" data-action="new-jornada"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg> Nueva</button>
           </div>
         </header>
@@ -542,9 +656,40 @@
           <div><p class="eyebrow">Sistema</p><h1>Ajustes</h1></div>
         </header>
 
+        <div class="chips settings-nav" role="group" aria-label="Ir a una sección de ajustes">
+          <button class="chip" type="button" data-action="settings-jump" data-target="#profile-card">Perfil</button>
+          <button class="chip" type="button" data-action="settings-jump" data-target="#appearance-card">Apariencia</button>
+          <button class="chip" type="button" data-action="settings-jump" data-target="#rates-card">Tarifas</button>
+          <button class="chip" type="button" data-action="settings-jump" data-target="#data-card">Datos</button>
+          <button class="chip" type="button" data-action="settings-jump" data-target="#notices-card">Avisos</button>
+        </div>
+
         <form id="config-form" novalidate>
+          <article class="card profile-card" id="profile-card">
+            <div class="profile-head">
+              <div class="avatar avatar-lg" id="cfg-avatar">
+                <img id="cfg-avatar-img" alt="" hidden>
+                <span id="cfg-avatar-initials">37</span>
+              </div>
+              <div>
+                <h2>Mi perfil</h2>
+                <p class="hint" style="margin:2px 0 0">Así te verás en la barra lateral. Si no pones foto, se usa el logo o tus iniciales.</p>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label class="field"><span>Tu nombre</span><input class="input" id="cfg-user-name" maxlength="40" placeholder="Ej.: Ivory" autocomplete="name"></label>
+              <label class="field"><span>Rol o subtítulo</span><input class="input" id="cfg-user-role" maxlength="40" placeholder="Control laboral" autocomplete="organization-title"></label>
+            </div>
+            <div class="hint-row" style="margin-top:2px">
+              <label class="btn ghost sm" style="cursor:pointer"><svg class="i" aria-hidden="true"><use href="#i-image"></use></svg> Cambiar foto<input type="file" id="avatar-input" accept="image/*" hidden></label>
+              <button class="btn ghost sm" type="button" data-action="use-app-logo"><svg class="i" aria-hidden="true"><use href="#i-bolt"></use></svg> Usar logo</button>
+              <button class="btn ghost sm" type="button" data-action="reset-avatar">Quitar foto</button>
+              <button class="btn primary sm" type="submit"><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg> Guardar perfil</button>
+            </div>
+          </article>
+
           <div class="grid-2">
-            <article class="card">
+            <article class="card" id="appearance-card">
               <h2 style="margin-bottom:14px">Apariencia</h2>
               <label class="field"><span>Nombre de la app</span><input class="input" id="cfg-name" maxlength="40" autocomplete="off"></label>
               <label class="field"><span>Color principal</span>
@@ -564,9 +709,16 @@
                 </div>
                 <p class="hint" style="margin:8px 0 0">Se reduce a 240 px y se guarda en tu navegador.</p>
               </div>
+              <div class="field" style="margin-bottom:0">
+                <span>Fondo del logo</span>
+                <div class="chips" role="group" aria-label="Fondo del logo">
+                  <button class="chip" type="button" data-action="logo-bg" data-bg="light" aria-pressed="true">Claro</button>
+                  <button class="chip" type="button" data-action="logo-bg" data-bg="dark" aria-pressed="false">Oscuro</button>
+                </div>
+              </div>
             </article>
 
-            <article class="card">
+            <article class="card" id="rates-card">
               <h2 style="margin-bottom:14px">Tarifas y jornada</h2>
               <div class="form-grid">
                 <label class="field"><span>Hora normal (€/h)</span><input class="input mono" id="cfg-normal" type="text" inputmode="decimal" autocomplete="off"></label>
@@ -575,6 +727,10 @@
                 <label class="field"><span>Horario habitual</span><input class="input mono" id="cfg-schedule" placeholder="08:00-16:00" autocomplete="off"></label>
               </div>
               <label class="switch" style="margin-top:4px">
+                <input type="checkbox" id="cfg-auto-fichaje">
+                <span><b>Fichaje automático por horario</b><small>Si la app está abierta a la hora de entrada, ficha sola; al llegar la salida, cierra la jornada. Solo actúa sobre registros creados automáticamente y se puede desactivar cuando quieras.</small></span>
+              </label>
+              <label class="switch" style="margin-top:10px">
                 <input type="checkbox" id="cfg-estimation">
                 <span><b>Rellenar días sin fichaje (estimación)</b><small>Completa los días laborables sin registro de los meses que ya tienen datos, a jornada completa. Solo afecta al cálculo, no crea registros. Desactivado por defecto.</small></span>
               </label>
@@ -583,7 +739,7 @@
           </div>
         </form>
 
-        <article class="card" style="margin-top:16px">
+        <article class="card" id="data-card" style="margin-top:16px">
           <h2 style="margin-bottom:14px">Datos y copias</h2>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
             <button class="btn ghost" type="button" data-action="export-json"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> Backup JSON</button>
@@ -592,11 +748,13 @@
             <button class="btn ghost" type="button" data-action="print"><svg class="i" aria-hidden="true"><use href="#i-print"></use></svg> Informe PDF</button>
             <button class="btn danger-ghost" type="button" data-action="reset"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg> Borrar todo</button>
             <button class="btn danger-ghost" type="button" data-action="cleanup-auto" id="cleanup-auto-btn" hidden><svg class="i" aria-hidden="true"><use href="#i-alert"></use></svg> Quitar autogeneradas</button>
+            <button class="btn ghost" type="button" data-action="fill-month" id="fill-month-btn"><svg class="i" aria-hidden="true"><use href="#i-calendar"></use></svg> <span>Completar mes</span></button>
+            <button class="btn ghost" type="button" data-action="setup-show" id="setup-show-btn" hidden><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg> Mostrar primeros pasos</button>
           </div>
-          <p class="hint" style="margin:12px 0 0">Los datos se guardan en este navegador (localStorage). Si borras los datos del sitio, se pierden: descarga un backup con frecuencia.</p>
+          <p class="hint" style="margin:12px 0 0">Almacenamiento local: <span data-storage>—</span> · Última copia: <span id="last-backup">nunca</span>. Los datos se guardan en este navegador (localStorage); si borras los datos del sitio, se pierden: descarga un backup con frecuencia.</p>
         </article>
 
-        <article class="card" style="margin-top:16px">
+        <article class="card" id="notices-card" style="margin-top:16px">
           <h2 style="margin-bottom:10px">Avisos</h2>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn ghost" type="button" data-action="request-notif"><svg class="i" aria-hidden="true"><use href="#i-bell"></use></svg> Activar recordatorios</button>
@@ -605,7 +763,7 @@
           <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada.</p>
         </article>
 
-        <p class="muted small" style="margin-top:18px">Versión 2.0 · Sin dependencias externas · Funciona sin conexión</p>
+        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2</span> · Sin dependencias externas · Funciona sin conexión</p>
       </section>
     </main>
   </div>
@@ -671,6 +829,7 @@
   'use strict';
 
   const KEY = 'ivory37_data_v1';
+  const APP_VERSION = '2.2';
   const NOTIF_KEY = 'ivory37_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -684,6 +843,11 @@
     app_name: 'IVORY37',
     app_color: '#f97316',
     custom_logo: '',
+    logo_bg: 'light',
+    user_name: '',
+    user_role: 'Control laboral',
+    user_avatar: '',
+    auto_fichaje: '1',
     estimation: '0'
   };
 
@@ -698,7 +862,8 @@
     filter: 'all',
     query: '',
     limit: 30,
-    today: ''
+    today: '',
+    hour: -1
   };
 
   /* ---------------- Utilidades ---------------- */
@@ -820,6 +985,8 @@
         notas: String(item.notas || ''),
         pagado_extras: Boolean(item.pagado_extras),
         fecha_pago_extras: String(item.fecha_pago_extras || ''),
+        auto: Boolean(item.auto),
+        backfill: Boolean(item.backfill),
         creado: item.creado || new Date().toISOString()
       };
     }).filter(Boolean);
@@ -862,10 +1029,12 @@
       };
     }).filter(Boolean);
 
-    const ajustes = arr(obj.ajustes).filter((a) => a && typeof a.clave === 'string').map((a) => ({
-      clave: a.clave,
-      valor: a.valor == null ? '' : String(a.valor)
-    }));
+    const settingsMap = new Map();
+    arr(obj.ajustes).forEach((a) => {
+      if (!a || typeof a.clave !== 'string') return;
+      settingsMap.set(a.clave, a.valor == null ? '' : String(a.valor));
+    });
+    const ajustes = Array.from(settingsMap, ([clave, valor]) => ({ clave, valor }));
 
     return { jornadas, viajes, pagos, ajustes };
   }
@@ -894,12 +1063,39 @@
     else data.ajustes.push({ clave: key, valor: String(value) });
   }
 
-  const isAutoGenerated = (j) => /jornada\s+est[áa]ndar/i.test(String(j.notas || ''));
+  const isAutoGenerated = (j) => Boolean(j.backfill) || /jornada\s+est[áa]ndar/i.test(String(j.notas || ''));
 
   const rateNormal = () => num(setting('hora_normal_euros'), 12.5);
   const rateExtra = () => num(setting('hora_extra_euros'), 19.69);
   const dayHours = () => num(setting('horas_normales_dia'), 8);
   const isEstimation = () => setting('estimation') === '1';
+  const isAutoFichaje = () => setting('auto_fichaje') === '1';
+
+  function initials(value) {
+    const parts = String(value == null ? '' : value).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '37';
+    return (parts[0].charAt(0) + (parts[1] ? parts[1].charAt(0) : '')).toUpperCase();
+  }
+
+  function scheduleWindow() {
+    const raw = String(setting('horario_habitual') || '');
+    const match = raw.match(/(\d{1,2}:\d{2})\s*(?:[-–]|\ba\b)\s*(\d{1,2}:\d{2})/i);
+    if (!match) return null;
+    const start = hhmm(match[1].padStart(5, '0'));
+    const end = hhmm(match[2].padStart(5, '0'));
+    if (!start || !end) return null;
+    const startMin = toMinutes(start);
+    const endMin = toMinutes(end);
+    return { start, end, startMin, endMin, overnight: endMin <= startMin, hours: hoursBetween(start, end) };
+  }
+
+  function missingMonthDays() {
+    const month = monthKey(new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const existing = new Set(data.jornadas.filter((j) => j.fecha.slice(0, 7) === month).map((j) => j.fecha));
+    return weekdaysInMonth(month).filter((d) => d <= today && !existing.has(dateKey(d)));
+  }
 
   function persist(message) {
     if (loadError) {
@@ -1070,6 +1266,26 @@
     return round2(total);
   }
 
+  function renderDataTools() {
+    const auto = data.jornadas.filter(isAutoGenerated);
+    const cleanup = $('#cleanup-auto-btn');
+    if (cleanup) {
+      cleanup.hidden = auto.length === 0;
+      cleanup.textContent = auto.length === 1 ? 'Quitar 1 autogenerada' : 'Quitar ' + auto.length + ' autogeneradas';
+    }
+    updateFillLabel();
+    renderBackupInfo();
+    const setupBtn = $('#setup-show-btn');
+    if (setupBtn) setupBtn.hidden = setting('setup_dismissed') !== '1';
+  }
+
+  function renderNotifState() {
+    const el = $('#notif-state');
+    if (!el) return;
+    if (!('Notification' in window)) el.textContent = 'No compatible';
+    else el.textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados por el navegador' : 'Sin activar';
+  }
+
   /* ---------------- Render: resumen ---------------- */
 
   function renderAll() {
@@ -1077,7 +1293,80 @@
     renderJornadas();
     renderTrips();
     renderPagos();
+    renderSetup();
+    renderDataTools();
     updateStorageUsage();
+  }
+
+  function updateFillLabel() {
+    const fill = $('#fill-month-btn');
+    if (!fill) return;
+    const missing = missingMonthDays().length;
+    const label = fill.querySelector('span');
+    if (label) label.textContent = missing ? 'Completar mes (' + missing + ')' : 'Completar mes';
+  }
+
+  function renderHero() {
+    const now = new Date();
+    const hour = now.getHours();
+    const greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const greetingEl = $('#hero-greeting');
+    if (greetingEl) greetingEl.textContent = greeting;
+    const nameEl = $('#hero-name');
+    if (nameEl) nameEl.textContent = String(setting('user_name') || setting('app_name') || 'IVORY37').trim() || 'IVORY37';
+
+    const sub = $('#hero-sub');
+    if (!sub) return;
+    const hasData = data.jornadas.length || data.viajes.length || data.pagos.length;
+    if (!hasData) {
+      sub.textContent = 'Empieza fichando o creando tu primera jornada.';
+      return;
+    }
+    const t = totals();
+    if (t.pending > 0) sub.textContent = 'Te quedan ' + fmtMoney(t.pending) + ' por cobrar.';
+    else sub.textContent = 'Todo al día. Buen trabajo.';
+  }
+
+  function recentBackup() {
+    const key = setting('last_backup');
+    if (!isDateKey(key)) return false;
+    return (Date.now() - parseKey(key).getTime()) <= 30 * 86400000;
+  }
+
+  function renderBackupInfo() {
+    const el = $('#last-backup');
+    if (!el) return;
+    const key = setting('last_backup');
+    el.textContent = isDateKey(key) ? fmtDate(key) : 'nunca';
+  }
+
+  function renderSetup() {
+    const card = $('#setup-card');
+    if (!card) return;
+    if (setting('setup_dismissed') === '1') {
+      card.hidden = true;
+      return;
+    }
+
+    const hasData = data.jornadas.length || data.viajes.length || data.pagos.length;
+    const items = [
+      { done: Boolean(String(setting('user_name') || '').trim()), label: 'Pon tu nombre y tu foto', action: 'open-profile' },
+      { done: Boolean(scheduleWindow()), label: 'Configura tu horario habitual', action: 'open-schedule' },
+      { done: data.jornadas.length > 0, label: 'Registra tu primera jornada', action: 'new-jornada' }
+    ];
+    if (hasData) items.push({ done: recentBackup(), label: 'Descarga una copia de seguridad', action: 'export-json' });
+
+    const done = items.filter((item) => item.done).length;
+    $('#setup-progress').textContent = done + '/' + items.length;
+    $('#setup-bar').style.width = (done / items.length) * 100 + '%';
+    $('#setup-list').innerHTML = items.map((item) =>
+      '<button class="setup-item' + (item.done ? ' done' : '') + '" type="button" data-action="' + item.action + '">' +
+      '<span class="setup-check" aria-hidden="true">' + (item.done ? '✓' : '') + '</span>' +
+      '<span>' + esc(item.label) + '</span>' +
+      '<span class="setup-arrow" aria-hidden="true">›</span>' +
+      '</button>'
+    ).join('');
+    card.hidden = done === items.length;
   }
 
   function renderDashboard() {
@@ -1105,6 +1394,7 @@
     renderBars();
     renderRecentPayrolls();
     renderToday();
+    renderHero();
   }
 
   function renderBars() {
@@ -1160,6 +1450,17 @@
     const today = dateKey(new Date());
     const now = new Date();
     $('#today-label').textContent = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    const win = scheduleWindow();
+    const autoBadge = $('#auto-badge');
+    if (autoBadge) {
+      if (isAutoFichaje() && win && !win.overnight) {
+        autoBadge.hidden = false;
+        autoBadge.textContent = 'Auto ' + win.start + '–' + win.end;
+      } else {
+        autoBadge.hidden = true;
+      }
+    }
     $('#clock-mobile').textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
     const j = data.jornadas.find((x) => x.fecha === today);
@@ -1203,11 +1504,19 @@
   }
 
   function badgeFor(j) {
-    if (j.estado === 'provisional') return '<span class="badge warn">Provisional</span>';
-    return '<span class="badge ok">Confirmada</span>';
+    const state = j.estado === 'provisional' ? '<span class="badge warn">Provisional</span>' : '<span class="badge ok">Confirmada</span>';
+    return state + (j.auto ? '<span class="badge info">Auto</span>' : '');
   }
 
   function renderJornadas() {
+    const provisional = data.jornadas.filter((j) => j.estado === 'provisional').length;
+    const confirmAll = $('#confirm-all-btn');
+    if (confirmAll) {
+      confirmAll.hidden = provisional === 0;
+      const label = $('#confirm-all-label');
+      if (label) label.textContent = provisional === 1 ? 'Confirmar 1 provisional' : 'Confirmar ' + provisional + ' provisionales';
+    }
+
     const all = visibleJornadas();
     const shown = all.slice(0, ui.limit);
     const cards = $('#jornadas-cards');
@@ -1355,6 +1664,36 @@
 
   /* ---------------- Ajustes ---------------- */
 
+  function renderLogoPreview() {
+    const logo = setting('custom_logo');
+    const img = $('#logo-preview');
+    const placeholder = $('#logo-placeholder');
+    if (!img || !placeholder) return;
+    if (logo) {
+      img.src = logo;
+      img.hidden = false;
+      placeholder.hidden = true;
+      placeholder.setAttribute('hidden', '');
+      placeholder.style.display = 'none';
+    } else {
+      img.hidden = true;
+      img.removeAttribute('src');
+      placeholder.hidden = false;
+      placeholder.removeAttribute('hidden');
+      placeholder.style.display = '';
+    }
+
+    const logoBg = setting('logo_bg') === 'dark' ? 'dark' : 'light';
+    $$('[data-action="logo-bg"]').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.bg === logoBg));
+    });
+    const preview = $('.logo-zone .preview');
+    if (preview) {
+      preview.classList.toggle('on-dark', logoBg === 'dark');
+      preview.classList.toggle('logo-wide', Boolean(logo) && num(setting('logo_ratio'), 1) >= 1.6);
+    }
+  }
+
   function renderAjustes() {
     $('#cfg-name').value = setting('app_name') || 'IVORY37';
     $('#cfg-color').value = /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#f97316';
@@ -1364,29 +1703,14 @@
     $('#cfg-day').value = fmtInput(setting('horas_normales_dia'));
     $('#cfg-schedule').value = setting('horario_habitual');
     $('#cfg-estimation').checked = isEstimation();
+    $('#cfg-auto-fichaje').checked = isAutoFichaje();
+    $('#cfg-user-name').value = setting('user_name');
+    $('#cfg-user-role').value = setting('user_role') || 'Control laboral';
 
-    const logo = setting('custom_logo');
-    const img = $('#logo-preview');
-    const placeholder = $('#logo-placeholder');
-    if (logo) {
-      img.src = logo;
-      img.hidden = false;
-      placeholder.hidden = true;
-    } else {
-      img.hidden = true;
-      img.removeAttribute('src');
-      placeholder.hidden = false;
-    }
+    renderLogoPreview();
 
-    const auto = data.jornadas.filter(isAutoGenerated);
-    const cleanup = $('#cleanup-auto-btn');
-    if (cleanup) {
-      cleanup.hidden = auto.length === 0;
-      cleanup.textContent = auto.length === 1 ? 'Quitar 1 autogenerada' : 'Quitar ' + auto.length + ' autogeneradas';
-    }
-
-    if (!('Notification' in window)) $('#notif-state').textContent = 'No compatible';
-    else $('#notif-state').textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados por el navegador' : 'Sin activar';
+    renderDataTools();
+    renderNotifState();
   }
 
   function applyBranding() {
@@ -1397,18 +1721,147 @@
     $$('.brand-name').forEach((el) => { el.textContent = name; });
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', name + ' · Control laboral');
+    const appMeta = document.querySelector('meta[name="application-name"]');
+    if (appMeta) appMeta.setAttribute('content', name);
 
-    const img = $('#brand-img');
-    const icon = $('#brand-icon');
     const logo = setting('custom_logo');
-    if (logo) {
-      img.src = logo;
-      img.hidden = false;
-      icon.hidden = true;
-    } else {
-      img.hidden = true;
-      img.removeAttribute('src');
-      icon.hidden = false;
+    const favicon = $('#favicon');
+    if (favicon) {
+      if (logo) {
+        favicon.setAttribute('href', logo);
+      } else {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+          '<rect width="64" height="64" rx="14" fill="' + color + '"/>' +
+          '<path d="M36 8 17 36h12l-2 20 20-30H35l1-18Z" fill="#171004"/></svg>';
+        favicon.setAttribute('href', 'data:image/svg+xml,' + encodeURIComponent(svg));
+      }
+    }
+    const darkBg = setting('logo_bg') === 'dark';
+    const wideLogo = num(setting('logo_ratio'), 1) >= 1.6;
+    $$('.brand-mark').forEach((mark) => {
+      const img = mark.querySelector('.brand-logo');
+      const icon = mark.querySelector('.brand-icon');
+      mark.classList.toggle('has-logo', Boolean(logo));
+      mark.classList.toggle('logo-on-dark', darkBg);
+      mark.classList.toggle('logo-wide', Boolean(logo) && wideLogo);
+      if (!img) return;
+      if (logo) {
+        img.src = logo;
+        img.hidden = false;
+        if (icon) icon.hidden = true;
+      } else {
+        img.hidden = true;
+        img.removeAttribute('src');
+        if (icon) icon.hidden = false;
+      }
+    });
+
+    applyProfile();
+  }
+
+  let logoRatioProbe = false;
+
+  function probeLogoRatio() {
+    const logo = setting('custom_logo');
+    if (!logo || setting('logo_ratio') || logoRatioProbe) return;
+    logoRatioProbe = true;
+    let img;
+    try {
+      img = new Image();
+    } catch (err) {
+      logoRatioProbe = false;
+      return;
+    }
+    img.onload = () => {
+      logoRatioProbe = false;
+      if (setting('custom_logo') !== logo) return;
+      setSetting('logo_ratio', String(round2(img.width / Math.max(1, img.height))));
+      try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) { /* sin espacio */ }
+      applyBranding();
+      renderLogoPreview();
+    };
+    img.onerror = () => { logoRatioProbe = false; };
+    img.src = logo;
+  }
+
+  function applyProfile() {
+    const fallback = String(setting('app_name') || 'IVORY37').trim() || 'IVORY37';
+    const name = String(setting('user_name') || '').trim() || fallback;
+    const role = String(setting('user_role') || '').trim() || 'Control laboral';
+    const avatarRaw = setting('user_avatar');
+    const logo = setting('custom_logo');
+    const explicitAvatar = avatarRaw && avatarRaw !== '@logo' ? avatarRaw : '';
+    const logoSquare = Boolean(logo) && num(setting('logo_ratio'), 1) <= 1.6;
+    const useLogo = !explicitAvatar && logoSquare;
+    const src = explicitAvatar || (useLogo ? logo : '');
+
+    const nameEl = $('#profile-name');
+    if (nameEl) {
+      nameEl.textContent = name;
+      nameEl.title = name;
+    }
+    const profileBtn = $('.profile-btn');
+    if (profileBtn) profileBtn.setAttribute('aria-label', 'Editar mi perfil: ' + name);
+    const roleEl = $('#profile-role');
+    if (roleEl) {
+      roleEl.textContent = role;
+      roleEl.title = role;
+    }
+    const heroName = $('#hero-name');
+    if (heroName) heroName.textContent = name;
+
+    const wrap = $('#profile-avatar');
+    const img = $('#profile-img');
+    const initial = $('#profile-initials');
+    if (wrap && img && initial) {
+      wrap.classList.toggle('logo', useLogo);
+      if (src) {
+        img.src = src;
+        img.hidden = false;
+        initial.hidden = true;
+      } else {
+        img.hidden = true;
+        img.removeAttribute('src');
+        initial.hidden = false;
+        initial.textContent = initials(name);
+      }
+    }
+
+    const mobileWrap = $('#profile-avatar-mobile');
+    const mobileImg = $('#profile-img-mobile');
+    const mobileInitial = $('#profile-initials-mobile');
+    if (mobileWrap && mobileImg && mobileInitial) {
+      mobileWrap.classList.toggle('logo', useLogo);
+      mobileWrap.setAttribute('aria-label', 'Editar mi perfil: ' + name);
+      if (src) {
+        mobileImg.src = src;
+        mobileImg.hidden = false;
+        mobileInitial.hidden = true;
+      } else {
+        mobileImg.hidden = true;
+        mobileImg.removeAttribute('src');
+        mobileInitial.hidden = false;
+        mobileInitial.textContent = initials(name);
+      }
+    }
+
+    const preview = $('#cfg-avatar');
+    const previewImg = $('#cfg-avatar-img');
+    const previewInitial = $('#cfg-avatar-initials');
+    if (preview && previewImg && previewInitial) {
+      preview.classList.toggle('logo', useLogo);
+      if (src) {
+        previewImg.src = src;
+        previewImg.hidden = false;
+        previewInitial.hidden = true;
+      } else {
+        previewImg.hidden = true;
+        previewImg.removeAttribute('src');
+        previewInitial.hidden = false;
+        previewInitial.textContent = initials(name);
+      }
     }
   }
 
@@ -1420,7 +1873,7 @@
       kb = 0;
     }
     const text = kb > 1024 ? (kb / 1024).toFixed(1) + ' MB usados' : kb + ' KB usados';
-    $('#storage-usage').textContent = text;
+    $$('[data-storage]').forEach((el) => { el.textContent = text; });
   }
 
   /* ---------------- Navegación ---------------- */
@@ -1439,7 +1892,7 @@
     if (location.hash.slice(1) !== tab) {
       try { history.replaceState(null, '', '#' + tab); } catch (err) { /* file:// puede bloquearlo */ }
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   /* ---------------- Toasts y modal ---------------- */
@@ -1509,7 +1962,7 @@
         id: uid(), fecha: today, entrada: time, salida: '',
         horas_normales: 0, horas_extra: 0, estado: 'confirmado',
         notas: '[Fichado en la app]', pagado_extras: false, fecha_pago_extras: '',
-        creado: now.toISOString()
+        auto: false, backfill: false, creado: now.toISOString()
       };
       data.jornadas.push(j);
     } else {
@@ -1551,6 +2004,139 @@
     }
     persist('Salida a las ' + time + ' · ' + fmtHours(worked));
     notify('Jornada cerrada', 'Has trabajado ' + fmtHours(worked) + ' hoy.');
+  }
+
+  function applyAutoClose(j, win, note) {
+    const base = dayHours();
+    const scheduled = win.hours || base;
+    j.salida = win.end;
+    j.horas_normales = round2(Math.min(scheduled, base));
+    j.horas_extra = round2(Math.max(j.horas_extra, Math.max(0, scheduled - base)));
+    j.estado = 'confirmado';
+    j.notas = (j.notas ? j.notas + ' | ' : '') + note;
+  }
+
+  function autoFichaje() {
+    if (!isAutoFichaje() || loadError) return;
+    if (!$('#modal').hidden) return;
+    const win = scheduleWindow();
+    if (!win || win.overnight) return;
+
+    const now = new Date();
+    const today = dateKey(now);
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    const weekAgo = dateKey(addDays(now, -7));
+    const openPrevious = data.jornadas.find((j) => j.auto && j.entrada && !j.salida && j.fecha < today && j.fecha >= weekAgo);
+    if (openPrevious) {
+      applyAutoClose(openPrevious, win, '[AUTO] Cierre automático de una jornada anterior.');
+      persist('Jornada anterior cerrada automáticamente a las ' + win.end);
+      return;
+    }
+
+    if (now.getDay() === 0 || now.getDay() === 6) return;
+    if (setting('auto_dismissed') === today) return;
+
+    const j = data.jornadas.find((x) => x.fecha === today);
+    if (j && j.auto && j.entrada && !j.salida && nowMin >= win.endMin) {
+      applyAutoClose(j, win, '[AUTO] Salida automática según horario.');
+      persist('Jornada cerrada automáticamente a las ' + win.end);
+      return;
+    }
+
+    if (!j && nowMin >= win.startMin && nowMin <= win.startMin + 30) {
+      data.jornadas.push({
+        id: uid(),
+        fecha: today,
+        entrada: win.start,
+        salida: '',
+        horas_normales: 0,
+        horas_extra: 0,
+        estado: 'confirmado',
+        notas: '[AUTO] Entrada automática según horario (' + win.start + '–' + win.end + ').',
+        pagado_extras: false,
+        fecha_pago_extras: '',
+        auto: true,
+        backfill: false,
+        creado: now.toISOString()
+      });
+      persist('Entrada fichada automáticamente a las ' + win.start);
+    }
+  }
+
+  function fillToday() {
+    const win = scheduleWindow() || { start: '08:00', end: '16:00', hours: 8 };
+    const today = dateKey(new Date());
+    if (data.jornadas.some((j) => j.fecha === today)) {
+      toast('Ya hay una jornada registrada hoy. Edítala si necesitas cambiarla.', 'warn');
+      return;
+    }
+    const scheduled = round2(win.hours || dayHours());
+    const normal = round2(Math.min(scheduled, dayHours()));
+    const extra = round2(Math.max(0, scheduled - dayHours()));
+    confirmAction(
+      'Completar hoy',
+      'Se creará la jornada de hoy de ' + win.start + ' a ' + win.end + ' (' + fmtHours(scheduled) + '), marcada como Auto. Podrás editarla o eliminarla.',
+      'Crear jornada',
+      () => {
+        data.jornadas.push({
+          id: uid(),
+          fecha: today,
+          entrada: win.start,
+          salida: win.end,
+          horas_normales: normal,
+          horas_extra: extra,
+          estado: 'confirmado',
+          notas: '[AUTO] Jornada creada según horario habitual.',
+          pagado_extras: false,
+          fecha_pago_extras: '',
+          auto: true,
+          backfill: false,
+          creado: new Date().toISOString()
+        });
+        persist('Jornada de hoy creada según horario');
+      }
+    );
+  }
+
+  function fillMonth() {
+    const missing = missingMonthDays();
+    if (!missing.length) {
+      toast('No faltan días laborables este mes.', 'info');
+      return;
+    }
+    const win = scheduleWindow() || { start: '08:00', end: '16:00', hours: 8 };
+    const scheduled = round2(win.hours || dayHours());
+    const normal = round2(Math.min(scheduled, dayHours()));
+    const extra = round2(Math.max(0, scheduled - dayHours()));
+    const month = monthKey(new Date());
+    confirmAction(
+      'Completar ' + fmtMonth(month),
+      'Se crearán ' + missing.length + ' jornadas de ' + fmtHours(scheduled) + ' (' + win.start + '–' + win.end +
+      ') para los días laborables sin registro de este mes, hasta hoy. Se marcarán como Auto y podrás quitarlas con «Quitar autogeneradas». Si la nómina del mes ya está confirmada, deshazla en Pagos para recalcularla.',
+      'Crear ' + missing.length,
+      () => {
+        const stamp = new Date().toISOString();
+        missing.forEach((day) => {
+          data.jornadas.push({
+            id: uid(),
+            fecha: dateKey(day),
+            entrada: win.start,
+            salida: win.end,
+            horas_normales: normal,
+            horas_extra: extra,
+            estado: 'confirmado',
+            notas: '[AUTO] Jornada completada según horario habitual.',
+            pagado_extras: false,
+            fecha_pago_extras: '',
+            auto: true,
+            backfill: true,
+            creado: stamp
+          });
+        });
+        persist(missing.length + (missing.length === 1 ? ' jornada creada' : ' jornadas creadas'));
+      }
+    );
   }
 
   /* ---------------- Acciones: jornadas ---------------- */
@@ -1600,8 +2186,16 @@
           horas_normales: round2(normales),
           horas_extra: round2(extra),
           estado: $('#f-estado').value === 'provisional' ? 'provisional' : 'confirmado',
-          notas: $('#f-notas').value.trim()
+          notas: $('#f-notas').value.trim(),
+          auto: false,
+          backfill: false
         };
+        if (j) {
+          const onlyNotes = payload.fecha === j.fecha && payload.entrada === j.entrada && payload.salida === j.salida &&
+            payload.horas_normales === j.horas_normales && payload.horas_extra === j.horas_extra && payload.estado === j.estado;
+          payload.auto = onlyNotes ? j.auto : false;
+          payload.backfill = onlyNotes ? j.backfill : false;
+        }
         if (payload.entrada && payload.salida && hoursBetween(payload.entrada, payload.salida) == null) {
           toast('El horario no es válido.', 'error');
           return false;
@@ -1611,6 +2205,7 @@
         persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
       },
       onDelete: j ? () => {
+        if (j.fecha === dateKey(new Date()) && j.auto) setSetting('auto_dismissed', j.fecha);
         data.jornadas = data.jornadas.filter((x) => String(x.id) !== String(j.id));
         persist('Jornada eliminada');
       } : null
@@ -1742,8 +2337,12 @@
   }
 
   function exportJSON() {
+    setSetting('last_backup', dateKey(new Date()));
     const payload = JSON.stringify(data, null, 2);
     download(new Blob([payload], { type: 'application/json' }), 'backup_ivory37_' + dateKey(new Date()) + '.json');
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) { /* sin espacio */ }
+    renderDataTools();
+    renderSetup();
     toast('Backup JSON descargado.');
   }
 
@@ -1813,18 +2412,21 @@
     const trips = data.viajes.filter((v) => v.fecha.slice(0, 7) === month);
     const payroll = data.pagos.find((p) => p.tipo === 'nomina_auto' && p.mes_key === month);
     const name = setting('app_name') || 'IVORY37';
+    const logo = setting('custom_logo');
+    const person = String(setting('user_name') || '').trim();
+    const role = String(setting('user_role') || '').trim();
     const extraValue = round2(stats.extra * re);
     const normalValue = round2(stats.normalTotal * rn);
     const tripTotal = round2(trips.reduce((sum, v) => sum + v.importe, 0));
 
     const rows = records.map((j) => {
       const clock = j.entrada && j.salida ? j.entrada + '–' + j.salida : '—';
-      return '<tr><td>' + esc(fmtDate(j.fecha)) + '</td><td>' + esc(clock) + '</td><td class="num">' + hoursFmt.format(j.horas_normales) + '</td><td class="num">' + (j.horas_extra > 0 ? '+' + hoursFmt.format(j.horas_extra) : '—') + '</td><td>' + (j.estado === 'confirmado' ? 'Confirmada' : 'Provisional') + '</td></tr>';
+      return '<tr><td>' + esc(fmtDate(j.fecha)) + '</td><td>' + esc(clock) + '</td><td class="num">' + hoursFmt.format(j.horas_normales) + '</td><td class="num">' + (j.horas_extra > 0 ? '+' + hoursFmt.format(j.horas_extra) : '—') + '</td><td>' + (j.estado === 'confirmado' ? 'Confirmada' : 'Provisional') + (j.auto ? ' · Auto' : '') + '</td></tr>';
     }).join('');
 
     $('#print').innerHTML =
-      '<h1>' + esc(name) + '</h1>' +
-      '<p class="sub">Informe laboral · ' + esc(fmtMonth(month)) + ' · generado el ' + esc(new Date().toLocaleString('es-ES')) + '</p>' +
+      '<div class="print-head">' + (logo ? '<img src="' + esc(logo) + '" alt="">' : '') + '<h1>' + esc(name) + '</h1></div>' +
+      '<p class="sub">' + (person ? esc(person) + (role ? ' · ' + esc(role) : '') + ' · ' : '') + 'Informe laboral · ' + esc(fmtMonth(month)) + ' · generado el ' + esc(new Date().toLocaleString('es-ES')) + '</p>' +
       '<div class="totals">' +
       '<div>Horas normales<b>' + fmtHours(stats.normalTotal) + '</b></div>' +
       '<div>Horas extra<b>' + fmtHours(stats.extra) + '</b></div>' +
@@ -1870,7 +2472,7 @@
       } else {
         toast('Permiso denegado. Puedes cambiarlo en los ajustes del navegador.', 'warn');
       }
-      renderAjustes();
+      renderNotifState();
     }).catch(() => {
       toast('El navegador no ha permitido activar los avisos.', 'warn');
     });
@@ -1999,17 +2601,104 @@
           () => {
             data.jornadas = data.jornadas.filter((j) => !isAutoGenerated(j));
             persist('Jornadas autogeneradas eliminadas');
-            renderAjustes();
+            renderDataTools();
           },
           true
         );
         break;
       }
       case 'request-notif': requestNotifications(); break;
+      case 'settings-jump': {
+        const target = el.dataset.target ? document.querySelector(el.dataset.target) : null;
+        if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+      case 'open-profile': {
+        showTab('ajustes');
+        setTimeout(() => {
+          const field = $('#cfg-user-name');
+          if (field) {
+            field.focus();
+            if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        }, 120);
+        break;
+      }
+      case 'open-schedule': {
+        showTab('ajustes');
+        setTimeout(() => {
+          const field = $('#cfg-schedule');
+          if (field) {
+            field.focus();
+            if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        }, 120);
+        break;
+      }
+      case 'setup-dismiss': {
+        setSetting('setup_dismissed', '1');
+        persist('Primeros pasos ocultos');
+        break;
+      }
+      case 'setup-show': {
+        setSetting('setup_dismissed', '');
+        persist('Primeros pasos activados');
+        break;
+      }
+      case 'logo-bg': {
+        setSetting('logo_bg', el.dataset.bg === 'dark' ? 'dark' : 'light');
+        applyBranding();
+        renderLogoPreview();
+        persist('Fondo del logo actualizado');
+        break;
+      }
+      case 'use-app-logo': {
+        const appLogo = setting('custom_logo');
+        if (!appLogo) {
+          toast('Primero sube un logo en Apariencia.', 'warn');
+          break;
+        }
+        setSetting('user_avatar', '@logo');
+        applyBranding();
+        persist('Foto de perfil actualizada');
+        if (num(setting('logo_ratio'), 1) > 1.6) {
+          toast('Tu logo es apaisado: en el avatar se usarán tus iniciales. Sube una foto cuadrada para el perfil.', 'info');
+        }
+        break;
+      }
+      case 'reset-avatar': {
+        setSetting('user_avatar', '');
+        applyBranding();
+        persist('Foto de perfil eliminada');
+        break;
+      }
+      case 'fill-today': fillToday(); break;
+      case 'fill-month': fillMonth(); break;
+      case 'confirm-all': {
+        const provisional = data.jornadas.filter((j) => j.estado === 'provisional');
+        if (!provisional.length) {
+          toast('No hay jornadas provisionales.', 'info');
+          break;
+        }
+        confirmAction(
+          'Confirmar provisionales',
+          'Se marcarán ' + provisional.length + ' jornadas como confirmadas. No se modifican horas ni fichajes.',
+          'Confirmar ' + provisional.length,
+          () => {
+            provisional.forEach((j) => {
+              j.estado = 'confirmado';
+              if (!/\[confirmado\]/i.test(j.notas)) j.notas = ('[CONFIRMADO] ' + (j.notas || '')).trim();
+            });
+            persist(provisional.length + (provisional.length === 1 ? ' jornada confirmada' : ' jornadas confirmadas'));
+          }
+        );
+        break;
+      }
       case 'reset-logo': {
         setSetting('custom_logo', '');
+        setSetting('logo_ratio', '');
         applyBranding();
-        renderAjustes();
+        renderLogoPreview();
         persist('Logo eliminado');
         break;
       }
@@ -2059,6 +2748,17 @@
       setSetting('estimation', event.target.checked ? '1' : '0');
       persist(event.target.checked ? 'Estimación activada' : 'Estimación desactivada');
     }
+    if (event.target.id === 'cfg-auto-fichaje') {
+      setSetting('auto_fichaje', event.target.checked ? '1' : '0');
+      if (event.target.checked) setSetting('auto_dismissed', '');
+      persist(event.target.checked ? 'Fichaje automático activado' : 'Fichaje automático desactivado');
+      if (event.target.checked) autoFichaje();
+    }
+    if (event.target.id === 'avatar-input') {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (file) handleAvatar(file);
+    }
   });
 
   $('#config-form').addEventListener('submit', (event) => {
@@ -2069,10 +2769,16 @@
     const name = $('#cfg-name').value.trim();
     const color = $('#cfg-color').value;
     const schedule = $('#cfg-schedule').value.trim();
+    const userName = $('#cfg-user-name').value.trim().slice(0, 40);
+    const userRole = $('#cfg-user-role').value.trim().slice(0, 40);
 
     if (normal < 0 || extra < 0) { toast('Las tarifas no pueden ser negativas.', 'error'); return; }
     if (day < 1 || day > 16) { toast('La jornada diaria debe estar entre 1 y 16 horas.', 'error'); return; }
     if (!/^#[0-9a-f]{6}$/i.test(color)) { toast('Color no válido.', 'error'); return; }
+    if (schedule && !/(\d{1,2}:\d{2})\s*(?:[-–]|\ba\b)\s*(\d{1,2}:\d{2})/i.test(schedule)) {
+      toast('Horario no válido. Usa el formato 08:00-16:00.', 'error');
+      return;
+    }
 
     setSetting('hora_normal_euros', normal.toFixed(2));
     setSetting('hora_extra_euros', extra.toFixed(2));
@@ -2080,6 +2786,8 @@
     setSetting('app_name', name || 'IVORY37');
     setSetting('app_color', color);
     setSetting('horario_habitual', schedule);
+    setSetting('user_name', userName);
+    setSetting('user_role', userRole || 'Control laboral');
     applyBranding();
     persist('Ajustes guardados');
     renderAjustes();
@@ -2115,13 +2823,14 @@
     if (event.key !== KEY) return;
     data = loadData();
     applyBranding();
+    probeLogoRatio();
     renderAll();
     renderAjustes();
     toast('Datos sincronizados desde otra pestaña.', 'info');
   });
 
-  function handleLogo(file) {
-    if (!file.type || file.type.indexOf('image/') !== 0) {
+  function processImage(file, maxSize, callback) {
+    if (!file || !file.type || file.type.indexOf('image/') !== 0) {
       toast('El archivo debe ser una imagen.', 'error');
       return;
     }
@@ -2132,26 +2841,22 @@
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const max = 240;
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      let dataUrl = '';
       try {
-        dataUrl = canvas.toDataURL('image/png');
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Sin contexto de canvas');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let dataUrl = canvas.toDataURL('image/png');
         if (dataUrl.length > 700000) dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        callback(dataUrl, img.width, img.height);
       } catch (err) {
         toast('No se pudo procesar la imagen.', 'error');
+      } finally {
+        URL.revokeObjectURL(url);
       }
-      URL.revokeObjectURL(url);
-      if (!dataUrl) return;
-      setSetting('custom_logo', dataUrl);
-      applyBranding();
-      renderAjustes();
-      persist('Logo actualizado');
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -2160,12 +2865,34 @@
     img.src = url;
   }
 
+  function handleLogo(file) {
+    processImage(file, 240, (dataUrl, width, height) => {
+      setSetting('custom_logo', dataUrl);
+      setSetting('logo_ratio', String(round2(width / Math.max(1, height))));
+      applyBranding();
+      renderLogoPreview();
+      persist('Logo actualizado');
+    });
+  }
+
+  function handleAvatar(file) {
+    processImage(file, 200, (dataUrl) => {
+      setSetting('user_avatar', dataUrl);
+      applyBranding();
+      persist('Foto de perfil actualizada');
+    });
+  }
+
   /* ---------------- Arranque ---------------- */
 
   function tick() {
     const now = new Date();
     $('#clock-mobile').textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     const today = dateKey(now);
+    if (now.getHours() !== ui.hour) {
+      ui.hour = now.getHours();
+      renderHero();
+    }
     if (today !== ui.today) {
       ui.today = today;
       renderDashboard();
@@ -2173,6 +2900,7 @@
       const j = data.jornadas.find((x) => x.fecha === today);
       if (j && j.entrada && !j.salida) renderToday();
     }
+    autoFichaje();
   }
 
   function init() {
@@ -2182,6 +2910,7 @@
 
     data = loadData();
     applyBranding();
+    probeLogoRatio();
     if (!loadError) {
       syncPayrolls();
       try {
@@ -2191,10 +2920,13 @@
       }
     }
 
+    $('#app-version').textContent = APP_VERSION;
+    ui.hour = new Date().getHours();
     showTab(ui.tab);
     renderAll();
     renderAjustes();
     updateStorageUsage();
+    autoFichaje();
     tick();
     setInterval(tick, 1000);
     setInterval(reminderTick, 30000);
@@ -2203,6 +2935,8 @@
       setTimeout(() => toast('No se pudieron leer los datos guardados. No se ha sobrescrito nada: importa un backup.', 'error'), 500);
     } else if (!data.jornadas.length && !data.viajes.length && !data.pagos.length) {
       setTimeout(() => toast('Empieza fichando la entrada o crea una jornada manual.', 'info'), 700);
+    } else if (!setting('user_name')) {
+      setTimeout(() => toast('Pon tu nombre y tu foto en Ajustes → Mi perfil.', 'info'), 900);
     }
   }
 
