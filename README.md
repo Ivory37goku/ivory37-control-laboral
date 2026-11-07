@@ -33,6 +33,13 @@ python3 -m http.server 8080
 
 La app guarda todo en la clave `ivory37_data_v1` de `localStorage`. Usa **Ajustes → Backup JSON** con frecuencia y **Restaurar** para recuperarlo. El botón **Borrar todo** elimina los datos de este navegador. El panel recuerda cuándo hiciste la última copia y avisa si han pasado más de 30 días.
 
+### Compatibilidad con backups antiguos
+
+Al importar un backup de la versión anterior se migran automáticamente el logo
+(`app_logo` → `custom_logo`), el nombre corrupto de la app y las claves duplicadas. Las
+jornadas históricas no se borran: «Quitar autogeneradas» solo elimina las creadas con
+«Completar mes».
+
 ## Perfil
 
 En **Ajustes → Mi perfil** puedes poner tu nombre, tu rol y una foto. Si no pones foto se usa el logo de la app (cuando es cuadrado) o tus iniciales.
@@ -48,4 +55,4 @@ CHANGELOG.md   Historial de versiones
 
 ## Estado
 
-Versión 2.2. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.
+Versión 2.2.1. Validada con pruebas de DOM (jsdom): fichaje manual y automático, edición y borrado de jornadas, viajes, nóminas, perfil, logo, estimación, importación, migración y checklist de primeros pasos.

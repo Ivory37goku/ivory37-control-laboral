@@ -28,8 +28,9 @@ que no existen. En una app de control laboral es el fallo más grave posible.
 **Ahora:** no se crea ni se rellena nada automáticamente. La estimación es una opción
 explícita en Ajustes, desactivada por defecto, que **no crea registros**: solo se usa para
 el cálculo y se señala con la etiqueta «Incluye estimación». Además hay un botón
-**«Quitar autogeneradas»** en Ajustes para limpiar los registros que dejó la versión
-anterior con la nota «Jornada estándar».
+**«Quitar autogeneradas»** en Ajustes, pero solo elimina los registros creados con la
+función explícita «Completar mes». No borra las jornadas históricas con nota «Jornada
+estándar»: pueden representar trabajo real y se revisan a mano.
 
 ### 1.2. Fechas en UTC en una app con horario local
 
@@ -173,7 +174,7 @@ por defecto sin fichaje es **provisional**.
 - **Multipestaña** sincronizada.
 - **Recordatorios** a las 08:00 y 16:00, con deduplicación.
 - **Modo estimación** opcional y transparente.
-- **Limpieza de jornadas autogeneradas** de la versión anterior.
+- **Limpieza segura** de las jornadas creadas con «Completar mes», sin tocar el histórico.
 
 ---
 
@@ -254,6 +255,17 @@ eliminada a propósito: era la causa principal de nóminas infladas. Ahora el mi
 resultado se obtiene de forma explícita con «Completar mes».
 
 ---
+
+## Actualización 2.2.1 — compatibilidad con datos reales
+
+- Los backups antiguos migran `app_logo` a `custom_logo` y eliminan la clave duplicada,
+  ahorrando unos 160 KB con un logo de 640×640.
+- El nombre corrupto `工V龱尺ㄚ㇌7` / `工V龱尺7` se corrige a `IVORY37` al importar.
+- Se elimina la marca interna `seeded_demo`.
+- «Quitar autogeneradas» solo borra los registros creados con «Completar mes»; el
+  histórico con nota «Jornada estándar» queda intacto.
+- El gráfico «Pendiente por mes» omite los meses a cero para no llenar la vista de barras
+  vacías.
 
 ## Actualización 2.2 — acabado premium
 

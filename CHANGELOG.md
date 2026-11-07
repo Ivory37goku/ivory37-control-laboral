@@ -1,5 +1,14 @@
 # Cambios
 
+## 2.2.1 — Compatibilidad con datos reales
+
+- Migración de backups antiguos: `app_logo` → `custom_logo`, nombre corrupto → `IVORY37`
+  y eliminación de la clave interna `seeded_demo`.
+- «Quitar autogeneradas» solo afecta a los registros creados con «Completar mes»; el
+  histórico con nota «Jornada estándar» no se toca.
+- El gráfico de pendientes omite los meses a cero.
+- Verificado con un backup real de 230 jornadas, 12 nóminas, 3 viajes y logo de 640×640.
+
 ## 2.2 — Acabado premium
 
 - Panel con saludo personalizado, resumen contextual y accesos rápidos.
