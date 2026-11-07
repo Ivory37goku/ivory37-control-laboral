@@ -1,5 +1,15 @@
 # Cambios
 
+## 2.2.5 — KPIs como la foto de referencia
+
+- Cuatro tarjetas: **Cobrado** (13.342,00 €), **A cobrar** (1.252,58 €),
+  **Horas extra** (43,30 h) y **Valor extras** (852,58 €).
+- Se retira «Devengado» de la primera fila para no añadir una cifra que la versión
+  de referencia no mostraba.
+- La tarjeta de horas extra vuelve a mostrar «Acumuladas año actual» y el valor de
+  extras queda en su propia tarjeta.
+- La nómina sin confirmar sigue fuera de «A cobrar» y se gestiona en Pagos.
+
 ## 2.2.4 — A cobrar como la versión que usas
 
 - «A cobrar» = horas extra + viajes sin cobrar (1.252,58 €). La nómina sin confirmar

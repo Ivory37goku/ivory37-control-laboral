@@ -256,6 +256,14 @@ resultado se obtiene de forma explícita con «Completar mes».
 
 ---
 
+## Actualización 2.2.5 — KPIs de la foto
+
+- Primera fila: Cobrado, A cobrar, Horas extra y Valor extras.
+- «Devengado» sale de las tarjetas para no añadir una cifra que la referencia no
+  mostraba; sigue existiendo internamente para el donut.
+- Horas extra (43,30 h) y Valor extras (852,58 €) vuelven a ser tarjetas separadas.
+- La nómina sin confirmar permanece fuera de «A cobrar» y se ve en Pagos.
+
 ## Actualización 2.2.4 — criterio «A cobrar» de la versión que usas
 
 - «A cobrar» = extras + viajes sin cobrar (1.252,58 €). La nómina sin confirmar
