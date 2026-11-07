@@ -256,6 +256,14 @@ resultado se obtiene de forma explícita con «Completar mes».
 
 ---
 
+## Actualización 2.2.2 — pendiente transparente
+
+- El KPI de pendiente abre un desglose con nóminas sin confirmar, horas extra sin pagar
+  y viajes sin cobrar.
+- La gráfica muestra el importe dentro de cada barra, no flotando en la parte superior,
+  y aclara qué conceptos suma.
+- Corregido el foco del modal cuando se abre sin botón de guardar.
+
 ## Actualización 2.2.1 — compatibilidad con datos reales
 
 - Los backups antiguos migran `app_logo` a `custom_logo` y eliminan la clave duplicada,

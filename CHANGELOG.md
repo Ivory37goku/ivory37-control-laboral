@@ -1,5 +1,12 @@
 # Cambios
 
+## 2.2.2 — Pendiente transparente
+
+- El KPI «Pendiente» incluye un enlace **Ver desglose** con nóminas, extras y viajes.
+- Los importes de la gráfica van dentro de cada barra, conectados a su altura.
+- La gráfica explica que suma nóminas + extras + viajes sin cobrar.
+- Corregido el foco del modal cuando no hay botón de guardar.
+
 ## 2.2.1 — Compatibilidad con datos reales
 
 - Migración de backups antiguos: `app_logo` → `custom_logo`, nombre corrupto → `IVORY37`

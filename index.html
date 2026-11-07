@@ -158,6 +158,8 @@
   .kpi strong{display:block;font-family:var(--mono);font-size:clamp(22px,2.6vw,28px);letter-spacing:-.03em;line-height:1.1}
   .kpi small{display:block;color:var(--muted);font-size:11.5px;margin-top:6px}
   .kpi .flag{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:700;color:var(--warn);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);padding:2px 7px;border-radius:99px}
+  .kpi-link{margin-top:7px;padding:0;font-size:10.5px;font-weight:800;color:var(--brand);text-decoration:underline;text-underline-offset:2px}
+  .kpi-link:hover{color:var(--text)}
 
   /* Buttons */
   .btn{
@@ -207,7 +209,8 @@
   .bar-col{flex:1 1 0;min-width:34px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px}
   .bar-val{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
   .bar-track{width:100%;max-width:46px;flex:1;min-height:0;display:flex;align-items:flex-end;background:rgba(255,255,255,.035);border-radius:8px;overflow:hidden}
-  .bar-fill{width:100%;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--brand),color-mix(in srgb,var(--brand) 45%,#111));min-height:3px}
+  .bar-fill{position:relative;width:100%;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--brand),color-mix(in srgb,var(--brand) 45%,#111));min-height:3px}
+  .bar-inside{position:absolute;top:5px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--mono);font-size:9.5px;line-height:1.4;color:#fff;background:rgba(11,18,32,.72);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:0 5px;pointer-events:none}
   .bar-label{font-size:10.5px;color:var(--muted);text-transform:capitalize}
   .empty-chart{height:190px;display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center}
 
@@ -313,6 +316,15 @@
   .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
   .modal-foot .danger{margin-right:auto}
   .modal-body p{margin:0 0 10px}
+  .detail-list{display:grid}
+  .detail-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .detail-row > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .detail-row span{font-size:13px;font-weight:600}
+  .detail-row small{font-size:11px;color:var(--muted)}
+  .detail-row b{font-family:var(--mono);font-size:14px;white-space:nowrap}
+  .detail-row.total{border-bottom:0;padding-top:14px}
+  .detail-row.total span{font-weight:800}
+  .detail-row.total b{color:var(--brand);font-size:16px}
 
   /* Toast */
   .toast{
@@ -497,6 +509,7 @@
             <div class="kpi-top"><span>Pendiente</span><span class="kpi-ico"><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg></span></div>
             <strong id="kpi-pending">0,00 €</strong>
             <small id="kpi-pending-sub">Sin datos</small>
+            <button class="kpi-link" type="button" data-action="pending-detail">Ver desglose</button>
           </article>
           <article class="card kpi" style="--tone:#fbbf24">
             <div class="kpi-top"><span>Horas extra</span><span class="kpi-ico"><svg class="i" aria-hidden="true"><use href="#i-bolt"></use></svg></span></div>
@@ -551,6 +564,7 @@
           <article class="card">
             <div class="chart-head"><h2>Pendiente por mes</h2><span class="badge bad" id="bars-total">0,00 €</span></div>
             <div id="bars"></div>
+            <p class="hint" id="bars-caption" style="margin:10px 0 0" hidden>Nóminas + extras + viajes sin cobrar.</p>
           </article>
         </div>
 
@@ -763,7 +777,7 @@
           <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada.</p>
         </article>
 
-        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.1</span> · Sin dependencias externas · Funciona sin conexión</p>
+        <p class="muted small" style="margin-top:18px">Versión <span id="app-version">2.2.2</span> · Sin dependencias externas · Funciona sin conexión</p>
       </section>
     </main>
   </div>
@@ -829,7 +843,7 @@
   'use strict';
 
   const KEY = 'ivory37_data_v1';
-  const APP_VERSION = '2.2.1';
+  const APP_VERSION = '2.2.2';
   const NOTIF_KEY = 'ivory37_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -1421,6 +1435,8 @@
 
     if (!list.length) {
       box.innerHTML = '<div class="empty-chart">Sin pendientes de cobro.<br>Todo al día.</div>';
+      const caption = $('#bars-caption');
+      if (caption) caption.hidden = true;
       return;
     }
 
@@ -1431,11 +1447,14 @@
       const height = Math.max(3, (value / max) * 100);
       const label = parseKey(month + '-01').toLocaleDateString('es-ES', { month: 'short' });
       return '<div class="bar-col" title="' + esc(fmtMonth(month) + ': ' + fmtMoney(value)) + '">' +
-        '<span class="bar-val">' + (value > 0 ? Math.round(value) + ' €' : '—') + '</span>' +
-        '<div class="bar-track"><div class="bar-fill" style="height:' + height.toFixed(1) + '%"></div></div>' +
+        '<div class="bar-track"><div class="bar-fill" style="height:' + height.toFixed(1) + '%">' +
+        '<span class="bar-inside">' + Math.round(value) + ' €</span>' +
+        '</div></div>' +
         '<span class="bar-label">' + esc(label) + '</span>' +
         '</div>';
     }).join('') + '</div>';
+    const caption = $('#bars-caption');
+    if (caption) caption.hidden = false;
   }
 
   function renderRecentPayrolls() {
@@ -1934,7 +1953,7 @@
     $('#modal').hidden = false;
     document.body.style.overflow = 'hidden';
     setTimeout(() => {
-      const first = $('#modal-body input:not([type="hidden"]), #modal-body select, #modal-body textarea, #modal-save');
+      const first = $('#modal-body input:not([type="hidden"]), #modal-body select, #modal-body textarea, #modal-save:not([hidden]), .modal-foot .btn:not([hidden])');
       if (first) first.focus();
     }, 40);
   }
@@ -2335,6 +2354,35 @@
     });
   }
 
+  function pendingModal() {
+    const pendingPayrolls = data.pagos.filter((p) => p.tipo === 'nomina_auto' && !p.confirmado);
+    const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
+    const unpaidExtras = data.jornadas.filter((j) => j.horas_extra > 0 && !j.pagado_extras);
+    const extraHours = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra, 0));
+    const extraTotal = round2(extraHours * rateExtra());
+    const pendingTrips = data.viajes.filter((v) => !v.pagado);
+    const tripTotal = round2(pendingTrips.reduce((sum, v) => sum + v.importe, 0));
+    const total = round2(payrollTotal + extraTotal + tripTotal);
+
+    const rows = [
+      { label: 'Nóminas sin confirmar', detail: pendingPayrolls.length === 1 ? '1 nómina' : pendingPayrolls.length + ' nóminas', value: payrollTotal },
+      { label: 'Horas extra sin pagar', detail: fmtHours(extraHours) + ' × ' + fmtMoney(rateExtra()) + '/h', value: extraTotal },
+      { label: 'Viajes sin cobrar', detail: pendingTrips.length === 1 ? '1 viaje' : pendingTrips.length + ' viajes', value: tripTotal }
+    ];
+
+    openModal({
+      title: 'Composición del pendiente',
+      hideSave: true,
+      body: '<div class="detail-list">' +
+        rows.map((row) =>
+          '<div class="detail-row"><div><span>' + esc(row.label) + '</span><small>' + esc(row.detail) + '</small></div><b>' + fmtMoney(row.value) + '</b></div>'
+        ).join('') +
+        '<div class="detail-row total"><div><span>Total pendiente</span></div><b>' + fmtMoney(total) + '</b></div>' +
+        '</div>' +
+        '<p class="hint" style="margin:14px 0 0">Para bajarlo: confirma la nómina en Pagos, marca las extras como pagadas y los viajes como cobrados.</p>'
+    });
+  }
+
   /* ---------------- Acciones: datos ---------------- */
 
   function download(blob, filename) {
@@ -2619,6 +2667,7 @@
         );
         break;
       }
+      case 'pending-detail': pendingModal(); break;
       case 'request-notif': requestNotifications(); break;
       case 'settings-jump': {
         const target = el.dataset.target ? document.querySelector(el.dataset.target) : null;
