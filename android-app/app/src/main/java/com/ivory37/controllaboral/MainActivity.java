@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
 import android.view.Window;
+import android.view.Gravity;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -27,6 +28,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.webkit.WebViewAssetLoader;
 
@@ -43,6 +48,7 @@ public final class MainActivity extends Activity {
     private static final int MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024;
 
     private WebView webView;
+    private View loadingOverlay;
     private ValueCallback<Uri[]> fileChooserCallback;
     private byte[] pendingSaveBytes;
     private String pendingSaveName;
@@ -56,9 +62,41 @@ public final class MainActivity extends Activity {
         window.setStatusBarColor(Color.rgb(7, 13, 24));
         window.setNavigationBarColor(Color.rgb(7, 13, 24));
 
+        int background = Color.rgb(7, 13, 24);
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(background);
+
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(7, 13, 24));
+        webView.setBackgroundColor(background);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        root.addView(webView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        LinearLayout loading = new LinearLayout(this);
+        loading.setOrientation(LinearLayout.VERTICAL);
+        loading.setGravity(Gravity.CENTER);
+        loading.setBackgroundColor(background);
+        ProgressBar progress = new ProgressBar(this);
+        int spinnerSize = Math.round(48 * getResources().getDisplayMetrics().density);
+        loading.addView(progress, new LinearLayout.LayoutParams(spinnerSize, spinnerSize));
+        TextView loadingText = new TextView(this);
+        loadingText.setText("Cargando Control laboral…");
+        loadingText.setTextColor(Color.WHITE);
+        loadingText.setTextSize(18);
+        loadingText.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        textParams.topMargin = Math.round(20 * getResources().getDisplayMetrics().density);
+        loading.addView(loadingText, textParams);
+        root.addView(loading, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        loadingOverlay = loading;
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -68,7 +106,7 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setSupportMultipleWindows(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setBlockNetworkLoads(true);
+        // No se concede INTERNET al APK; Android WebView aún puede recibir assets interceptados.
         settings.setGeolocationEnabled(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -82,8 +120,24 @@ public final class MainActivity extends Activity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+            }
+
+            @Override
             public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                if (!request.isForMainFrame()) return;
+                android.util.Log.e("ControlLaboral", "No se pudo cargar la app local: " + error.getDescription());
+                String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
+                        + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control laboral</h1>"
+                        + "<p>Faltan archivos locales de la aplicación. Vuelve a instalar la APK completa.</p>"
+                        + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#f97316;font-weight:bold'>Reintentar</button></body></html>";
+                view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
             }
 
             @Override
@@ -115,9 +169,8 @@ public final class MainActivity extends Activity {
         });
 
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
-        setContentView(webView);
+        setContentView(root);
         createNotificationChannel();
-        if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) return;
         webView.loadUrl(LOCAL_URL);
     }
 
@@ -258,12 +311,6 @@ public final class MainActivity extends Activity {
             Toast.makeText(this, notificationsEnabled() ? "Recordatorios activados." : "Permiso de notificaciones denegado.", Toast.LENGTH_LONG).show();
             refreshNotificationLabel();
         }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        if (webView != null) webView.saveState(outState);
-        super.onSaveInstanceState(outState);
     }
 
     @Override

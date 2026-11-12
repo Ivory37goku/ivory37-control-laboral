@@ -1,5 +1,17 @@
 # Cambios
 
+## 3.1.2 — Arranque de la APK Android
+
+- Se muestra «Cargando Control laboral…» mientras Android prepara WebView, en vez de dejar
+  la ventana negra durante el primer inicio.
+- Cada inicio carga el HTML local para evitar restaurar una sesión WebView vacía.
+
+## 3.1.1 — Corrección de la APK Android
+
+- Corregida la ruta de los archivos locales dentro del APK y retirado el bloqueo WebView
+  que impedía cargarlos. La APK abre la app sin conexión.
+- Si faltan assets locales, aparece una indicación para reinstalar en vez de quedarse en negro.
+
 ## 3.1.0 — PWA y protección de datos
 
 - Añadidos manifest, iconos PNG válidos y service worker para GitHub Pages; la app queda

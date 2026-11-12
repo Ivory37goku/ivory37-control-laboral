@@ -1579,7 +1579,7 @@ h1,h2{letter-spacing:-.03em}
     const setupBtn = $('#setup-show-btn'); if (setupBtn) setupBtn.hidden = setting('setup_dismissed') !== '1';
   }
 
-  function renderNotifState() { const el = $('#notif-state'); if (!el) return; if (window.AndroidBridge && typeof window.AndroidBridge.getNotificationState === 'function') el.textContent = window.AndroidBridge.getNotificationState(); else if (!('Notification' in window)) el.textContent = 'No compatible'; else el.textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar'; }
+  function renderNotifState() { const el = $('#notif-state'); if (!el) return; if (!('Notification' in window)) el.textContent = 'No compatible'; else el.textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar'; }
   function renderAll() { renderDashboard(); renderJornadas(); renderTrips(); renderPagos(); renderSetup(); renderDataTools(); updateStorageUsage(); }
   function updateFillLabel() { const fill = $('#fill-month-btn'); if (!fill) return; const missing = missingMonthDays().length; const label = fill.querySelector('span'); if (label) label.textContent = missing ? 'Completar mes (' + missing + ')' : 'Completar mes'; }
 
@@ -2116,15 +2116,7 @@ h1,h2{letter-spacing:-.03em}
     openModal({ title: 'Composición de lo pendiente', hideSave: true, body: '<div class="detail-list">' + rows.map((r) => '<div class="detail-row"><div><span>' + esc(r.label) + '</span><small>' + esc(r.detail) + '</small></div><b>' + fmtMoney(r.value) + '</b></div>').join('') + '<div class="detail-row total"><div><span>Total a cobrar</span></div><b>' + fmtMoney(total) + '</b></div></div><p class="hint" style="margin:8px 0 0">Para reducirlo: confirma nóminas, marca extras pagadas y viajes cobrados.</p>' });
   }
 
-  function download(blob, filename) {
-    if (window.AndroidBridge && typeof window.AndroidBridge.saveFile === 'function') {
-      const reader = new FileReader();
-      reader.onloadend = () => { const parts = String(reader.result || '').split(','); if (parts.length > 1) window.AndroidBridge.saveFile(parts[1], filename, blob.type || 'application/octet-stream'); };
-      reader.readAsDataURL(blob);
-      return;
-    }
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+  function download(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
   function exportJSON() { setSetting('last_backup', dateKey(new Date())); const payload = JSON.stringify(data, null, 2); download(new Blob([payload], { type: 'application/json' }), 'backup_' + dateKey(new Date()) + '.json'); try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) {} renderDataTools(); renderSetup(); toast('Backup descargado.'); }
 
   function exportCSV() {
@@ -2181,11 +2173,11 @@ h1,h2{letter-spacing:-.03em}
     const provisionalCount = records.filter((j) => j.estado === 'provisional').length;
     const rows = records.map((j) => { const clock = j.entrada && j.salida ? j.entrada + '–' + j.salida : '—'; return '<tr><td>' + esc(fmtDate(j.fecha)) + '</td><td>' + esc(clock) + '</td><td class="num">' + hoursFmt.format(j.horas_normales) + '</td><td class="num">' + (j.horas_extra > 0 ? '+' + hoursFmt.format(j.horas_extra) : '—') + '</td><td>' + (j.estado === 'confirmado' ? 'OK' : 'Prov.') + '</td></tr>'; }).join('');
     $('#print').innerHTML = '<div class="print-head">' + (logo && isSafeImage(logo) ? '<img src="' + esc(logo) + '" alt="">' : '') + '<h1>' + esc(name) + '</h1></div>' + '<p class="sub">' + (person ? esc(person) + ' · ' : '') + 'Informe · ' + esc(fmtMonth(month)) + '</p>' + '<div class="totals"><div>Horas normales<b>' + fmtHours(stats.normalTotal) + '</b></div><div>Horas extra<b>' + fmtHours(stats.extra) + '</b></div><div>Valor nómina<b>' + fmtMoney(normalValue) + '</b></div><div>Valor extras<b>' + fmtMoney(extraValue) + '</b></div><div>Viajes<b>' + fmtMoney(tripTotal) + '</b></div></div>' + (provisionalCount ? '<p class="sub">' + provisionalCount + ' jornada(s) provisional(es) se muestran para revisión y no se incluyen en los importes.</p>' : '') + '<h2>Jornadas</h2>' + (rows ? '<table><thead><tr><th>Fecha</th><th>Horario</th><th class="num">Norm.</th><th class="num">Extra</th><th>Estado</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<p>Sin jornadas.</p>') + '<footer>Generado por ' + esc(name) + '</footer>';
-    setTimeout(() => { if (window.AndroidBridge && typeof window.AndroidBridge.printReport === 'function') window.AndroidBridge.printReport(); else window.print(); }, 60);
+    setTimeout(() => window.print(), 60);
   }
 
-  function notify(title, body) { try { if (window.AndroidBridge && typeof window.AndroidBridge.showNotification === 'function') { window.AndroidBridge.showNotification(String(title), String(body)); return; } if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); } } catch (err) {} }
-  function requestNotifications() { if (window.AndroidBridge && typeof window.AndroidBridge.requestNotifications === 'function') { window.AndroidBridge.requestNotifications(); return; } if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
+  function notify(title, body) { try { if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); } } catch (err) {} }
+  function requestNotifications() { if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
 
   function reminderTick() {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -2345,7 +2337,7 @@ h1,h2{letter-spacing:-.03em}
 /* PWA: Service Worker, Instalación y Actualización */
 (function () {
   'use strict';
-  if (window.AndroidBridge || !('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
   var updateBanner = document.getElementById('pwa-update-banner');
   var updateBtn = document.getElementById('pwa-update-btn');
   var installBtn = document.getElementById('pwa-install-btn');

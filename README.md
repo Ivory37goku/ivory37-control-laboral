@@ -95,8 +95,8 @@ raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí auto
 
 ### APK para Android
 
-El proyecto Android está en [`android-app/`](android-app/). Incluye la app 3.1.0 dentro
-del APK y abre su interfaz mediante Android WebView, sin lanzar Chrome ni necesitar
+El proyecto Android está en [`android-app/`](android-app/). La APK actual es 3.1.2 e incluye el
+contenido web 3.1.0; abre la interfaz mediante Android WebView, sin lanzar Chrome ni necesitar
 conexión. En Android Studio abre esa carpeta y compila **Build → Build Bundle(s) / APK(s) → Build APK(s)**; los pasos
 completos y el comando `gradlew.bat assembleDebug` están en `android-app/README.md`.
 La APK guarda los datos separadamente de GitHub Pages y Firefox: usa Backup JSON para
