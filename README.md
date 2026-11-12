@@ -6,7 +6,7 @@
 
 👉 **Demo:** https://ivory37goku.github.io/ivory37-control-laboral/
 
-![Versión](https://img.shields.io/badge/version-2.2.5-orange)
+![Versión](https://img.shields.io/badge/version-3.1.0-orange)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
 ![Dependencias](https://img.shields.io/badge/dependencies-0-brightgreen)
 
@@ -17,8 +17,8 @@
 ### 📊 Panel
 
 - Cuatro indicadores: **Cobrado, A cobrar, Horas extra y Valor extras**.
-- **A cobrar** = horas extra + viajes sin cobrar. La nómina sin confirmar se gestiona en
-  Pagos y no se suma aquí, para no duplicarla.
+- **A cobrar** suma nóminas automáticas aún sin confirmar, extras confirmadas sin pagar
+  y viajes pendientes. Las horas provisionales se excluyen hasta confirmarlas.
 - **Flujo de caja (pend.)**: barras mensuales de horas extra con eje, total y aviso de
   los viajes pendientes.
 - Desglose de lo pendiente y saludo personalizado.
@@ -41,8 +41,11 @@
 - **Perfil**: nombre, rol y foto o logo en la barra lateral y en móvil.
 - **Logo de la app** con fondo claro/oscuro y adaptación a logos apaisados; favicon
   dinámico.
-- Backup JSON, exportación CSV, restauración y aviso de la última copia.
+- Backup JSON, exportación CSV segura frente a fórmulas, restauración transaccional y
+  aviso de la última copia.
 - Datos en `localStorage`, sin servidor y con sincronización entre pestañas.
+- **PWA instalable y offline** en GitHub Pages: manifest, iconos válidos, actualización
+  controlada y copia en caché de la aplicación.
 
 ## 📸 Capturas
 
@@ -72,18 +75,30 @@
 - **CSS propio**, iconos SVG inline y gráficas SVG/CSS.
 - **Cero dependencias y cero peticiones externas** en la app.
 - Informe mediante la impresión del navegador (sin jsPDF).
-- **localStorage** para los datos y un service worker no es necesario: la app funciona
-  igual con o sin conexión.
+- **localStorage** para los datos. El service worker guarda la app para abrirla sin
+  conexión después de la primera visita; la sincronización de los datos sigue siendo local
+  al navegador y no se comparte entre dispositivos.
 
 ---
 
 ## 🚀 Cómo empezar
 
+### PWA en GitHub Pages
+
+Abre https://ivory37goku.github.io/ivory37-control-laboral/ desde Chrome/Edge en Android
+(o Safari en iPhone/iPad). En Android usa el botón **Instalar app** o el menú del navegador;
+en iOS usa **Compartir → Añadir a pantalla de inicio**. La app se puede abrir sin conexión
+tras su primera carga.
+
+GitHub Pages ya sirve el repositorio; al publicar los cambios en `main`, sus archivos de
+raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí automáticamente.
+
 ### Uso directo
 
-Abre `index.html` en el navegador. No necesita instalación ni servidor.
+Abre `index.html` para usarla en el ordenador. La instalación PWA y el modo offline del
+service worker requieren la dirección HTTPS de GitHub Pages (o un servidor local).
 
-Para notificaciones y para servirla por HTTP:
+Para probarla por HTTP local:
 
 ```bash
 python3 -m http.server 8080
@@ -116,7 +131,9 @@ Esta aplicación es **100 % client-side**:
 
 - No envía datos a servidores externos.
 - No tiene backend ni base de datos remota.
-- Jornadas, nóminas, ajustes y logo se guardan solo en el `localStorage` del navegador.
+- Jornadas, nóminas, ajustes y logo se guardan solo en el `localStorage` de ese navegador
+  y esa dirección web. Para trasladar datos entre `file://`, GitHub Pages o dispositivos,
+  exporta un Backup JSON e impórtalo en el otro sitio.
 
 > **Aviso:** si borras los datos del sitio o usas modo incógnito, perderás la
 > información. Descarga un **Backup JSON** con frecuencia desde Ajustes.

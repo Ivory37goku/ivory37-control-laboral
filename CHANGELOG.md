@@ -1,5 +1,17 @@
 # Cambios
 
+## 3.1.0 — PWA y protección de datos
+
+- Añadidos manifest, iconos PNG válidos y service worker para GitHub Pages; la app queda
+  disponible offline después de cargarla y ofrece instalación/actualizaciones controladas.
+- Las jornadas provisionales ya no suman nómina ni extras pendientes hasta confirmarlas.
+- Importar un backup valida fechas y solo reemplaza los datos si se pudo guardar completo.
+- Rechazadas fechas imposibles y números con texto sobrante; exportación CSV protege las
+  celdas que podrían ejecutarse como fórmulas.
+- Añadido control para no regenerar una nómina automática que el usuario acaba de borrar.
+- Al añadir o modificar extras ya pagadas, vuelven a quedar pendientes para revisión.
+- Aclarados los mensajes de instalación, los límites del auto-fichaje y «Completar mes».
+
 ## 2.2.5 — KPIs como la foto de referencia
 
 - Cuatro tarjetas: **Cobrado** (13.342,00 €), **A cobrar** (1.252,58 €),

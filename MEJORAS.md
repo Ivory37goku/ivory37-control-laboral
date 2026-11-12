@@ -51,9 +51,10 @@ navigator.serviceWorker.register(URL.createObjectURL(new Blob([...])))
 Un service worker no se puede registrar desde una URL `blob:`. La promesa fallaba siempre,
 así que el modo offline que anunciaba la app no existía.
 
-**Ahora:** la app no necesita service worker porque no hace **ninguna petición externa**.
-Para convertirla en PWA instalable de verdad hacen falta un `manifest.webmanifest` y un
-`sw.js` servidos por HTTP/HTTPS (ver «Siguientes pasos»).
+**Ahora:** la app incluye `manifest.json`, iconos PNG válidos y `sw.js`. GitHub Pages la
+sirve por HTTPS, permite instalarla y guarda los archivos necesarios para abrirla offline
+después de la primera visita. Abrir el HTML con `file://` sigue sirviendo para uso local,
+pero no habilita el service worker ni la instalación PWA.
 
 ### 1.4. Clases CSS que no existían
 
@@ -196,22 +197,19 @@ por defecto sin fichaje es **provisional**.
 
 ## 5. Siguientes pasos recomendados
 
-1. **PWA real**: `manifest.webmanifest` + `sw.js` con caché *cache-first* y estrategia de
-   actualización. Instalable en móvil.
-2. **Separar el código**: `app.js`, `calc.js`, `ui.js`, `storage.js`. Hoy el archivo es
+1. **Separar el código**: `app.js`, `calc.js`, `ui.js`, `storage.js`. Hoy el archivo es
    cómodo de distribuir, pero 1.900 líneas en un solo HTML no escala.
-3. **Tests de cálculo** (horas, nóminas, estimación, cambio de tarifa) con Vitest. Yo he
-   validado los flujos con jsdom, pero conviene una suite permanente.
-4. **Vacaciones, bajas y festivos**: hoy la estimación rellena cualquier día laborable; un
+2. **Tests de cálculo** (horas, nóminas, estimación, cambio de tarifa) con Vitest.
+3. **Vacaciones, bajas y festivos**: hoy la estimación rellena cualquier día laborable; un
    calendario de ausencias lo haría correcto.
-5. **Pausas / descansos** en el fichaje (comida) y redondeo configurable.
-6. **Cifrado local** o passcode si el dispositivo es compartido.
-7. **Informe PDF por mes elegible** (hoy imprime el mes en curso).
-8. **Histórico de tarifas** por fecha, para que cambiar el precio/hora no altere meses
+4. **Pausas / descansos** en el fichaje (comida) y redondeo configurable.
+5. **Cifrado local** o passcode si el dispositivo es compartido.
+6. **Informe PDF por mes elegible** (hoy imprime el mes en curso).
+7. **Histórico de tarifas** por fecha, para que cambiar el precio/hora no altere meses
    anteriores.
-9. **IndexedDB** si prevés muchos años de datos o adjuntos.
-10. **Accesibilidad**: probar con teclado y lector de pantalla; añadir `aria-describedby`
-    en los formularios.
+8. **IndexedDB** si prevés muchos años de datos o adjuntos.
+9. **Accesibilidad**: probar con teclado y lector de pantalla; añadir `aria-describedby`
+   en los formularios.
 
 ---
 
@@ -315,3 +313,21 @@ resultado se obtiene de forma explícita con «Completar mes».
   perfil en la barra superior.
 - **Detalles**: contraste de avatares, logos apaisados en la marca y vista previa del logo
   sin el icono de reserva superpuesto.
+
+---
+
+## Actualización 3.1.0 — datos y PWA
+
+- Importación de backups con validación de fechas y reemplazo transaccional: si falla el
+  almacenamiento, los datos que estaban cargados permanecen en memoria.
+- Las fechas de calendario imposibles ya no se normalizan silenciosamente; se conservan
+  los datos locales para que se pueda importar un backup corregido.
+- Las jornadas provisionales se muestran para revisión, pero no generan nómina ni importes
+  pendientes hasta su confirmación.
+- La tarjeta «A cobrar» incluye ahora también nóminas automáticas sin confirmar, alineada
+  con su desglose.
+- Horas añadidas a una jornada que ya se había marcado pagada vuelven a quedar pendientes.
+- Se valida el formato numérico, se protegen celdas CSV frente a fórmulas y no se vuelven
+  a crear automáticamente las nóminas que el usuario haya borrado.
+- PWA preparada para GitHub Pages con iconos correctos, caché offline y actualización
+  controlada desde el aviso de la aplicación.
