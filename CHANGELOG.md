@@ -4,6 +4,8 @@
 
 - Añadidos manifest, iconos PNG válidos y service worker para GitHub Pages; la app queda
   disponible offline después de cargarla y ofrece instalación/actualizaciones controladas.
+- Añadido `android-app/`, un proyecto Android offline con selector de archivos, impresión
+  y notificaciones nativas para generar una APK sin abrir Chrome.
 - Las jornadas provisionales ya no suman nómina ni extras pendientes hasta confirmarlas.
 - Importar un backup valida fechas y solo reemplaza los datos si se pudo guardar completo.
 - Rechazadas fechas imposibles y números con texto sobrante; exportación CSV protege las

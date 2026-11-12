@@ -93,6 +93,15 @@ tras su primera carga.
 GitHub Pages ya sirve el repositorio; al publicar los cambios en `main`, sus archivos de
 raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí automáticamente.
 
+### APK para Android
+
+El proyecto Android está en [`android-app/`](android-app/). Incluye la app 3.1.0 dentro
+del APK y abre su interfaz mediante Android WebView, sin lanzar Chrome ni necesitar
+conexión. En Android Studio abre esa carpeta y compila **Build → Build Bundle(s) / APK(s) → Build APK(s)**; los pasos
+completos y el comando `gradlew.bat assembleDebug` están en `android-app/README.md`.
+La APK guarda los datos separadamente de GitHub Pages y Firefox: usa Backup JSON para
+trasladarlos entre ambas.
+
 ### Uso directo
 
 Abre `index.html` para usarla en el ordenador. La instalación PWA y el modo offline del
@@ -143,7 +152,8 @@ Esta aplicación es **100 % client-side**:
 ## 📁 Estructura
 
 ```
-index.html     Aplicación completa (HTML + CSS + JS, sin dependencias)
+index.html     Aplicación web completa (HTML + CSS + JS, sin dependencias)
+android-app/   Proyecto Android WebView y guía para compilar APK
 docs/          Capturas para el README
 README.md      Este archivo
 CHANGELOG.md   Historial de versiones
