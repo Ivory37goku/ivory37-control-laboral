@@ -1,4 +1,4 @@
-# IVORY37 · Control laboral 🥋
+# 工V龱尺ㄚ㇌7
 
 > **Panel personal de jornadas, horas extra, viajes y nóminas.**
 > Una aplicación web de una sola página para saber qué has trabajado, qué te deben y qué
@@ -6,7 +6,7 @@
 
 👉 **Demo:** https://ivory37goku.github.io/ivory37-control-laboral/
 
-![Versión](https://img.shields.io/badge/version-3.2.2-39ff14)
+![Versión](https://img.shields.io/badge/version-3.2.3-39ff14)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
 ![Dependencias](https://img.shields.io/badge/SDK-Supabase%20incluido-brightgreen)
 
@@ -99,7 +99,7 @@ La PWA instalada recibe los cambios en la misma app cuando no hay un formulario 
 
 ### APK para Android
 
-El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.2 abre la versión
+El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.3 abre la versión
 publicada dentro de Android WebView, conserva una copia local y migra los datos existentes al
 primer inicio. Después de instalar esta versión inicial, los cambios publicados llegan a la
 misma app sin reinstalar la APK. En Android Studio abre esa carpeta y compila **Build → Build
@@ -107,7 +107,7 @@ Bundle(s) / APK(s) → Build APK(s)**; los pasos completos están en `android-ap
 
 ### App de Windows
 
-El EXE 3.2.2 conserva los datos de la versión local y abre el mismo HTML de GitHub Pages.
+El EXE 3.2.3 conserva los datos de la versión local y abre el mismo HTML de GitHub Pages.
 Después de instalar esta versión inicial, la app se actualiza automáticamente y mantiene una
 copia para trabajar sin conexión.
 

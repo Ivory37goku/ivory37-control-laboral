@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.2.2';
+const CACHE_NAME = CACHE_PREFIX + 'v3.2.3';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,8 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './icon-512-maskable.png'
+  './icon-512-maskable.png',
+  './assets/ivory37-logo.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -68,7 +69,7 @@ self.addEventListener('message', (event) => {
     return;
   }
   if (data.type === 'SHOW_NOTIFICATION' && self.registration.showNotification) {
-    const title = String(data.title || 'Control laboral');
+    const title = String(data.title || '工V龱尺ㄚ㇌7');
     const body = String(data.body || 'Tienes un recordatorio.');
     event.waitUntil(self.registration.showNotification(title, {
       body,

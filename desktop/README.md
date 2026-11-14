@@ -1,4 +1,4 @@
-# IVORY37 Control Laboral para Windows
+# 工V龱尺ㄚ㇌7 para Windows
 
 Esta carpeta contiene el lanzador de escritorio. Abre el `index.html` local dentro de una ventana de Windows; no cambia la app web ni requiere Chrome para ejecutarse.
 

@@ -93,7 +93,7 @@ public final class MainActivity extends Activity {
         int spinnerSize = Math.round(48 * getResources().getDisplayMetrics().density);
         loading.addView(progress, new LinearLayout.LayoutParams(spinnerSize, spinnerSize));
         TextView loadingText = new TextView(this);
-        loadingText.setText("Cargando Control laboral…");
+        loadingText.setText("Cargando 工V龱尺ㄚ㇌7…");
         loadingText.setTextColor(Color.WHITE);
         loadingText.setTextSize(18);
         loadingText.setGravity(Gravity.CENTER);
@@ -250,7 +250,7 @@ public final class MainActivity extends Activity {
         if (showingLocalFailure) return;
         showingLocalFailure = true;
         String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
-                + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control laboral</h1>"
+                + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir 工V龱尺ㄚ㇌7</h1>"
                 + "<p>No se pudo cargar la app publicada ni los archivos locales. Tus datos guardados se conservan.</p>"
                 + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#39ff14;font-weight:bold'>Reintentar</button></body></html>";
         view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
@@ -462,7 +462,7 @@ public final class MainActivity extends Activity {
                 } else if (notificationsEnabled()) {
                     Toast.makeText(MainActivity.this, "Recordatorios activados.", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(MainActivity.this, "Activa las notificaciones de Control laboral en Ajustes de Android.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Activa las notificaciones de 工V龱尺ㄚ㇌7 en Ajustes de Android.", Toast.LENGTH_LONG).show();
                 }
                 refreshNotificationLabel();
             });
@@ -526,8 +526,8 @@ public final class MainActivity extends Activity {
                 android.print.PrintManager printManager = (android.print.PrintManager) getSystemService(Context.PRINT_SERVICE);
                 if (printManager == null) return;
                 printManager.print(
-                        "Control laboral",
-                        webView.createPrintDocumentAdapter("Control laboral"),
+                        "工V龱尺ㄚ㇌7",
+                        webView.createPrintDocumentAdapter("工V龱尺ㄚ㇌7"),
                         new android.print.PrintAttributes.Builder().build()
                 );
             });

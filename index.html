@@ -5,21 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b1220">
-<meta name="app-version" content="3.2.2">
+<meta name="app-version" content="3.2.3">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="工V龱尺ㄚ㇌7">
-<meta property="og:title" content="工V龱尺ㄚ㇌7 · Control laboral">
+<meta property="og:title" content="工V龱尺ㄚ㇌7">
 <meta property="og:description" content="Control de jornadas, horas extra, viajes y nóminas. Sin dependencias, sin conexión, con tus datos en tu dispositivo.">
 <meta property="og:type" content="website">
-<link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2339ff14'/%3E%3Cpath d='M36 8 17 36h12l-2 20 20-30H35l1-18Z' fill='%2306120a'/%3E%3C/svg%3E">
-<title>工V龱尺ㄚ㇌7 · Control laboral</title>
+<link id="favicon" rel="icon" href="./icon-192.png">
+<title>工V龱尺ㄚ㇌7</title>
 
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Control laboral">
+<meta name="apple-mobile-web-app-title" content="工V龱尺ㄚ㇌7">
 
 <style>
 /* ============ BASE ============ */
@@ -1228,7 +1228,7 @@ h1,h2{letter-spacing:-.03em}
           <div class="grid-2">
             <article class="card" id="appearance-card">
               <h2 style="margin-bottom:14px">Apariencia</h2>
-              <label class="field"><span>Nombre de la app</span><input class="input" id="cfg-name" maxlength="40" autocomplete="off"></label>
+              <label class="field"><span>Nombre de la app</span><input class="input" id="cfg-name" maxlength="40" autocomplete="off" readonly></label>
               <label class="field"><span>Color principal</span>
                 <div style="display:flex;gap:10px;align-items:center">
                   <input type="color" id="cfg-color" class="input" style="width:52px;height:44px;padding:4px;cursor:pointer" aria-label="Selector de color">
@@ -1249,8 +1249,8 @@ h1,h2{letter-spacing:-.03em}
               <div class="field" style="margin-bottom:0">
                 <span>Fondo del logo</span>
                 <div class="chips" role="group" aria-label="Fondo del logo">
-                  <button class="chip" type="button" data-action="logo-bg" data-bg="light" aria-pressed="true">Claro</button>
-                  <button class="chip" type="button" data-action="logo-bg" data-bg="dark" aria-pressed="false">Oscuro</button>
+                  <button class="chip" type="button" data-action="logo-bg" data-bg="light" aria-pressed="false">Claro</button>
+                  <button class="chip" type="button" data-action="logo-bg" data-bg="dark" aria-pressed="true">Oscuro</button>
                 </div>
               </div>
             </article>
@@ -1400,7 +1400,7 @@ h1,h2{letter-spacing:-.03em}
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.2.2';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.2.3';
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -1409,7 +1409,7 @@ h1,h2{letter-spacing:-.03em}
   const DEFAULTS = {
     hora_normal_euros: '12.50', hora_extra_euros: '19.69', horas_normales_dia: '8',
     horario_habitual: '08:00-16:00', app_name: '工V龱尺ㄚ㇌7', app_color: '#39ff14',
-    custom_logo: '', logo_bg: 'light', user_name: '', user_role: 'Control laboral',
+    custom_logo: '', logo_bg: 'dark', user_name: '', user_role: 'Control laboral',
     user_avatar: '', auto_fichaje: '1', estimation: '0', nomina_auto_omitidas: ''
   };
 
@@ -1666,7 +1666,7 @@ h1,h2{letter-spacing:-.03em}
     const greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
     const greetingEl = $('#hero-greeting'); if (greetingEl) greetingEl.textContent = greeting;
     const todayLabel = $('#today-label'); if (todayLabel) todayLabel.textContent = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-    const name = String(setting('user_name') || setting('app_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
+    const name = String(setting('user_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
     const nameEl = $('#hero-name'); if (nameEl) nameEl.textContent = name;
     const today = dateKey(now);
     const j = data.jornadas.find((x) => x.fecha === today);
@@ -1933,16 +1933,15 @@ h1,h2{letter-spacing:-.03em}
   }
 
   function renderLogoPreview() {
-    const logo = setting('custom_logo'); const img = $('#logo-preview'); const placeholder = $('#logo-placeholder'); if (!img || !placeholder) return;
-    if (logo) { img.src = logo; img.hidden = false; placeholder.hidden = true; }
-    else { img.hidden = true; img.removeAttribute('src'); placeholder.hidden = false; }
-    const logoBg = setting('logo_bg') === 'dark' ? 'dark' : 'light';
+    const logo = setting('custom_logo') || './assets/ivory37-logo.jpg'; const img = $('#logo-preview'); const placeholder = $('#logo-placeholder'); if (!img || !placeholder) return;
+    img.src = logo; img.hidden = false; placeholder.hidden = true;
+    const logoBg = setting('logo_bg') === 'light' ? 'light' : 'dark';
     $$('[data-action="logo-bg"]').forEach((btn) => { btn.setAttribute('aria-pressed', String(btn.dataset.bg === logoBg)); });
   }
 
   function renderAjustes() {
     const setVal = (id, val) => { const el = $(id); if (el) el.value = val; };
-    setVal('#cfg-name', setting('app_name') || '工V龱尺ㄚ㇌7');
+    setVal('#cfg-name', '工V龱尺ㄚ㇌7');
     setVal('#cfg-color', /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#39ff14');
     setVal('#cfg-color-hex', $('#cfg-color') ? $('#cfg-color').value : '#39ff14');
     setVal('#cfg-normal', fmtInput(setting('hora_normal_euros')));
@@ -1957,15 +1956,15 @@ h1,h2{letter-spacing:-.03em}
   }
 
   function applyBranding() {
-    const name = String(setting('app_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
+    const name = '工V龱尺ㄚ㇌7';
     const color = /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#39ff14';
     document.documentElement.style.setProperty('--brand', color);
-    document.title = name + ' · Control laboral';
+    document.title = name;
     $$('.brand-name').forEach((el) => { el.textContent = name; });
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', color);
-    const logo = setting('custom_logo'); const favicon = $('#favicon');
-    if (favicon) { if (logo) { favicon.setAttribute('href', logo); } else { const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' + color + '"/><path d="M36 8 17 36h12l-2 20 20-30H35l1-18Z" fill="#06120a"/></svg>'; favicon.setAttribute('href', 'data:image/svg+xml,' + encodeURIComponent(svg)); } }
-    const darkBg = setting('logo_bg') === 'dark'; const wideLogo = num(setting('logo_ratio'), 1) >= 1.6;
+    const logo = setting('custom_logo') || './assets/ivory37-logo.jpg'; const favicon = $('#favicon');
+    if (favicon) favicon.setAttribute('href', setting('custom_logo') || './icon-192.png');
+    const darkBg = setting('logo_bg') !== 'light'; const wideLogo = num(setting('logo_ratio'), 1) >= 1.6;
     $$('.brand-mark').forEach((mark) => {
       const img = mark.querySelector('.brand-logo'); const icon = mark.querySelector('.brand-icon');
       mark.classList.toggle('has-logo', Boolean(logo)); mark.classList.toggle('logo-on-dark', darkBg); mark.classList.toggle('logo-wide', Boolean(logo) && wideLogo);
@@ -1986,7 +1985,7 @@ h1,h2{letter-spacing:-.03em}
   }
 
   function applyProfile() {
-    const fallback = String(setting('app_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
+    const fallback = '工V龱尺ㄚ㇌7';
     const name = String(setting('user_name') || '').trim() || fallback;
     const role = String(setting('user_role') || '').trim() || 'Control laboral';
     const avatarRaw = setting('user_avatar'); const logo = setting('custom_logo');
@@ -2308,7 +2307,7 @@ h1,h2{letter-spacing:-.03em}
     const month = monthKey(new Date()); const rn = rateNormal(); const re = rateExtra();
     const records = data.jornadas.filter((j) => j.fecha.slice(0, 7) === month).sort((a, b) => a.fecha.localeCompare(b.fecha));
     const stats = monthStats(month); const trips = data.viajes.filter((v) => v.fecha.slice(0, 7) === month); const payroll = data.pagos.find((p) => p.tipo === 'nomina_auto' && p.mes_key === month);
-    const name = setting('app_name') || '工V龱尺ㄚ㇌7'; const logo = setting('custom_logo'); const person = String(setting('user_name') || '').trim();
+    const name = '工V龱尺ㄚ㇌7'; const logo = setting('custom_logo') || './assets/ivory37-logo.jpg'; const person = String(setting('user_name') || '').trim();
     const extraValue = round2(stats.extra * re); const normalValue = round2(stats.normalTotal * rn); const tripTotal = round2(trips.reduce((sum, v) => sum + v.importe, 0));
     const provisionalCount = records.filter((j) => j.estado === 'provisional').length;
     const rows = records.map((j) => { const clock = j.entrada && j.salida ? j.entrada + '–' + j.salida : '—'; return '<tr><td>' + esc(fmtDate(j.fecha)) + '</td><td>' + esc(clock) + '</td><td class="num">' + hoursFmt.format(j.horas_normales) + '</td><td class="num">' + (j.horas_extra > 0 ? '+' + hoursFmt.format(j.horas_extra) : '—') + '</td><td>' + (j.estado === 'confirmado' ? 'OK' : 'Prov.') + '</td></tr>'; }).join('');
@@ -2374,7 +2373,7 @@ h1,h2{letter-spacing:-.03em}
       case 'fill-today': fillToday(); break;
       case 'fill-month': fillMonth(); break;
       case 'confirm-all': { const provisional = data.jornadas.filter((j) => j.estado === 'provisional'); if (!provisional.length) { toast('No hay provisionales.', 'info'); break; } confirmAction('Confirmar provisionales', 'Se marcarán ' + provisional.length + ' como confirmadas; sus horas pasarán a los cálculos de nómina y cobro.', 'Confirmar ' + provisional.length, () => { provisional.forEach((j) => { j.estado = 'confirmado'; if (!/\[confirmado\]/i.test(j.notas)) j.notas = ('[CONFIRMADO] ' + (j.notas || '')).trim(); }); persist(provisional.length + (provisional.length === 1 ? ' jornada confirmada' : ' jornadas confirmadas')); }); break; }
-      case 'reset-logo': { setSetting('custom_logo', ''); setSetting('logo_ratio', ''); applyBranding(); renderLogoPreview(); persist('Logo eliminado'); break; }
+      case 'reset-logo': { setSetting('custom_logo', ''); setSetting('logo_ratio', ''); applyBranding(); renderLogoPreview(); persist('Logo personalizado eliminado'); break; }
       case 'restore-internal-backup': restoreInternalBackup(); break;
       case 'reset': { confirmAction('Borrar todos los datos', 'Se eliminarán jornadas, viajes, pagos y ajustes.', 'Borrar todo', () => { try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '_backup'); localStorage.removeItem(KEY + '_backup_date'); localStorage.removeItem(NOTIF_KEY); } catch (err) {} loadError = false; data = normalize({}); applyBranding(); renderAjustes(); persist('Datos borrados'); showTab('dashboard'); }, true); break; }
       default: break;
@@ -2403,7 +2402,7 @@ h1,h2{letter-spacing:-.03em}
       if (!/^#[0-9a-f]{6}$/i.test(color)) { toast('Color no válido.', 'error'); return; }
       if (schedule && !/(\d{1,2}:\d{2})\s*(?:[-–]|\ba\b)\s*(\d{1,2}:\d{2})/i.test(schedule)) { toast('Horario no válido (ej: 08:00-16:00).', 'error'); return; }
       setSetting('hora_normal_euros', normal.toFixed(2)); setSetting('hora_extra_euros', extra.toFixed(2)); setSetting('horas_normales_dia', String(day));
-      setSetting('app_name', name || '工V龱尺ㄚ㇌7'); setSetting('app_color', color); setSetting('horario_habitual', schedule);
+      setSetting('app_name', '工V龱尺ㄚ㇌7'); setSetting('app_color', color); setSetting('horario_habitual', schedule);
       setSetting('user_name', userName); setSetting('user_role', userRole || 'Control laboral');
       applyBranding(); persist('Ajustes guardados'); renderAjustes();
     });

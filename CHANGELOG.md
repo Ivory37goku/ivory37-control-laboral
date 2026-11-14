@@ -1,5 +1,11 @@
 # Cambios
 
+## 3.2.3 — Nombre y logo oficiales
+
+- Se aplica 工V龱尺ㄚ㇌7 como nombre de la PWA, APK, EXE, ventana y accesos directos.
+- Se sustituye el icono anterior por el logo enviado, en web, Android y Windows.
+- Se mantiene la carpeta de datos de Windows para conservar los datos existentes tras el cambio de nombre.
+
 ## 3.2.2 — Actualizaciones automáticas y backups visibles
 
 - La PWA instalada aplica actualizaciones automáticamente cuando no hay formularios abiertos.

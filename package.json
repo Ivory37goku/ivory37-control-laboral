@@ -1,8 +1,8 @@
 {
   "name": "ivory37-control-laboral",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "private": true,
-  "description": "Aplicación de control laboral IVORY37 para Windows",
+  "description": "工V龱尺ㄚ㇌7 — control laboral",
   "main": "desktop/main.cjs",
   "scripts": {
     "start": "electron .",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.ivory37.controllaboral.desktop",
-    "productName": "IVORY37 Control Laboral",
+    "productName": "工V龱尺ㄚ㇌7",
     "directories": {
       "buildResources": "desktop/assets",
       "output": "desktop-dist"
@@ -34,7 +34,8 @@
       "sw.js",
       "icon-192.png",
       "icon-512.png",
-      "icon-512-maskable.png"
+      "icon-512-maskable.png",
+      "assets/ivory37-logo.jpg"
     ],
     "win": {
       "icon": "desktop/assets/icon.ico",
@@ -55,7 +56,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "IVORY37 Control Laboral"
+      "shortcutName": "工V龱尺ㄚ㇌7"
     }
   }
 }

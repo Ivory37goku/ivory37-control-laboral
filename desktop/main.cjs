@@ -5,7 +5,8 @@ const { fileURLToPath, pathToFileURL } = require('node:url');
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 
 const APP_ID = 'com.ivory37.controllaboral.desktop';
-const APP_NAME = 'IVORY37 Control Laboral';
+const APP_NAME = '工V龱尺ㄚ㇌7';
+const APP_DATA_DIR = 'IVORY37 Control Laboral';
 const HOSTED_HOST = 'ivory37goku.github.io';
 const HOSTED_PREFIX = '/ivory37-control-laboral/';
 const HOSTED_URL = 'https://' + HOSTED_HOST + HOSTED_PREFIX;
@@ -14,7 +15,7 @@ app.setName(APP_NAME);
 app.setAppUserModelId(APP_ID);
 
 // Mantiene la carpeta de datos de usuario estable entre las actualizaciones.
-app.setPath('userData', path.join(app.getPath('appData'), APP_NAME));
+app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_DIR));
 
 const appRoot = app.getAppPath();
 const indexPath = path.resolve(appRoot, 'index.html');

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name='app_name'>Control laboral</string>
+    <string name='app_name'>工V龱尺ㄚ㇌7</string>
     <string name='notification_channel_name'>Recordatorios laborales</string>
     <string name='notification_channel_description'>Avisos de entrada y salida mientras la aplicación está abierta.</string>
 </resources>
