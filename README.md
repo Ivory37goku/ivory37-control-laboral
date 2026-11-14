@@ -1,14 +1,14 @@
 # IVORY37 · Control laboral 🥋
 
 > **Panel personal de jornadas, horas extra, viajes y nóminas.**
-> Una aplicación web de una sola página, sin dependencias y sin conexión, para saber
-> qué has trabajado, qué te deben y qué has cobrado.
+> Una aplicación web de una sola página para saber qué has trabajado, qué te deben y qué
+> has cobrado. Conserva los datos en el dispositivo y puede sincronizarlos con tu cuenta.
 
 👉 **Demo:** https://ivory37goku.github.io/ivory37-control-laboral/
 
-![Versión](https://img.shields.io/badge/version-3.1.0-orange)
+![Versión](https://img.shields.io/badge/version-3.2.1-39ff14)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
-![Dependencias](https://img.shields.io/badge/dependencies-0-brightgreen)
+![Dependencias](https://img.shields.io/badge/SDK-Supabase%20incluido-brightgreen)
 
 ---
 
@@ -43,7 +43,8 @@
   dinámico.
 - Backup JSON, exportación CSV segura frente a fórmulas, restauración transaccional y
   aviso de la última copia.
-- Datos en `localStorage`, sin servidor y con sincronización entre pestañas.
+- Guardado local y sincronización entre pestañas.
+- Sincronización opcional entre PWA, APK y EXE con la misma cuenta IVORY37.
 - **PWA instalable y offline** en GitHub Pages: manifest, iconos válidos, actualización
   controlada y copia en caché de la aplicación.
 
@@ -65,7 +66,10 @@
 </p>
 <p align="center"><em>Vista móvil</em></p>
 
-<p align="center"><em>Datos de ejemplo. La app no envía tus datos a ningún servidor.</em></p>
+<p align="center"><img src="docs/nube.jpg" alt="Ajustes y sincronización en la nube" width="80%"></p>
+<p align="center"><em>Cuenta y sincronización entre dispositivos</em></p>
+
+<p align="center"><em>Datos de ejemplo. Solo se sincronizan con Supabase si inicias sesión.</em></p>
 
 ---
 
@@ -73,11 +77,10 @@
 
 - **HTML5 + JavaScript vanilla**, sin frameworks ni build.
 - **CSS propio**, iconos SVG inline y gráficas SVG/CSS.
-- **Cero dependencias y cero peticiones externas** en la app.
+- SDK de Supabase incluido localmente; la app no carga librerías desde CDN.
 - Informe mediante la impresión del navegador (sin jsPDF).
-- **localStorage** para los datos. El service worker guarda la app para abrirla sin
-  conexión después de la primera visita; la sincronización de los datos sigue siendo local
-  al navegador y no se comparte entre dispositivos.
+- **localStorage** para el guardado inmediato. Al iniciar sesión, Supabase sincroniza los
+  datos de la cuenta; el service worker guarda la interfaz para abrirla sin conexión.
 
 ---
 
@@ -95,12 +98,11 @@ raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí auto
 
 ### APK para Android
 
-El proyecto Android está en [`android-app/`](android-app/). La APK actual es 3.1.2 e incluye el
-contenido web 3.1.0; abre la interfaz mediante Android WebView, sin lanzar Chrome ni necesitar
-conexión. En Android Studio abre esa carpeta y compila **Build → Build Bundle(s) / APK(s) → Build APK(s)**; los pasos
-completos y el comando `gradlew.bat assembleDebug` están en `android-app/README.md`.
-La APK guarda los datos separadamente de GitHub Pages y Firefox: usa Backup JSON para
-trasladarlos entre ambas.
+El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.1 incluye la interfaz y
+el SDK dentro de Android WebView, sin abrir Chrome. La conexión solo se necesita para
+sincronizar. En Android Studio abre esa carpeta y compila **Build → Build Bundle(s) / APK(s) →
+Build APK(s)**; los pasos completos y el comando `gradlew.bat assembleDebug` están en
+`android-app/README.md`.
 
 ### Uso directo
 
@@ -129,30 +131,32 @@ cd ivory37-control-laboral
 
 1. Abre **Ajustes → Mi perfil** y pon tu nombre.
 2. Revisa **Tarifas y jornada** (precio/hora, jornada diaria y horario).
-3. Si vienes de la versión anterior, entra en **Ajustes → Restaurar** e importa tu
+3. Para compartir datos entre instalaciones, crea una cuenta en **Ajustes → Nube** y usa
+   la misma cuenta en la PWA, APK y EXE. Confirma el correo si Supabase te lo solicita.
+4. Si vienes de la versión anterior, entra en **Ajustes → Restaurar** e importa tu
    backup JSON. Se migran el logo y el nombre antiguos.
 
 ---
 
 ## 🔒 Privacidad
 
-Esta aplicación es **100 % client-side**:
+La app guarda cada cambio primero en el almacenamiento local. Si inicias sesión en
+**Ajustes → Nube**, también envía jornadas, viajes, pagos y ajustes a Supabase para
+sincronizarlos entre dispositivos. Las políticas RLS de la tabla limitan cada cuenta a sus
+propios datos. El inicio de sesión y la sincronización requieren internet; el resto de la app
+puede seguir funcionando sin conexión.
 
-- No envía datos a servidores externos.
-- No tiene backend ni base de datos remota.
-- Jornadas, nóminas, ajustes y logo se guardan solo en el `localStorage` de ese navegador
-  y esa dirección web. Para trasladar datos entre `file://`, GitHub Pages o dispositivos,
-  exporta un Backup JSON e impórtalo en el otro sitio.
-
-> **Aviso:** si borras los datos del sitio o usas modo incógnito, perderás la
-> información. Descarga un **Backup JSON** con frecuencia desde Ajustes.
+> **Aviso:** mantén una copia JSON periódica. Si no has iniciado sesión, borrar los datos
+> del sitio o reinstalar una aplicación puede eliminar la única copia de ese dispositivo.
 
 ---
 
 ## 📁 Estructura
 
 ```
-index.html     Aplicación web completa (HTML + CSS + JS, sin dependencias)
+index.html     Aplicación web (HTML + CSS + JS)
+supabase/      Esquema de base de datos y políticas de acceso
+vendor/        SDK de Supabase incluido localmente y su licencia
 android-app/   Proyecto Android WebView y guía para compilar APK
 docs/          Capturas para el README
 README.md      Este archivo

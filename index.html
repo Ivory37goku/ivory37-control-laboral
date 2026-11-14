@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b1220">
-<meta name="app-version" content="3.1.0">
-<meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y guarda los datos solo en tu dispositivo.">
+<meta name="app-version" content="3.2.1">
+<meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="工V龱尺ㄚ㇌7">
 <meta property="og:title" content="工V龱尺ㄚ㇌7 · Control laboral">
 <meta property="og:description" content="Control de jornadas, horas extra, viajes y nóminas. Sin dependencias, sin conexión, con tus datos en tu dispositivo.">
 <meta property="og:type" content="website">
-<link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f97316'/%3E%3Cpath d='M36 8 17 36h12l-2 20 20-30H35l1-18Z' fill='%23171004'/%3E%3C/svg%3E">
+<link id="favicon" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2339ff14'/%3E%3Cpath d='M36 8 17 36h12l-2 20 20-30H35l1-18Z' fill='%2306120a'/%3E%3C/svg%3E">
 <title>工V龱尺ㄚ㇌7 · Control laboral</title>
 
 <link rel="manifest" href="./manifest.json">
@@ -27,7 +27,7 @@
 [hidden]{display:none!important}
 
 :root{
-  --brand:#f97316; --bg:#0b1220; --panel:#111b2e;
+  --brand:#39ff14; --bg:#0b1220; --panel:#111b2e;
   --line:rgba(148,163,184,.16); --line-soft:rgba(148,163,184,.09);
   --text:#eef2f7; --muted:#94a3b8;
   --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --info:#60a5fa;
@@ -37,7 +37,7 @@
 }
 html{color-scheme:dark;scroll-behavior:smooth}
 ::selection{background:color-mix(in srgb,var(--brand) 38%,transparent);color:#fff}
-body{margin:0;min-height:100dvh;background:radial-gradient(900px 500px at 85% -10%, rgba(249,115,22,.10), transparent 60%),radial-gradient(800px 600px at 0% 100%, rgba(56,189,248,.06), transparent 60%),var(--bg);color:var(--text);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;}
+body{margin:0;min-height:100dvh;background:radial-gradient(900px 500px at 85% -10%, rgba(57,255,20,.10), transparent 60%),radial-gradient(800px 600px at 0% 100%, rgba(57,255,20,.035), transparent 60%),var(--bg);color:var(--text);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 a{color:inherit}
@@ -53,7 +53,7 @@ svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .layout{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100dvh}
 .sidebar{position:sticky;top:0;height:100dvh;z-index:30;display:flex;flex-direction:column;gap:22px;padding:24px 16px;border-right:1px solid var(--line);background:rgba(9,15,27,.72);backdrop-filter:blur(16px)}
 .brand{display:flex;align-items:center;gap:12px;padding:0 8px}
-.brand-mark{width:42px;height:42px;border-radius:13px;flex:none;position:relative;overflow:hidden;display:grid;place-items:center;color:#1a0f05;background:linear-gradient(135deg,var(--brand),color-mix(in srgb,var(--brand) 55%,#7c2d12));box-shadow:0 0 24px rgba(249,115,22,.25)}
+.brand-mark{width:42px;height:42px;border-radius:13px;flex:none;position:relative;overflow:hidden;display:grid;place-items:center;color:#06120a;background:linear-gradient(135deg,var(--brand),color-mix(in srgb,var(--brand) 55%,#14532d));box-shadow:0 0 24px rgba(57,255,20,.25)}
 .brand-mark svg{width:22px;height:22px;stroke-width:2.4}
 .brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
 .brand-mark.has-logo{background:#f8fafc;padding:5px;box-shadow:inset 0 0 0 1px rgba(15,23,42,.08)}
@@ -107,7 +107,13 @@ h2{margin:0;font-size:16px;letter-spacing:-.01em}
 .hero-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
 .setup{margin-bottom:16px;padding:18px}
 .settings-nav{margin-bottom:14px}
-#profile-card,#appearance-card,#rates-card,#data-card,#notices-card{scroll-margin-top:80px}
+#profile-card,#appearance-card,#rates-card,#sync-card,#data-card,#notices-card{scroll-margin-top:80px}
+.cloud-status{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;background:rgba(255,255,255,.025)}
+.cloud-status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.cloud-status[data-state="ok"]{color:var(--ok)}.cloud-status[data-state="ok"]::before{background:var(--ok);box-shadow:0 0 10px color-mix(in srgb,var(--ok) 70%,transparent)}
+.cloud-status[data-state="busy"]{color:var(--info)}.cloud-status[data-state="busy"]::before{background:var(--info);animation:cloud-pulse 1s infinite alternate}
+.cloud-status[data-state="error"]{color:var(--warn)}.cloud-status[data-state="error"]::before{background:var(--warn)}
+@keyframes cloud-pulse{to{opacity:.35}}
 .setup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .setup-head h2{font-size:15px}
 .setup-actions{display:flex;align-items:center;gap:8px}
@@ -141,7 +147,7 @@ h2{margin:0;font-size:16px;letter-spacing:-.01em}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 14px;border-radius:11px;border:1px solid transparent;font-size:13px;font-weight:700;line-height:1;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s,color .15s}
 .btn:active{transform:translateY(1px)}
-.btn.primary{background:var(--brand);color:#171004;box-shadow:0 8px 20px -10px color-mix(in srgb,var(--brand) 70%,#000)}
+.btn.primary{background:var(--brand);color:#06120a;box-shadow:0 8px 20px -10px color-mix(in srgb,var(--brand) 70%,#000)}
 .btn.primary:hover{background:color-mix(in srgb,var(--brand) 86%,#fff)}
 .btn.ghost{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--text)}
 .btn.ghost:hover{background:rgba(255,255,255,.09)}
@@ -350,8 +356,8 @@ textarea.input{resize:vertical;min-height:78px}
 
 #pwa-update-banner{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;display:none;align-items:center;gap:10px;background:#16233a;border:1px solid var(--line);border-left:3px solid var(--brand);padding:10px 14px;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.6);font-size:13px;font-weight:600;max-width:min(92vw,420px);}
 #pwa-update-banner.show{display:flex}
-#pwa-update-banner button{background:var(--brand);color:#171004;border:0;border-radius:8px;padding:6px 10px;font-weight:800;font-size:12px;cursor:pointer;}
-#pwa-install-btn{position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:90;display:none;align-items:center;gap:8px;background:var(--brand);color:#171004;border:0;border-radius:99px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 12px 30px -8px rgba(249,115,22,.6);}
+#pwa-update-banner button{background:var(--brand);color:#06120a;border:0;border-radius:8px;padding:6px 10px;font-weight:800;font-size:12px;cursor:pointer;}
+#pwa-install-btn{position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:90;display:none;align-items:center;gap:8px;background:var(--brand);color:#06120a;border:0;border-radius:99px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 12px 30px -8px rgba(57,255,20,.6);}
 #pwa-install-btn.show{display:inline-flex}
 @media(min-width:1024px){
   #pwa-install-btn{right:24px;bottom:24px}
@@ -362,11 +368,11 @@ textarea.input{resize:vertical;min-height:78px}
 <style id="premium-theme">
 :root{--bg:#070d18;--panel:#0e1729;--line:rgba(148,163,184,.14);--text:#f4f7fb;--muted:#8ea0b8;--shadow:0 30px 60px -30px rgba(0,0,0,.95);}
 html{scrollbar-color:rgba(148,163,184,.25) transparent}
-body{font-feature-settings:"cv02","cv03","cv04","ss01";text-rendering:optimizeLegibility;background:radial-gradient(1000px 560px at 88% -12%, color-mix(in srgb,var(--brand) 14%,transparent), transparent 62%),radial-gradient(900px 640px at -8% 108%, rgba(56,189,248,.07), transparent 60%),radial-gradient(700px 500px at 50% 42%, rgba(99,102,241,.05), transparent 65%),var(--bg);}
+body{font-feature-settings:"cv02","cv03","cv04","ss01";text-rendering:optimizeLegibility;background:radial-gradient(1000px 560px at 88% -12%, color-mix(in srgb,var(--brand) 14%,transparent), transparent 62%),radial-gradient(900px 640px at -8% 108%, rgba(57,255,20,.04), transparent 60%),radial-gradient(700px 500px at 50% 42%, rgba(99,102,241,.05), transparent 65%),var(--bg);}
 body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(148,163,184,.055) 1px, transparent 1.4px);background-size:26px 26px;-webkit-mask-image:radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%);mask-image:radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%);}
 .layout{position:relative;z-index:1}
 .sidebar{background:rgba(7,12,22,.78);border-right:1px solid var(--line)}
-.brand-mark{background:linear-gradient(135deg, color-mix(in srgb,var(--brand) 92%,#fff), color-mix(in srgb,var(--brand) 55%,#7c2d12));box-shadow:0 0 0 1px color-mix(in srgb,var(--brand) 35%,transparent), 0 10px 30px -8px color-mix(in srgb,var(--brand) 55%,transparent);}
+.brand-mark{background:linear-gradient(135deg, color-mix(in srgb,var(--brand) 92%,#fff), color-mix(in srgb,var(--brand) 55%,#14532d));box-shadow:0 0 0 1px color-mix(in srgb,var(--brand) 35%,transparent), 0 10px 30px -8px color-mix(in srgb,var(--brand) 55%,transparent);}
 .nav button{border:1px solid transparent}
 .nav button.active{background:linear-gradient(90deg, color-mix(in srgb,var(--brand) 20%,transparent), color-mix(in srgb,var(--brand) 7%,transparent));border-color:color-mix(in srgb,var(--brand) 28%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 8px 24px -14px color-mix(in srgb,var(--brand) 60%,transparent);}
 .nav button.active::after{box-shadow:0 0 12px var(--brand)}
@@ -375,7 +381,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .card{border:1px solid transparent;border-radius:20px;background:linear-gradient(165deg, rgba(32,44,68,.80), rgba(11,18,32,.97)) padding-box,linear-gradient(160deg, rgba(255,255,255,.11), rgba(255,255,255,.02) 40%, rgba(148,163,184,.05)) border-box;box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;}
 .card:hover{transform:translateY(-2px);box-shadow:0 34px 64px -30px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.07);}
 .btn{letter-spacing:.01em}
-.btn.primary{position:relative;overflow:hidden;background:linear-gradient(180deg, color-mix(in srgb,var(--brand) 92%,#fff), color-mix(in srgb,var(--brand) 82%,#7c2d12));box-shadow:0 10px 26px -10px color-mix(in srgb,var(--brand) 70%,#000), inset 0 1px 0 rgba(255,255,255,.25);}
+.btn.primary{position:relative;overflow:hidden;background:linear-gradient(180deg, color-mix(in srgb,var(--brand) 92%,#fff), color-mix(in srgb,var(--brand) 82%,#14532d));box-shadow:0 10px 26px -10px color-mix(in srgb,var(--brand) 70%,#000), inset 0 1px 0 rgba(255,255,255,.25);}
 .btn.primary::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;pointer-events:none;background:linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);transform:skewX(-20deg);transition:left .5s ease;}
 .btn.primary:hover::after{left:130%}
 .btn.primary:hover{filter:brightness(1.06)}
@@ -415,11 +421,11 @@ h1,h2{letter-spacing:-.03em}
   padding: 32px 28px;
   border-radius: 26px;
   margin-bottom: 18px;
-  border: 1px solid rgba(249,115,22,.22);
+  border: 1px solid rgba(57,255,20,.22);
   background:
-    linear-gradient(135deg, rgba(249,115,22,.18) 0%, rgba(120,53,15,.10) 35%, rgba(11,18,32,.98) 75%),
-    radial-gradient(600px 300px at 100% 0%, rgba(249,115,22,.28), transparent 60%);
-  box-shadow: 0 30px 60px -30px rgba(249,115,22,.35), 0 24px 48px -28px rgba(0,0,0,.9);
+    linear-gradient(135deg, rgba(57,255,20,.18) 0%, rgba(20,83,45,.10) 35%, rgba(11,18,32,.98) 75%),
+    radial-gradient(600px 300px at 100% 0%, rgba(57,255,20,.28), transparent 60%);
+  box-shadow: 0 30px 60px -30px rgba(57,255,20,.35), 0 24px 48px -28px rgba(0,0,0,.9);
   isolation: isolate;
 }
 .dash-hero::before {
@@ -451,7 +457,7 @@ h1,h2{letter-spacing:-.03em}
   font-weight: 800;
 }
 .dash-hero-title .name {
-  background: linear-gradient(100deg, #fff 20%, #f97316 50%, #fff 80%);
+  background: linear-gradient(100deg, #fff 20%, #39ff14 50%, #fff 80%);
   background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
@@ -475,17 +481,17 @@ h1,h2{letter-spacing:-.03em}
   font-weight: 800;
   letter-spacing: -.05em;
   line-height: 1;
-  background: linear-gradient(180deg, #fff, #f97316);
+  background: linear-gradient(180deg, #fff, #39ff14);
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 4px 18px rgba(249,115,22,.4));
+  filter: drop-shadow(0 4px 18px rgba(57,255,20,.4));
 }
 .dash-hero-today .label {
   font-size: 12px; font-weight: 800; letter-spacing: .14em;
   text-transform: uppercase; color: rgba(255,255,255,.55);
 }
 .dash-hero-today .meta { font-size: 12px; color: rgba(255,255,255,.6); margin-left: auto; }
-.dash-hero-today .meta b { color: #f97316; font-family: var(--mono); }
+.dash-hero-today .meta b { color: #39ff14; font-family: var(--mono); }
 
 .dash-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
 
@@ -539,7 +545,7 @@ h1,h2{letter-spacing:-.03em}
 }
 .clock-radial::before {
   content: ""; position: absolute; inset: 0;
-  background: radial-gradient(280px 280px at 50% 50%, rgba(249,115,22,.10), transparent 70%);
+  background: radial-gradient(280px 280px at 50% 50%, rgba(57,255,20,.10), transparent 70%);
   pointer-events: none;
 }
 .radial-wrap {
@@ -551,9 +557,9 @@ h1,h2{letter-spacing:-.03em}
 .radial-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .radial-track { fill: none; stroke: rgba(148,163,184,.12); stroke-width: 8; }
 .radial-progress {
-  fill: none; stroke: #f97316; stroke-width: 8; stroke-linecap: round;
+  fill: none; stroke: #39ff14; stroke-width: 8; stroke-linecap: round;
   transition: stroke-dasharray .8s cubic-bezier(.22,1,.36,1);
-  filter: drop-shadow(0 0 8px rgba(249,115,22,.7));
+  filter: drop-shadow(0 0 8px rgba(57,255,20,.7));
 }
 .radial-center { position: relative; text-align: center; z-index: 1; }
 .radial-eyebrow {
@@ -564,7 +570,7 @@ h1,h2{letter-spacing:-.03em}
   font-family: var(--mono);
   font-size: 36px; font-weight: 800; letter-spacing: -.04em;
   line-height: 1; margin: 6px 0 4px;
-  background: linear-gradient(180deg, #fff, #f97316);
+  background: linear-gradient(180deg, #fff, #39ff14);
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
 }
@@ -662,14 +668,14 @@ h1,h2{letter-spacing:-.03em}
 }
 .week-col .bar {
   width: 100%; border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, rgba(249,115,22,.85), rgba(249,115,22,.35));
+  background: linear-gradient(180deg, rgba(57,255,20,.85), rgba(57,255,20,.35));
   min-height: 3px;
   position: relative;
   transition: height .6s cubic-bezier(.22,1,.36,1), background .15s;
 }
 .week-col.is-today .bar {
-  background: linear-gradient(180deg, #f97316, rgba(249,115,22,.5));
-  box-shadow: 0 0 16px rgba(249,115,22,.5);
+  background: linear-gradient(180deg, #39ff14, rgba(57,255,20,.5));
+  box-shadow: 0 0 16px rgba(57,255,20,.5);
 }
 .week-col .h {
   position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
@@ -680,7 +686,7 @@ h1,h2{letter-spacing:-.03em}
   font-size: 10px; color: var(--muted); text-transform: uppercase;
   font-weight: 700; letter-spacing: .06em;
 }
-.week-col.is-today .d { color: #f97316; }
+.week-col.is-today .d { color: #39ff14; }
 .week-summary {
   display: flex; justify-content: space-between;
   margin-top: 12px; padding-top: 12px;
@@ -724,10 +730,10 @@ h1,h2{letter-spacing:-.03em}
   transition: transform .1s;
 }
 .hm-cell:hover { transform: scale(1.4); }
-.hm-cell[data-lvl="1"] { background: rgba(249,115,22,.25); }
-.hm-cell[data-lvl="2"] { background: rgba(249,115,22,.50); }
-.hm-cell[data-lvl="3"] { background: rgba(249,115,22,.75); }
-.hm-cell[data-lvl="4"] { background: #f97316; box-shadow: 0 0 6px rgba(249,115,22,.6); }
+.hm-cell[data-lvl="1"] { background: rgba(57,255,20,.25); }
+.hm-cell[data-lvl="2"] { background: rgba(57,255,20,.50); }
+.hm-cell[data-lvl="3"] { background: rgba(57,255,20,.75); }
+.hm-cell[data-lvl="4"] { background: #39ff14; box-shadow: 0 0 6px rgba(57,255,20,.6); }
 .hm-legend {
   display: flex; align-items: center; gap: 5px;
   margin-top: 10px; font-size: 10px; color: var(--muted);
@@ -1190,6 +1196,7 @@ h1,h2{letter-spacing:-.03em}
           <button class="chip" type="button" data-action="settings-jump" data-target="#profile-card">Perfil</button>
           <button class="chip" type="button" data-action="settings-jump" data-target="#appearance-card">Apariencia</button>
           <button class="chip" type="button" data-action="settings-jump" data-target="#rates-card">Tarifas</button>
+          <button class="chip" type="button" data-action="settings-jump" data-target="#sync-card">Nube</button>
           <button class="chip" type="button" data-action="settings-jump" data-target="#data-card">Datos</button>
           <button class="chip" type="button" data-action="settings-jump" data-target="#notices-card">Avisos</button>
         </div>
@@ -1269,6 +1276,26 @@ h1,h2{letter-spacing:-.03em}
           </div>
         </form>
 
+        <article class="card" id="sync-card" style="margin-top:16px">
+          <div class="setup-head">
+            <div><p class="eyebrow" style="margin-bottom:5px">Tus dispositivos</p><h2>Sincronización en la nube</h2></div>
+            <span class="cloud-status" id="cloud-status" role="status" aria-live="polite" data-state="neutral">Preparando…</span>
+          </div>
+          <p class="hint" style="margin:10px 0 14px">Usa la misma cuenta en la PWA, el APK y el EXE. Los cambios se guardan en el dispositivo y se sincronizan al volver a tener internet.</p>
+          <div class="grid-2" style="align-items:end">
+            <label class="field"><span>Correo</span><input class="input" id="cloud-email" type="email" maxlength="254" autocomplete="email" placeholder="tu@correo.com"></label>
+            <label class="field"><span>Contraseña de la cuenta IVORY37</span><input class="input" id="cloud-password" type="password" minlength="6" autocomplete="current-password" placeholder="Mínimo 6 caracteres"></label>
+          </div>
+          <div class="hint-row" style="margin-top:4px">
+            <button class="btn primary sm" type="button" id="cloud-signup">Crear cuenta</button>
+            <button class="btn ghost sm" type="button" id="cloud-login">Iniciar sesión</button>
+            <button class="btn ghost sm" type="button" id="cloud-now" hidden>Sincronizar ahora</button>
+            <button class="btn ghost sm" type="button" id="cloud-logout" hidden>Cerrar sesión</button>
+            <span class="muted small" id="cloud-user">No has iniciado sesión.</span>
+          </div>
+          <p class="hint small" style="margin:12px 0 0">La contraseña se usa solo para iniciar sesión; no se guarda en la app. Descarga copias JSON periódicamente como respaldo adicional.</p>
+        </article>
+
         <article class="card" id="data-card" style="margin-top:16px">
           <h2 style="margin-bottom:14px">Datos y copias</h2>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
@@ -1282,7 +1309,7 @@ h1,h2{letter-spacing:-.03em}
             <button class="btn ghost" type="button" data-action="fill-month" id="fill-month-btn"><svg class="i" aria-hidden="true"><use href="#i-calendar"></use></svg> <span>Completar mes</span></button>
             <button class="btn ghost" type="button" data-action="setup-show" id="setup-show-btn" hidden><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg> Mostrar primeros pasos</button>
           </div>
-          <p class="hint" style="margin:12px 0 0">Almacenamiento local: <span data-storage>—</span> · Última copia: <span id="last-backup">nunca</span>. Los datos se guardan en este navegador (localStorage); si borras los datos del sitio, se pierden.</p>
+          <p class="hint" style="margin:12px 0 0">Almacenamiento local: <span data-storage>—</span> · Última copia: <span id="last-backup">nunca</span>. Siempre se conserva una copia local; al iniciar sesión, los datos sincronizan con tu cuenta.</p>
         </article>
 
         <article class="card" id="notices-card" style="margin-top:16px">
@@ -1294,7 +1321,7 @@ h1,h2{letter-spacing:-.03em}
           <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada. Requiere que la app esté abierta.</p>
         </article>
 
-        <p class="muted small" style="margin-top:18px">Versión <span id="app-version"></span> · Sin dependencias externas · Funciona sin conexión</p>
+        <p class="muted small" style="margin-top:18px">Versión <span id="app-version"></span> · Datos locales y sincronización opcional · Funciona sin conexión</p>
       </section>
     </main>
   </div>
@@ -1364,12 +1391,16 @@ h1,h2{letter-spacing:-.03em}
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v6M12 18h.01"/></symbol>
 </svg>
 
+<script src="./vendor/supabase.js"></script>
+<script src="./supabase-config.js"></script>
+<script src="./supabase-sync.js"></script>
+
 <script>
 (function () {
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.1.0';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.2.1';
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -1377,7 +1408,7 @@ h1,h2{letter-spacing:-.03em}
 
   const DEFAULTS = {
     hora_normal_euros: '12.50', hora_extra_euros: '19.69', horas_normales_dia: '8',
-    horario_habitual: '08:00-16:00', app_name: '工V龱尺ㄚ㇌7', app_color: '#f97316',
+    horario_habitual: '08:00-16:00', app_name: '工V龱尺ㄚ㇌7', app_color: '#39ff14',
     custom_logo: '', logo_bg: 'light', user_name: '', user_role: 'Control laboral',
     user_avatar: '', auto_fichaje: '1', estimation: '0', nomina_auto_omitidas: ''
   };
@@ -1489,6 +1520,7 @@ h1,h2{letter-spacing:-.03em}
     const legacyLogo = settingsMap.get('app_logo') || '';
     if (!settingsMap.get('custom_logo') && legacyLogo && isSafeImage(legacyLogo)) settingsMap.set('custom_logo', legacyLogo);
     settingsMap.delete('app_logo'); settingsMap.delete('seeded_demo');
+    if (String(settingsMap.get('app_color') || '').toLowerCase() === '#f97316') settingsMap.set('app_color', '#39ff14');
     if (!isSafeImage(settingsMap.get('custom_logo'))) { settingsMap.set('custom_logo', ''); settingsMap.set('logo_ratio', ''); }
     if (settingsMap.has('user_avatar') && settingsMap.get('user_avatar') && settingsMap.get('user_avatar') !== '@logo' && !isSafeImage(settingsMap.get('user_avatar'))) settingsMap.set('user_avatar', '');
     const ajustes = Array.from(settingsMap, ([clave, valor]) => ({ clave, valor }));
@@ -1533,6 +1565,7 @@ h1,h2{letter-spacing:-.03em}
     catch (err) { console.error('syncPayrolls:', err); try { data = JSON.parse(snapshot); } catch (_) { data = normalize({}); } toast('Error al recalcular las nóminas.', 'error'); return; }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (err) { saved = false; console.error(err); try { data = JSON.parse(snapshot); } catch (_) { data = normalize({}); } toast('No se pudo guardar. Exporta un backup.', 'error'); return; }
+    window.IVORY37CloudSync?.queue(data);
     renderAll(); updateStorageUsage(); if (message && saved) toast(message);
   }
 
@@ -1589,6 +1622,7 @@ h1,h2{letter-spacing:-.03em}
     const hour = now.getHours();
     const greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
     const greetingEl = $('#hero-greeting'); if (greetingEl) greetingEl.textContent = greeting;
+    const todayLabel = $('#today-label'); if (todayLabel) todayLabel.textContent = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     const name = String(setting('user_name') || setting('app_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
     const nameEl = $('#hero-name'); if (nameEl) nameEl.textContent = name;
     const today = dateKey(now);
@@ -1866,8 +1900,8 @@ h1,h2{letter-spacing:-.03em}
   function renderAjustes() {
     const setVal = (id, val) => { const el = $(id); if (el) el.value = val; };
     setVal('#cfg-name', setting('app_name') || '工V龱尺ㄚ㇌7');
-    setVal('#cfg-color', /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#f97316');
-    setVal('#cfg-color-hex', $('#cfg-color') ? $('#cfg-color').value : '#f97316');
+    setVal('#cfg-color', /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#39ff14');
+    setVal('#cfg-color-hex', $('#cfg-color') ? $('#cfg-color').value : '#39ff14');
     setVal('#cfg-normal', fmtInput(setting('hora_normal_euros')));
     setVal('#cfg-extra', fmtInput(setting('hora_extra_euros')));
     setVal('#cfg-day', fmtInput(setting('horas_normales_dia')));
@@ -1881,13 +1915,13 @@ h1,h2{letter-spacing:-.03em}
 
   function applyBranding() {
     const name = String(setting('app_name') || '工V龱尺ㄚ㇌7').trim() || '工V龱尺ㄚ㇌7';
-    const color = /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#f97316';
+    const color = /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#39ff14';
     document.documentElement.style.setProperty('--brand', color);
     document.title = name + ' · Control laboral';
     $$('.brand-name').forEach((el) => { el.textContent = name; });
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', color);
     const logo = setting('custom_logo'); const favicon = $('#favicon');
-    if (favicon) { if (logo) { favicon.setAttribute('href', logo); } else { const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' + color + '"/><path d="M36 8 17 36h12l-2 20 20-30H35l1-18Z" fill="#171004"/></svg>'; favicon.setAttribute('href', 'data:image/svg+xml,' + encodeURIComponent(svg)); } }
+    if (favicon) { if (logo) { favicon.setAttribute('href', logo); } else { const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' + color + '"/><path d="M36 8 17 36h12l-2 20 20-30H35l1-18Z" fill="#06120a"/></svg>'; favicon.setAttribute('href', 'data:image/svg+xml,' + encodeURIComponent(svg)); } }
     const darkBg = setting('logo_bg') === 'dark'; const wideLogo = num(setting('logo_ratio'), 1) >= 1.6;
     $$('.brand-mark').forEach((mark) => {
       const img = mark.querySelector('.brand-logo'); const icon = mark.querySelector('.brand-icon');
@@ -1903,7 +1937,7 @@ h1,h2{letter-spacing:-.03em}
     let img; try { img = new Image(); } catch (err) { logoRatioProbe = false; return; }
     const reset = () => { logoRatioProbe = false; };
     const timer = setTimeout(reset, 4000);
-    img.onload = () => { clearTimeout(timer); logoRatioProbe = false; if (setting('custom_logo') !== logo) return; setSetting('logo_ratio', String(round2(img.width / Math.max(1, img.height)))); try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) {} applyBranding(); renderLogoPreview(); };
+    img.onload = () => { clearTimeout(timer); logoRatioProbe = false; if (setting('custom_logo') !== logo) return; setSetting('logo_ratio', String(round2(img.width / Math.max(1, img.height)))); try { localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); } catch (err) {} applyBranding(); renderLogoPreview(); };
     img.onerror = () => { clearTimeout(timer); logoRatioProbe = false; };
     img.src = logo;
   }
@@ -2117,7 +2151,7 @@ h1,h2{letter-spacing:-.03em}
   }
 
   function download(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-  function exportJSON() { setSetting('last_backup', dateKey(new Date())); const payload = JSON.stringify(data, null, 2); download(new Blob([payload], { type: 'application/json' }), 'backup_' + dateKey(new Date()) + '.json'); try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) {} renderDataTools(); renderSetup(); toast('Backup descargado.'); }
+  function exportJSON() { setSetting('last_backup', dateKey(new Date())); const payload = JSON.stringify(data, null, 2); download(new Blob([payload], { type: 'application/json' }), 'backup_' + dateKey(new Date()) + '.json'); try { localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); } catch (err) {} renderDataTools(); renderSetup(); toast('Backup descargado.'); }
 
   function exportCSV() {
     const rows = [['Fecha', 'Entrada', 'Salida', 'Horas normales', 'Horas extra', 'Estado', 'Extras pagadas', 'Notas']];
@@ -2138,9 +2172,9 @@ h1,h2{letter-spacing:-.03em}
         if (hasInvalidDates(parsed)) throw new Error('Fecha');
         confirmAction('Restaurar copia', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
           const previous = data; const previousLoadError = loadError;
-          try { try { localStorage.setItem(KEY + '_backup', JSON.stringify(previous)); } catch (err) {} data = normalize(parsed); syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); }
+          try { try { localStorage.setItem(KEY + '_backup', JSON.stringify(previous)); } catch (err) {} data = normalize(parsed); syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); }
           catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo guardar la copia. Tus datos actuales siguen intactos.', 'error'); return; }
-          loadError = false; applyBranding(); renderAll(); renderAjustes(); toast('Datos restaurados.');
+          loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data); toast('Datos restaurados.');
         });
       } catch (err) { toast(err && err.message === 'Fecha' ? 'El backup contiene fechas imposibles; no se cambiaron tus datos.' : 'Backup no válido.', 'error'); }
     };
@@ -2158,7 +2192,8 @@ h1,h2{letter-spacing:-.03em}
         if (hasInvalidDates(parsed)) throw new Error('Fecha');
         data = normalize(parsed); syncPayrolls();
         localStorage.setItem(KEY, JSON.stringify(data));
-        loadError = false; applyBranding(); renderAll(); renderAjustes();
+        window.IVORY37CloudSync?.queue(data);
+        loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data);
         toast('Copia restaurada.');
       } catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo restaurar; los datos actuales siguen intactos.', 'error'); }
     });
@@ -2316,6 +2351,17 @@ h1,h2{letter-spacing:-.03em}
     if (now.getTime() - lastAutoCheck >= 60000) { lastAutoCheck = now.getTime(); autoFichaje(); }
   }
 
+  window.addEventListener('ivory37:cloud-data', (event) => {
+    if (!event.detail || loadError) return;
+    try {
+      data = normalize(event.detail);
+      syncPayrolls();
+      localStorage.setItem(KEY, JSON.stringify(data));
+      applyBranding(); renderAll(); renderAjustes(); updateStorageUsage();
+      window.IVORY37CloudSync?.queue(data);
+    } catch (err) { console.error('No se pudo aplicar la sincronización en la app:', err); }
+  });
+
   function init() {
     const hash = location.hash.slice(1); if (['dashboard', 'jornadas', 'viajes', 'pagos', 'ajustes'].includes(hash)) ui.tab = hash;
     ui.today = dateKey(new Date());
@@ -2327,6 +2373,11 @@ h1,h2{letter-spacing:-.03em}
     if (loadError) { setTimeout(() => toast('No se pudieron leer los datos o tienen fechas no válidas. No se ha sobrescrito nada: importa un backup correcto.', 'error'), 500); }
     else if (!data.jornadas.length && !data.viajes.length && !data.pagos.length) { setTimeout(() => toast('Empieza fichando la entrada o crea una jornada.', 'info'), 700); }
     else if (!setting('user_name')) { setTimeout(() => toast('Completa tu perfil en Ajustes → Mi perfil.', 'info'), 900); }
+    if (loadError) {
+      const cloudStatus = $('#cloud-status');
+      if (cloudStatus) { cloudStatus.textContent = 'Sincronización pausada hasta recuperar los datos.'; cloudStatus.dataset.state = 'error'; }
+      ['#cloud-signup', '#cloud-login', '#cloud-now'].forEach((selector) => { const button = $(selector); if (button) button.disabled = true; });
+    } else window.IVORY37CloudSync?.init(data);
   }
 
   init();
@@ -2344,7 +2395,9 @@ h1,h2{letter-spacing:-.03em}
   var waitingWorker = null;
   var deferredPrompt = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-  if (installBtn && !standalone) installBtn.classList.add('show');
+  var nativeAndroid = Boolean(window.AndroidBridge);
+  if (installBtn && nativeAndroid) { installBtn.classList.remove('show'); installBtn.hidden = true; }
+  else if (installBtn && !standalone) installBtn.classList.add('show');
   navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
     if (reg.waiting) { waitingWorker = reg.waiting; showUpdate(); }
     reg.addEventListener('updatefound', function () {
@@ -2359,7 +2412,7 @@ h1,h2{letter-spacing:-.03em}
   navigator.serviceWorker.addEventListener('controllerchange', function () { if (refreshing) return; refreshing = true; window.location.reload(); });
   function showUpdate() { if (updateBanner) updateBanner.classList.add('show'); }
   if (updateBtn) { updateBtn.addEventListener('click', function () { if (waitingWorker) waitingWorker.postMessage({ type: 'SKIP_WAITING' }); else window.location.reload(); }); }
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.classList.add('show'); });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); if (nativeAndroid) return; deferredPrompt = e; if (installBtn) installBtn.classList.add('show'); });
   function showInstallHelp() {
     var ua = navigator.userAgent || '';
     var isiOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -2368,7 +2421,7 @@ h1,h2{letter-spacing:-.03em}
       : 'Abre el menú del navegador y elige «Instalar app» o «Añadir a pantalla principal». Usa la dirección segura de GitHub Pages.';
     window.alert(message);
   }
-  if (installBtn) { installBtn.addEventListener('click', function () {
+  if (installBtn && !nativeAndroid) { installBtn.addEventListener('click', function () {
     if (!deferredPrompt) { showInstallHelp(); return; }
     var promptEvent = deferredPrompt;
     deferredPrompt = null;

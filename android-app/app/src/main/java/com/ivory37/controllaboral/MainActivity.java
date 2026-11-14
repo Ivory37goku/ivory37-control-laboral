@@ -106,7 +106,7 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setSupportMultipleWindows(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        // No se concede INTERNET al APK; Android WebView aún puede recibir assets interceptados.
+        // Internet solo se usa para la sincronización opcional con Supabase; los assets siguen siendo locales.
         settings.setGeolocationEnabled(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -136,7 +136,7 @@ public final class MainActivity extends Activity {
                 String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
                         + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control laboral</h1>"
                         + "<p>Faltan archivos locales de la aplicación. Vuelve a instalar la APK completa.</p>"
-                        + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#f97316;font-weight:bold'>Reintentar</button></body></html>";
+                        + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#39ff14;font-weight:bold'>Reintentar</button></body></html>";
                 view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
             }
 

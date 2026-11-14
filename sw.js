@@ -2,10 +2,13 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.1.0';
+const CACHE_NAME = CACHE_PREFIX + 'v3.2.1';
 const ASSETS = [
   './',
   './index.html',
+  './supabase-config.js',
+  './supabase-sync.js',
+  './vendor/supabase.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

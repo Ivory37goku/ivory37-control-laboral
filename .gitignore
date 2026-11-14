@@ -8,3 +8,7 @@ Thumbs.db
 **/local.properties
 *.jks
 *.keystore
+
+# Windows desktop packaging
+node_modules/
+desktop-dist/

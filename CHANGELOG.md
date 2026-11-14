@@ -1,5 +1,25 @@
 # Cambios
 
+## 3.2.1 — Tema verde neón y capturas renovadas
+
+- Unificado el color principal en verde neón en el panel, los botones, los iconos y la APK.
+- Las instalaciones que aún usaban el naranja predeterminado pasan al verde neón al abrirse;
+  se conservan los colores personalizados.
+- Renovadas las capturas con datos de ejemplo y ampliada la captura de sincronización.
+- La APK Android oculta «Instalar app» dentro de la aplicación nativa.
+
+## 3.2.0 — Sincronización entre dispositivos
+
+- Añadida sincronización opcional entre PWA, APK y EXE mediante cuentas Supabase.
+- La app mantiene el guardado local y permite seguir trabajando sin conexión; los cambios
+  pendientes se sincronizan al volver a tener internet.
+- Protegida la tabla con RLS por usuario y combinación por registro con marcas de borrado
+  para conservar ediciones y eliminaciones entre dispositivos.
+- Añadidos inicio de sesión, creación de cuenta, cierre de sesión y estado de sincronización
+  en Ajustes → Nube.
+- El APK solicita permiso de Internet solo para la sincronización y conserva los assets
+  dentro de la app; además, oculta el botón «Instalar app» dentro de Android nativo.
+
 ## 3.1.2 — Arranque de la APK Android
 
 - Se muestra «Cargando Control laboral…» mientras Android prepara WebView, en vez de dejar
