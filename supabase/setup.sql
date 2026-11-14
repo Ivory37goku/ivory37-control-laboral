@@ -80,14 +80,20 @@ create policy "Users can update their own Gestión Clientes data" on public.gest
 do $$
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'ivory37_sync') then
-      alter publication supabase_realtime add table public.ivory37_sync;
-    end if;
-    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'gestion_clientes') then
-      alter publication supabase_realtime add table public.gestion_clientes;
-    end if;
+    begin
+      if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'ivory37_sync') then
+        execute 'alter publication supabase_realtime add table public.ivory37_sync';
+      end if;
+      if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'gestion_clientes') then
+        execute 'alter publication supabase_realtime add table public.gestion_clientes';
+      end if;
+    exception when others then
+      raise notice 'Las tablas se han creado, pero no se pudo actualizar la publicación realtime: %', sqlerrm;
+    end;
   end if;
 end;
 $$;
+
+notify pgrst, 'reload schema';
 
 commit;
