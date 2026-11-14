@@ -1,5 +1,14 @@
 # Cambios
 
+## 3.2.2 — Actualizaciones automáticas y backups visibles
+
+- La PWA instalada aplica actualizaciones automáticamente cuando no hay formularios abiertos.
+- La APK y el EXE cargan el HTML publicado dentro de la app; su primera actualización conserva
+  el almacenamiento local y deja una copia para volver a la versión local si no hay conexión.
+- Android y Windows ya usan el selector nativo al exportar JSON o CSV; la fecha del backup
+  cambia solo cuando se completa el guardado.
+- Se guarda una copia interna diaria y se indica dónde encontrar el archivo exportado.
+
 ## 3.2.1 — Tema verde neón y capturas renovadas
 
 - Unificado el color principal en verde neón en el panel, los botones, los iconos y la APK.

@@ -41,7 +41,12 @@ public final class MainActivity extends Activity {
     private static final String LOCAL_HOST = "appassets.androidplatform.net";
     private static final String LOCAL_PREFIX = "/assets/";
     private static final String LOCAL_URL = "https://" + LOCAL_HOST + LOCAL_PREFIX + "index.html";
+    private static final String HOSTED_HOST = "ivory37goku.github.io";
+    private static final String HOSTED_PREFIX = "/ivory37-control-laboral/";
+    private static final String HOSTED_URL = "https://" + HOSTED_HOST + HOSTED_PREFIX;
     private static final String CHANNEL_ID = "control_laboral_reminders";
+    private static final String BRIDGE_PREFS = "android_bridge";
+    private static final String STORAGE_SHADOW_KEY = "web_storage_shadow_v1";
     private static final int REQUEST_PICK_FILE = 4101;
     private static final int REQUEST_SAVE_FILE = 4102;
     private static final int REQUEST_POST_NOTIFICATIONS = 4103;
@@ -53,6 +58,12 @@ public final class MainActivity extends Activity {
     private byte[] pendingSaveBytes;
     private String pendingSaveName;
     private String pendingSaveMime;
+    private String pendingSaveRequestId;
+    private boolean hostedBootstrapped;
+    private boolean hostedFallbackActive;
+    private boolean loadingHosted;
+    private boolean showingLocalFailure;
+    private boolean capturingLegacyStorage;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -121,6 +132,17 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
+                Uri uri = Uri.parse(url);
+                if (isLocalPage(uri) && !hostedBootstrapped && !capturingLegacyStorage) {
+                    captureLocalStorageAndOpenHosted(view);
+                    return;
+                }
+                if (isHostedApp(uri)) {
+                    loadingHosted = false;
+                    view.clearHistory();
+                } else if (isLocalPage(uri) && hostedFallbackActive) {
+                    view.clearHistory();
+                }
                 if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
             }
 
@@ -132,18 +154,27 @@ public final class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 if (!request.isForMainFrame()) return;
-                android.util.Log.e("ControlLaboral", "No se pudo cargar la app local: " + error.getDescription());
-                String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
-                        + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control laboral</h1>"
-                        + "<p>Faltan archivos locales de la aplicación. Vuelve a instalar la APK completa.</p>"
-                        + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#39ff14;font-weight:bold'>Reintentar</button></body></html>";
-                view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
+                Uri uri = request.getUrl();
+                if (isHostedApp(uri)) {
+                    android.util.Log.w("ControlLaboral", "No se pudo cargar la app web; se abre la copia local.");
+                    fallbackToBundledApp(view);
+                } else {
+                    android.util.Log.e("ControlLaboral", "No se pudieron cargar los archivos locales: " + error.getDescription());
+                    fallbackToBundledApp(view);
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request, android.webkit.WebResourceResponse errorResponse) {
+                if (request.isForMainFrame() && isHostedApp(request.getUrl()) && errorResponse.getStatusCode() >= 400) {
+                    fallbackToBundledApp(view);
+                }
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (isLocalAsset(uri)) return false;
+                if (isLocalAsset(uri) || isHostedApp(uri)) return false;
                 openExternal(uri);
                 return true;
             }
@@ -171,7 +202,13 @@ public final class MainActivity extends Activity {
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
         setContentView(root);
         createNotificationChannel();
-        webView.loadUrl(LOCAL_URL);
+        hostedBootstrapped = getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).getBoolean("hosted_bootstrapped", false);
+        if (hostedBootstrapped) {
+            loadingHosted = true;
+            webView.loadUrl(HOSTED_URL);
+        } else {
+            webView.loadUrl(LOCAL_URL);
+        }
     }
 
     private boolean isLocalAsset(Uri uri) {
@@ -179,6 +216,53 @@ public final class MainActivity extends Activity {
                 && LOCAL_HOST.equalsIgnoreCase(uri.getHost())
                 && uri.getPath() != null
                 && uri.getPath().startsWith(LOCAL_PREFIX);
+    }
+
+    private boolean isLocalPage(Uri uri) {
+        return "https".equalsIgnoreCase(uri.getScheme())
+                && LOCAL_HOST.equalsIgnoreCase(uri.getHost())
+                && (uri.getPath() == null || uri.getPath().equals(LOCAL_PREFIX) || uri.getPath().equals(LOCAL_PREFIX + "index.html"));
+    }
+
+    private boolean isHostedApp(Uri uri) {
+        return "https".equalsIgnoreCase(uri.getScheme())
+                && HOSTED_HOST.equalsIgnoreCase(uri.getHost())
+                && uri.getPath() != null
+                && uri.getPath().startsWith(HOSTED_PREFIX);
+    }
+
+    private void beginHostedApp(WebView view) {
+        hostedBootstrapped = true;
+        hostedFallbackActive = false;
+        loadingHosted = true;
+        getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).edit().putBoolean("hosted_bootstrapped", true).apply();
+        view.loadUrl(HOSTED_URL);
+    }
+
+    private void fallbackToBundledApp(WebView view) {
+        if (!hostedFallbackActive) {
+            hostedFallbackActive = true;
+            loadingHosted = false;
+            showingLocalFailure = false;
+            view.loadUrl(LOCAL_URL + "?nativeRestore=1");
+            return;
+        }
+        if (showingLocalFailure) return;
+        showingLocalFailure = true;
+        String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
+                + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control laboral</h1>"
+                + "<p>No se pudo cargar la app publicada ni los archivos locales. Tus datos guardados se conservan.</p>"
+                + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#39ff14;font-weight:bold'>Reintentar</button></body></html>";
+        view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
+    }
+
+    private void captureLocalStorageAndOpenHosted(WebView view) {
+        capturingLegacyStorage = true;
+        String captureScript = "(function(){try{var s={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k)s[k]=localStorage.getItem(k)}AndroidBridge.saveLocalStorage(JSON.stringify(s));return true}catch(e){return false}})()";
+        view.evaluateJavascript(captureScript, result -> {
+            capturingLegacyStorage = false;
+            beginHostedApp(view);
+        });
     }
 
     private void openExternal(Uri uri) {
@@ -260,10 +344,11 @@ public final class MainActivity extends Activity {
         return type.matches("[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+") ? type : "application/octet-stream";
     }
 
-    private void promptForSave(byte[] bytes, String fileName, String mimeType) {
+    private void promptForSave(byte[] bytes, String fileName, String mimeType, String requestId) {
         pendingSaveBytes = bytes;
         pendingSaveName = safeFileName(fileName);
         pendingSaveMime = safeMimeType(mimeType);
+        pendingSaveRequestId = requestId;
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType(pendingSaveMime);
@@ -272,8 +357,18 @@ public final class MainActivity extends Activity {
             startActivityForResult(intent, REQUEST_SAVE_FILE);
         } catch (ActivityNotFoundException error) {
             pendingSaveBytes = null;
+            notifySaveResult(false);
             Toast.makeText(this, "No se pudo abrir el selector para guardar.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void notifySaveResult(boolean saved) {
+        final String requestId = pendingSaveRequestId;
+        pendingSaveRequestId = null;
+        if (requestId == null || webView == null) return;
+        String safeId = requestId.replaceAll("[^0-9]", "");
+        String script = "if(window.__ivory37NativeSaveResult){window.__ivory37NativeSaveResult('" + safeId + "'," + (saved ? "true" : "false") + ");}";
+        webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     @Override
@@ -292,12 +387,17 @@ public final class MainActivity extends Activity {
         if (requestCode == REQUEST_SAVE_FILE) {
             byte[] bytes = pendingSaveBytes;
             pendingSaveBytes = null;
-            if (resultCode != RESULT_OK || data == null || data.getData() == null || bytes == null) return;
+            if (resultCode != RESULT_OK || data == null || data.getData() == null || bytes == null) {
+                notifySaveResult(false);
+                return;
+            }
             try (OutputStream out = getContentResolver().openOutputStream(data.getData())) {
                 if (out == null) throw new IllegalStateException("No se pudo abrir el archivo");
                 out.write(bytes);
+                notifySaveResult(true);
                 Toast.makeText(this, "Archivo guardado.", Toast.LENGTH_SHORT).show();
             } catch (Exception error) {
+                notifySaveResult(false);
                 Toast.makeText(this, "No se pudo guardar el archivo.", Toast.LENGTH_LONG).show();
             }
         }
@@ -374,8 +474,10 @@ public final class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void saveFile(String encoded, String fileName, String mimeType) {
+        public void saveFile(String encoded, String fileName, String mimeType, String requestId) {
             if (encoded == null || encoded.length() > (MAX_DOWNLOAD_BYTES * 4L / 3L) + 16) {
+                pendingSaveRequestId = requestId;
+                notifySaveResult(false);
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "El archivo es demasiado grande.", Toast.LENGTH_LONG).show());
                 return;
             }
@@ -383,14 +485,35 @@ public final class MainActivity extends Activity {
             try {
                 bytes = Base64.decode(encoded, Base64.DEFAULT);
             } catch (IllegalArgumentException error) {
+                pendingSaveRequestId = requestId;
+                notifySaveResult(false);
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "No se pudo preparar el archivo.", Toast.LENGTH_LONG).show());
                 return;
             }
             if (bytes.length > MAX_DOWNLOAD_BYTES) {
+                pendingSaveRequestId = requestId;
+                notifySaveResult(false);
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "El archivo es demasiado grande.", Toast.LENGTH_LONG).show());
                 return;
             }
-            runOnUiThread(() -> promptForSave(bytes, fileName, mimeType));
+            runOnUiThread(() -> promptForSave(bytes, fileName, mimeType, requestId));
+        }
+
+        @JavascriptInterface
+        public String getLocalStorageSnapshot() {
+            return getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).getString(STORAGE_SHADOW_KEY, "{}");
+        }
+
+        @JavascriptInterface
+        public boolean saveLocalStorage(String snapshot) {
+            if (snapshot == null || snapshot.length() > MAX_DOWNLOAD_BYTES) return false;
+            try {
+                new org.json.JSONObject(snapshot);
+                return getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE)
+                        .edit().putString(STORAGE_SHADOW_KEY, snapshot).commit();
+            } catch (Exception error) {
+                return false;
+            }
         }
 
         @JavascriptInterface

@@ -1,8 +1,8 @@
 # Control laboral para Android
 
-Este proyecto empaqueta la app web en una aplicación Android local (Android 7.0 / API 24 o posterior). No abre Chrome ni necesita conexión para cargar la interfaz. Usa Android System WebView para mostrar los archivos incluidos. Internet se usa solo para la sincronización opcional con Supabase cuando inicias sesión.
+Este proyecto abre la app publicada en GitHub Pages dentro de Android System WebView, sin abrir Chrome. La primera actualización conserva el almacenamiento de la APK anterior. La interfaz se actualiza dentro de la app y mantiene una copia local para trabajar sin conexión.
 
-La APK Android es la versión 3.2.1. En el primer inicio puede mostrar «Cargando Control laboral…» mientras Android prepara WebView; después aparece el panel principal.
+La APK Android es la versión 3.2.2. En el primer inicio puede mostrar «Cargando Control laboral…» mientras Android prepara WebView y migra los datos locales; después aparece el panel principal.
 
 ## Abrir y generar APK
 
@@ -16,16 +16,16 @@ El APK de depuración se puede instalar directamente para uso personal. Para pub
 
 ## Uso y datos
 
-- El HTML, el SDK de Supabase y los iconos se compilan dentro de la app, así que la interfaz sigue funcionando sin conexión.
+- La versión publicada se carga dentro de la app. Los assets locales de la APK actúan como respaldo si no hay conexión.
 - En **Ajustes → Nube**, crea una cuenta IVORY37 y usa la misma cuenta en el APK, el EXE y la PWA. La app mantiene copia local y sincroniza al recuperar internet.
 - Si no inicias sesión, los datos permanecen solo en este dispositivo. También puedes moverlos manualmente con **Ajustes → Backup JSON** y **Restaurar**.
-- Los botones de backup/CSV abren el selector Android para guardar y los backups se importan con el selector del sistema.
+- Los botones de backup/CSV abren el selector Android para guardar; elige **Descargas** para encontrarlos. Los backups se importan con el selector del sistema.
 - La impresión del informe usa el diálogo de impresión de Android.
 - Los recordatorios de entrada/salida funcionan mientras Control laboral está abierta. Android preguntará permiso para notificaciones.
 - Pulsa atrás para volver dentro de la app y, al llegar a la pantalla principal, salir.
 
 ## Seguridad y mantenimiento
 
-La app declara permiso de Internet para la API de Supabase, bloquea tráfico web en claro, bloquea navegación remota dentro de WebView y sirve los assets con `WebViewAssetLoader`. Si cambias la app web, copia `index.html`, `supabase-config.js`, `supabase-sync.js`, `sw.js` y `vendor/supabase.js` a `app/src/main/assets/` antes de compilar.
+La app declara permiso de Internet para GitHub Pages y Supabase, bloquea tráfico web en claro y solo mantiene dentro de WebView el sitio publicado de IVORY37. Los assets locales se sirven con `WebViewAssetLoader` como respaldo. Al publicar el HTML en `main`, la misma app recibe las actualizaciones sin reconstruir la APK.
 
 El proyecto necesita internet la primera vez para descargar Gradle y las dependencias de compilación. La APK final no lo necesita para abrir la app.

@@ -6,7 +6,7 @@
 
 👉 **Demo:** https://ivory37goku.github.io/ivory37-control-laboral/
 
-![Versión](https://img.shields.io/badge/version-3.2.1-39ff14)
+![Versión](https://img.shields.io/badge/version-3.2.2-39ff14)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
 ![Dependencias](https://img.shields.io/badge/SDK-Supabase%20incluido-brightgreen)
 
@@ -41,12 +41,12 @@
 - **Perfil**: nombre, rol y foto o logo en la barra lateral y en móvil.
 - **Logo de la app** con fondo claro/oscuro y adaptación a logos apaisados; favicon
   dinámico.
-- Backup JSON, exportación CSV segura frente a fórmulas, restauración transaccional y
-  aviso de la última copia.
+- Backup JSON con selector nativo en Android, copia interna diaria y aviso de la última
+  copia exportada; exportación CSV segura frente a fórmulas.
 - Guardado local y sincronización entre pestañas.
 - Sincronización opcional entre PWA, APK y EXE con la misma cuenta IVORY37.
 - **PWA instalable y offline** en GitHub Pages: manifest, iconos válidos, actualización
-  controlada y copia en caché de la aplicación.
+  automática y copia en caché de la aplicación.
 
 ## 📸 Capturas
 
@@ -95,14 +95,21 @@ tras su primera carga.
 
 GitHub Pages ya sirve el repositorio; al publicar los cambios en `main`, sus archivos de
 raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí automáticamente.
+La PWA instalada recibe los cambios en la misma app cuando no hay un formulario abierto.
 
 ### APK para Android
 
-El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.1 incluye la interfaz y
-el SDK dentro de Android WebView, sin abrir Chrome. La conexión solo se necesita para
-sincronizar. En Android Studio abre esa carpeta y compila **Build → Build Bundle(s) / APK(s) →
-Build APK(s)**; los pasos completos y el comando `gradlew.bat assembleDebug` están en
-`android-app/README.md`.
+El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.2 abre la versión
+publicada dentro de Android WebView, conserva una copia local y migra los datos existentes al
+primer inicio. Después de instalar esta versión inicial, los cambios publicados llegan a la
+misma app sin reinstalar la APK. En Android Studio abre esa carpeta y compila **Build → Build
+Bundle(s) / APK(s) → Build APK(s)**; los pasos completos están en `android-app/README.md`.
+
+### App de Windows
+
+El EXE 3.2.2 conserva los datos de la versión local y abre el mismo HTML de GitHub Pages.
+Después de instalar esta versión inicial, la app se actualiza automáticamente y mantiene una
+copia para trabajar sin conexión.
 
 ### Uso directo
 

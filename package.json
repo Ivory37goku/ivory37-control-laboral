@@ -1,6 +1,6 @@
 {
   "name": "ivory37-control-laboral",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "private": true,
   "description": "Aplicación de control laboral IVORY37 para Windows",
   "main": "desktop/main.cjs",
@@ -23,6 +23,7 @@
     },
     "files": [
       "desktop/main.cjs",
+      "desktop/preload.cjs",
       "desktop/assets/icon.ico",
       "index.html",
       "supabase-config.js",

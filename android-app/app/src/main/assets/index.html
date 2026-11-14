@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b1220">
-<meta name="app-version" content="3.2.1">
+<meta name="app-version" content="3.2.2">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="工V龱尺ㄚ㇌7">
 <meta property="og:title" content="工V龱尺ㄚ㇌7 · Control laboral">
@@ -1309,7 +1309,7 @@ h1,h2{letter-spacing:-.03em}
             <button class="btn ghost" type="button" data-action="fill-month" id="fill-month-btn"><svg class="i" aria-hidden="true"><use href="#i-calendar"></use></svg> <span>Completar mes</span></button>
             <button class="btn ghost" type="button" data-action="setup-show" id="setup-show-btn" hidden><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg> Mostrar primeros pasos</button>
           </div>
-          <p class="hint" style="margin:12px 0 0">Almacenamiento local: <span data-storage>—</span> · Última copia: <span id="last-backup">nunca</span>. Siempre se conserva una copia local; al iniciar sesión, los datos sincronizan con tu cuenta.</p>
+          <p class="hint" style="margin:12px 0 0">La app guarda una copia interna diaria. Al pulsar Backup JSON, confirma el guardado y búscalo en Descargas. Último backup exportado: <span id="last-backup">nunca</span>. Al iniciar sesión, los datos también sincronizan con tu cuenta.</p>
         </article>
 
         <article class="card" id="notices-card" style="margin-top:16px">
@@ -1400,7 +1400,7 @@ h1,h2{letter-spacing:-.03em}
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.2.1';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.2.2';
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -1538,6 +1538,48 @@ h1,h2{letter-spacing:-.03em}
     return normalize({});
   }
 
+  function nativeStorageBridge() { return window.AndroidBridge || window.IVORY37DesktopBridge || null; }
+  function storageSnapshot() {
+    const snapshot = {};
+    try { for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key) snapshot[key] = localStorage.getItem(key); } }
+    catch (err) { console.warn('No se pudo preparar la copia local del almacenamiento.'); }
+    return snapshot;
+  }
+  function mirrorNativeStorage() {
+    const bridge = nativeStorageBridge();
+    if (!bridge || typeof bridge.saveLocalStorage !== 'function') return;
+    try { bridge.saveLocalStorage(JSON.stringify(storageSnapshot())); }
+    catch (err) { console.warn('No se pudo actualizar la copia local de la app.'); }
+  }
+  function restoreNativeStorage() {
+    const bridge = nativeStorageBridge();
+    if (!bridge || typeof bridge.getLocalStorageSnapshot !== 'function') return;
+    const params = new URLSearchParams(location.search);
+    const forceRestore = params.get('nativeRestore') === '1';
+    try {
+      if (!forceRestore && localStorage.getItem(KEY) !== null) return;
+      const raw = bridge.getLocalStorageSnapshot();
+      if (!raw || raw.length > 12 * 1024 * 1024) return;
+      const saved = JSON.parse(raw);
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
+      Object.keys(saved).forEach((key) => {
+        if (typeof saved[key] === 'string' && key.length < 512) {
+          if (forceRestore || localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
+        }
+      });
+    } catch (err) { console.warn('No se pudo restaurar la copia local de la app.'); }
+  }
+  function ensureInternalBackup() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const today = dateKey(new Date());
+      if (localStorage.getItem(KEY + '_backup_date') === today && localStorage.getItem(KEY + '_backup')) return;
+      localStorage.setItem(KEY + '_backup', raw);
+      localStorage.setItem(KEY + '_backup_date', today);
+    } catch (err) { console.warn('No se pudo actualizar la copia interna diaria.'); }
+  }
+
   function setting(key, fallback) { const row = data.ajustes.find((a) => a.clave === key); if (row) return row.valor; if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return DEFAULTS[key]; return fallback === undefined ? '' : fallback; }
   function setSetting(key, value) { const row = data.ajustes.find((a) => a.clave === key); if (row) row.valor = String(value); else data.ajustes.push({ clave: key, valor: String(value) }); }
 
@@ -1566,6 +1608,7 @@ h1,h2{letter-spacing:-.03em}
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (err) { saved = false; console.error(err); try { data = JSON.parse(snapshot); } catch (_) { data = normalize({}); } toast('No se pudo guardar. Exporta un backup.', 'error'); return; }
     window.IVORY37CloudSync?.queue(data);
+    mirrorNativeStorage();
     renderAll(); updateStorageUsage(); if (message && saved) toast(message);
   }
 
@@ -2150,15 +2193,77 @@ h1,h2{letter-spacing:-.03em}
     openModal({ title: 'Composición de lo pendiente', hideSave: true, body: '<div class="detail-list">' + rows.map((r) => '<div class="detail-row"><div><span>' + esc(r.label) + '</span><small>' + esc(r.detail) + '</small></div><b>' + fmtMoney(r.value) + '</b></div>').join('') + '<div class="detail-row total"><div><span>Total a cobrar</span></div><b>' + fmtMoney(total) + '</b></div></div><p class="hint" style="margin:8px 0 0">Para reducirlo: confirma nóminas, marca extras pagadas y viajes cobrados.</p>' });
   }
 
-  function download(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-  function exportJSON() { setSetting('last_backup', dateKey(new Date())); const payload = JSON.stringify(data, null, 2); download(new Blob([payload], { type: 'application/json' }), 'backup_' + dateKey(new Date()) + '.json'); try { localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); } catch (err) {} renderDataTools(); renderSetup(); toast('Backup descargado.'); }
+  let nativeSaveSequence = 0;
+  const nativeSaveCallbacks = new Map();
+  window.__ivory37NativeSaveResult = function (requestId, saved) {
+    const callback = nativeSaveCallbacks.get(String(requestId));
+    if (!callback) return;
+    nativeSaveCallbacks.delete(String(requestId));
+    callback(Boolean(saved));
+  };
+  function download(blob, filename, onComplete) {
+    const androidBridge = window.AndroidBridge;
+    const desktopBridge = window.IVORY37DesktopBridge;
+    if ((androidBridge && typeof androidBridge.saveFile === 'function') || (desktopBridge && typeof desktopBridge.saveFile === 'function')) {
+      const reader = new FileReader();
+      reader.onerror = function () { if (onComplete) onComplete(false); };
+      reader.onload = function () {
+        const dataUrl = String(reader.result || '');
+        const separator = dataUrl.indexOf(',');
+        if (separator < 0) { if (onComplete) onComplete(false); return; }
+        const encoded = dataUrl.slice(separator + 1);
+        if (desktopBridge && typeof desktopBridge.saveFile === 'function') {
+          Promise.resolve(desktopBridge.saveFile(filename, blob.type || 'application/octet-stream', encoded))
+            .then((saved) => { if (onComplete) onComplete(Boolean(saved)); })
+            .catch(() => { if (onComplete) onComplete(false); });
+          return;
+        }
+        const requestId = String(++nativeSaveSequence);
+        if (onComplete) nativeSaveCallbacks.set(requestId, onComplete);
+        try { androidBridge.saveFile(encoded, filename, blob.type || 'application/octet-stream', requestId); }
+        catch (err) { nativeSaveCallbacks.delete(requestId); if (onComplete) onComplete(false); }
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (onComplete) setTimeout(() => onComplete(true), 250);
+  }
+  function markBackupSaved(payload) {
+    setSetting('last_backup', dateKey(new Date()));
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data));
+      window.IVORY37CloudSync?.queue(data);
+      mirrorNativeStorage();
+      renderDataTools(); renderSetup();
+      toast(window.AndroidBridge ? 'Backup guardado. Elige Descargas para encontrarlo.' : (window.IVORY37DesktopBridge ? 'Backup guardado en la ubicación elegida.' : 'Descarga iniciada. Busca el archivo en Descargas.'));
+    } catch (err) {
+      renderDataTools(); renderSetup();
+      toast('El archivo se guardó, pero no se pudo actualizar la fecha de la copia.', 'warn');
+    }
+  }
+  function exportJSON() {
+    const fileDate = dateKey(new Date());
+    const fileTime = pad(new Date().getHours()) + pad(new Date().getMinutes());
+    const backup = JSON.parse(JSON.stringify(data));
+    const backupSetting = backup.ajustes.find((row) => row.clave === 'last_backup');
+    if (backupSetting) backupSetting.valor = fileDate;
+    else backup.ajustes.push({ clave: 'last_backup', valor: fileDate });
+    const payload = JSON.stringify(backup, null, 2);
+    download(new Blob([payload], { type: 'application/json' }), 'backup_' + fileDate + '_' + fileTime + '.json', function (saved) {
+      if (!saved) { toast('No se guardó el backup. Elige una carpeta y confirma Guardar.', 'warn'); return; }
+      markBackupSaved();
+    });
+  }
 
   function exportCSV() {
     const rows = [['Fecha', 'Entrada', 'Salida', 'Horas normales', 'Horas extra', 'Estado', 'Extras pagadas', 'Notas']];
     data.jornadas.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach((j) => { rows.push([j.fecha, j.entrada, j.salida, String(j.horas_normales).replace('.', ','), String(j.horas_extra).replace('.', ','), j.estado, j.pagado_extras ? 'Sí' : 'No', j.notas]); });
     const csvCell = (value) => { let text = String(value == null ? '' : value); if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text)) text = "'" + text; return '"' + text.replace(/"/g, '""') + '"'; };
     const csv = '\uFEFF' + rows.map((row) => row.map(csvCell).join(';')).join('\r\n');
-    download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'jornadas_' + dateKey(new Date()) + '.csv'); toast('CSV exportado.');
+    download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'jornadas_' + dateKey(new Date()) + '.csv', function (saved) { toast(saved ? (window.IVORY37DesktopBridge ? 'CSV guardado en la ubicación elegida.' : 'CSV guardado. Elige Descargas para encontrarlo.') : 'No se guardó el CSV.', saved ? 'info' : 'warn'); });
   }
 
   function importJSON(file) {
@@ -2271,7 +2376,7 @@ h1,h2{letter-spacing:-.03em}
       case 'confirm-all': { const provisional = data.jornadas.filter((j) => j.estado === 'provisional'); if (!provisional.length) { toast('No hay provisionales.', 'info'); break; } confirmAction('Confirmar provisionales', 'Se marcarán ' + provisional.length + ' como confirmadas; sus horas pasarán a los cálculos de nómina y cobro.', 'Confirmar ' + provisional.length, () => { provisional.forEach((j) => { j.estado = 'confirmado'; if (!/\[confirmado\]/i.test(j.notas)) j.notas = ('[CONFIRMADO] ' + (j.notas || '')).trim(); }); persist(provisional.length + (provisional.length === 1 ? ' jornada confirmada' : ' jornadas confirmadas')); }); break; }
       case 'reset-logo': { setSetting('custom_logo', ''); setSetting('logo_ratio', ''); applyBranding(); renderLogoPreview(); persist('Logo eliminado'); break; }
       case 'restore-internal-backup': restoreInternalBackup(); break;
-      case 'reset': { confirmAction('Borrar todos los datos', 'Se eliminarán jornadas, viajes, pagos y ajustes.', 'Borrar todo', () => { try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '_backup'); localStorage.removeItem(NOTIF_KEY); } catch (err) {} loadError = false; data = normalize({}); applyBranding(); renderAjustes(); persist('Datos borrados'); showTab('dashboard'); }, true); break; }
+      case 'reset': { confirmAction('Borrar todos los datos', 'Se eliminarán jornadas, viajes, pagos y ajustes.', 'Borrar todo', () => { try { localStorage.removeItem(KEY); localStorage.removeItem(KEY + '_backup'); localStorage.removeItem(KEY + '_backup_date'); localStorage.removeItem(NOTIF_KEY); } catch (err) {} loadError = false; data = normalize({}); applyBranding(); renderAjustes(); persist('Datos borrados'); showTab('dashboard'); }, true); break; }
       default: break;
     }
   });
@@ -2359,12 +2464,15 @@ h1,h2{letter-spacing:-.03em}
       localStorage.setItem(KEY, JSON.stringify(data));
       applyBranding(); renderAll(); renderAjustes(); updateStorageUsage();
       window.IVORY37CloudSync?.queue(data);
+      mirrorNativeStorage();
     } catch (err) { console.error('No se pudo aplicar la sincronización en la app:', err); }
   });
 
   function init() {
     const hash = location.hash.slice(1); if (['dashboard', 'jornadas', 'viajes', 'pagos', 'ajustes'].includes(hash)) ui.tab = hash;
     ui.today = dateKey(new Date());
+    restoreNativeStorage();
+    ensureInternalBackup();
     data = loadData(); applyBranding(); probeLogoRatio();
     if (!loadError) { try { syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) { console.warn(err); } }
     const verEl = $('#app-version'); if (verEl) verEl.textContent = APP_VERSION;
@@ -2378,6 +2486,7 @@ h1,h2{letter-spacing:-.03em}
       if (cloudStatus) { cloudStatus.textContent = 'Sincronización pausada hasta recuperar los datos.'; cloudStatus.dataset.state = 'error'; }
       ['#cloud-signup', '#cloud-login', '#cloud-now'].forEach((selector) => { const button = $(selector); if (button) button.disabled = true; });
     } else window.IVORY37CloudSync?.init(data);
+    mirrorNativeStorage();
   }
 
   init();
@@ -2396,23 +2505,45 @@ h1,h2{letter-spacing:-.03em}
   var deferredPrompt = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   var nativeAndroid = Boolean(window.AndroidBridge);
-  if (installBtn && nativeAndroid) { installBtn.classList.remove('show'); installBtn.hidden = true; }
+  var nativeDesktop = Boolean(window.IVORY37DesktopBridge);
+  var nativeWrapper = nativeAndroid || nativeDesktop;
+  var hostedApp = location.hostname === 'ivory37goku.github.io' && location.pathname.indexOf('/ivory37-control-laboral/') === 0;
+  if (installBtn && nativeWrapper) { installBtn.classList.remove('show'); installBtn.hidden = true; }
   else if (installBtn && !standalone) installBtn.classList.add('show');
+  if (nativeAndroid && !hostedApp) return;
   navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
-    if (reg.waiting) { waitingWorker = reg.waiting; showUpdate(); }
+    if (reg.waiting) { waitingWorker = reg.waiting; scheduleSafeUpdate(); }
     reg.addEventListener('updatefound', function () {
       var newWorker = reg.installing;
       if (!newWorker) return;
       newWorker.addEventListener('statechange', function () {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) { waitingWorker = newWorker; showUpdate(); }
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) { waitingWorker = newWorker; scheduleSafeUpdate(); }
       });
     });
+    reg.update().catch(function () {});
   }).catch(function (err) { console.warn('SW error:', err); });
   var refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', function () { if (refreshing) return; refreshing = true; window.location.reload(); });
   function showUpdate() { if (updateBanner) updateBanner.classList.add('show'); }
-  if (updateBtn) { updateBtn.addEventListener('click', function () { if (waitingWorker) waitingWorker.postMessage({ type: 'SKIP_WAITING' }); else window.location.reload(); }); }
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); if (nativeAndroid) return; deferredPrompt = e; if (installBtn) installBtn.classList.add('show'); });
+  function safeToUpdate() {
+    var modal = document.getElementById('modal');
+    if (modal && !modal.hidden) return false;
+    var focused = document.activeElement;
+    if (focused && focused.matches && focused.matches('input,textarea,select,[contenteditable="true"]')) return false;
+    var settings = document.querySelector('[data-tab-panel="ajustes"]');
+    if (settings && !settings.hidden) return false;
+    return true;
+  }
+  function scheduleSafeUpdate() {
+    if (!waitingWorker) return;
+    if (safeToUpdate()) { waitingWorker.postMessage({ type: 'SKIP_WAITING' }); return; }
+    if (updateBanner) updateBanner.classList.add('show');
+  }
+  if (updateBtn) { updateBtn.addEventListener('click', function () { if (waitingWorker && safeToUpdate()) waitingWorker.postMessage({ type: 'SKIP_WAITING' }); else if (!waitingWorker) window.location.reload(); }); }
+  window.setInterval(scheduleSafeUpdate, 8000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') scheduleSafeUpdate(); });
+  document.addEventListener('click', function (event) { if (event.target.closest && event.target.closest('.nav button')) setTimeout(scheduleSafeUpdate, 400); });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); if (nativeWrapper) return; deferredPrompt = e; if (installBtn) installBtn.classList.add('show'); });
   function showInstallHelp() {
     var ua = navigator.userAgent || '';
     var isiOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -2421,7 +2552,7 @@ h1,h2{letter-spacing:-.03em}
       : 'Abre el menú del navegador y elige «Instalar app» o «Añadir a pantalla principal». Usa la dirección segura de GitHub Pages.';
     window.alert(message);
   }
-  if (installBtn && !nativeAndroid) { installBtn.addEventListener('click', function () {
+  if (installBtn && !nativeWrapper) { installBtn.addEventListener('click', function () {
     if (!deferredPrompt) { showInstallHelp(); return; }
     var promptEvent = deferredPrompt;
     deferredPrompt = null;

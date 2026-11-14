@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.2.1';
+const CACHE_NAME = CACHE_PREFIX + 'v3.2.2';
 const ASSETS = [
   './',
   './index.html',
