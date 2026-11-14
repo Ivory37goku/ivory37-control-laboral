@@ -1,21 +1,27 @@
-# Sincronización IVORY37
+# Sincronización compartida IVORY37
 
 El proyecto Supabase `ivory37-control-laboral` está en la región Central EU (Frankfurt).
 La app usa la clave pública publishable guardada en `supabase-config.js`; no se incluye
 ninguna clave secreta de administración.
 
-## Base de datos
+## Base de datos de las dos aplicaciones
 
-`setup.sql` crea `public.ivory37_sync`, aplica Row Level Security y permite que cada usuario
-autenticado lea o cambie únicamente la fila cuyo `user_id` coincide con `auth.uid()`. El
-esquema ya se aplicó al proyecto. Si se prepara otro proyecto, ejecuta el archivo completo
-una sola vez en **SQL Editor**.
+`setup.sql` prepara las dos tablas del proyecto:
+
+- `public.ivory37_sync`: jornadas, viajes, pagos y ajustes de Control Laboral.
+- `public.gestion_clientes`: leads, clientes, obras, tareas y finanzas de Gestión Clientes.
+
+Las tablas tienen políticas Row Level Security independientes y cada cuenta autenticada solo
+puede leer o actualizar su propia fila. El esquema inicial de Control Laboral ya estaba
+aplicado, pero la tabla de Gestión Clientes faltaba en el proyecto. Ejecuta ahora el archivo
+completo una vez en **SQL Editor**; se puede volver a ejecutar sin borrar los datos existentes.
 
 ## Cuentas de la app
 
 Las cuentas creadas desde **Ajustes → Nube** son cuentas de Supabase Auth y son distintas de
-la cuenta del Dashboard. Usa la misma cuenta de la app en PWA, APK y EXE. Si el proyecto
-exige confirmar correo, confirma el mensaje antes de iniciar sesión. El SMTP predeterminado
+la cuenta del Dashboard. Usa la misma cuenta en Control Laboral y Gestión Clientes, en PWA,
+APK y EXE. La autenticación se comparte; las tablas mantienen los datos separados. Si el
+proyecto exige confirmar correo, confirma el mensaje antes de iniciar sesión. El SMTP predeterminado
 de Supabase para proyectos alojados solo envía a miembros de la organización; para admitir
 otros correos hay que configurar un proveedor SMTP en Authentication.
 
