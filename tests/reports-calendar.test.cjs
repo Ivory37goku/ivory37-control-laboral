@@ -44,3 +44,13 @@ test('calendar range includes both ends and caps excessive ranges', () => {
   assert.deepEqual(Array.from(calendar.datesInRange('2026-11-17', '2026-11-19', parse, key, add, 10)), ['2026-11-17', '2026-11-18', '2026-11-19']);
   assert.equal(calendar.datesInRange('2026-01-01', '2026-12-31', parse, key, add, 10).length, 0);
 });
+
+test('calendar rejects reversed, malformed and impossible start dates', () => {
+  assert.equal(calendar.datesInRange('2026-11-20', '2026-11-17', parse, key, add, 10).length, 0);
+  assert.equal(calendar.datesInRange('bad', '2026-11-17', parse, key, add, 10).length, 0);
+  assert.equal(calendar.datesInRange('2026-02-30', '2026-03-03', parse, key, add, 10).length, 0);
+});
+
+test('calendar does not hang if the date increment fails to progress', () => {
+  assert.equal(calendar.datesInRange('2026-11-17', '2026-11-19', parse, key, d => d, 10).length, 0);
+});
