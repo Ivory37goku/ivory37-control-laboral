@@ -2,7 +2,9 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.3';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.5';
+  const backupTools = window.IVORY37BackupTools;
+  const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -81,10 +83,7 @@
   function fmtDate(key) { if (!isDateKey(key)) return '—'; return parseKey(key).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
   function fmtMonth(key) { if (!isDateKey(String(key) + '-01')) return String(key || '—'); return parseKey(key + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }); }
   function hhmm(value) { const v = String(value == null ? '' : value).trim(); return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : ''; }
-  function toMinutes(value) { const v = hhmm(value); if (!v) return null; const parts = v.split(':').map(Number); return parts[0] * 60 + parts[1]; }
-  function minutesBetween(start, end) { const a = toMinutes(start); const b = toMinutes(end); if (a == null || b == null) return null; let diff = b - a; if (diff < 0) diff += 1440; return diff; }
-  function hoursBetween(start, end) { const minutes = minutesBetween(start, end); return minutes == null ? null : round2(minutes / 60); }
-  function netHoursBetween(start, end, pauseMinutes) { const minutes = minutesBetween(start, end); return minutes == null ? null : round2(Math.max(0, minutes - pauseMinutes) / 60); }
+  const { toMinutes, minutesBetween, hoursBetween, netHoursBetween } = window.IVORY37WorkHours;
   function habitualPauseMinutes() { return clamp(Math.round(num(setting('pausa_habitual_minutos'), 0)), 0, 1440); }
   function recordPauseMinutes(record) { return clamp(Math.round(num(record && record.descanso_minutos, 0)), 0, 1440); }
   function weekdaysInMonth(month) { const year = Number(month.slice(0, 4)); const m = Number(month.slice(5, 7)); const days = new Date(year, m, 0).getDate(); const out = []; for (let day = 1; day <= days; day++) { const d = new Date(year, m - 1, day); const wd = d.getDay(); if (wd !== 0 && wd !== 6) out.push(d); } return out; }
@@ -128,7 +127,6 @@
     const legacyLogo = settingsMap.get('app_logo') || '';
     if (!settingsMap.get('custom_logo') && legacyLogo && isSafeImage(legacyLogo)) settingsMap.set('custom_logo', legacyLogo);
     settingsMap.delete('app_logo'); settingsMap.delete('seeded_demo');
-    if (['#f97316', '#39ff14'].includes(String(settingsMap.get('app_color') || '').toLowerCase())) settingsMap.set('app_color', '#a6d94a');
     if (!isSafeImage(settingsMap.get('custom_logo'))) { settingsMap.set('custom_logo', ''); settingsMap.set('logo_ratio', ''); }
     if (settingsMap.has('user_avatar') && settingsMap.get('user_avatar') && settingsMap.get('user_avatar') !== '@logo' && !isSafeImage(settingsMap.get('user_avatar'))) settingsMap.set('user_avatar', '');
     const ajustes = Array.from(settingsMap, ([clave, valor]) => ({ clave, valor }));
@@ -293,16 +291,7 @@
   }
 
   function overtimeMonthBreakdown(month) {
-    const records = data.jornadas.filter((j) => j.estado === 'confirmado' && j.fecha.slice(0, 7) === month && j.horas_extra > 0);
-    const paid = records.filter((j) => j.pagado_extras);
-    const pending = records.filter((j) => !j.pagado_extras);
-    const sumHours = (rows) => round2(rows.reduce((sum, j) => sum + j.horas_extra, 0));
-    const sumValue = (rows) => round2(rows.reduce((sum, j) => sum + j.horas_extra * rateOn(j.fecha, 'extra'), 0));
-    return {
-      extraHours: sumHours(records), extraValue: sumValue(records),
-      paidExtraHours: sumHours(paid), paidExtraValue: sumValue(paid),
-      pendingExtraHours: sumHours(pending), pendingExtraValue: sumValue(pending)
-    };
+    return window.IVORY37Overtime.summarize(data.jornadas, month, (j) => rateOn(j.fecha, 'extra'));
   }
 
   function niceScale(max) { const raw = Math.max(max, 1) / 9; const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1)))); const step = [1, 2, 2.5, 5, 10].map((x) => x * pow).find((s) => s >= raw) || pow * 10; return { step, max: Math.ceil(max / step) * step }; }
@@ -476,7 +465,7 @@
     data.jornadas.forEach((j) => months.add(j.fecha.slice(0, 7)));
     data.pagos.forEach((p) => months.add(p.mes_key));
     data.viajes.forEach((v) => months.add(v.fecha.slice(0, 7)));
-    const rows = Array.from(months).filter(Boolean).sort().map((month) => Object.assign({ month }, monthBreakdown(month), overtimeMonthBreakdown(month))).filter((row) => row.total > 0 || row.extraHours > 0).slice(-8);
+    const rows = Array.from(months).filter(Boolean).sort().map((month) => Object.assign({ month }, monthBreakdown(month), overtimeMonthBreakdown(month))).slice(-8);
     const box = $('#bars'); const legend = $('#bars-legend'); const caption = $('#bars-caption');
     const totalEl = $('#bars-total'); const pendingTotal = round2(rows.reduce((s, r) => s + r.total, 0));
     if (totalEl) { totalEl.textContent = fmtMoney(pendingTotal); totalEl.title = 'Importe pendiente total en los meses mostrados'; totalEl.className = 'badge ' + (pendingTotal > 0 ? 'bad' : 'ok'); }
@@ -524,7 +513,13 @@
       const title = fmtMonth(row.month) + ': ' + fmtMoney(row.total) + ' pendientes en total. Extras confirmadas: ' + fmtHours(row.extraHours) + ' (' + fmtMoney(row.extraValue) + ' según tarifa; ' + fmtHours(row.paidExtraHours) + ' marcadas pagadas).';
       return '<div class="chart-col" title="' + esc(title) + '"><div class="chart-stack" style="height:' + height.toFixed(1) + '%"><span class="chart-total">' + axisFmt.format(Math.round(row.total)) + ' €</span>' + (segP > 0 ? '<span class="chart-seg" style="height:' + segP.toFixed(1) + '%;background:' + COLORS.payroll + '"></span>' : '') + (segE > 0 ? '<span class="chart-seg" style="height:' + segE.toFixed(1) + '%;background:' + COLORS.extras + '"></span>' : '') + (segT > 0 ? '<span class="chart-seg" style="height:' + segT.toFixed(1) + '%;background:' + COLORS.trips + '"></span>' : '') + '</div></div>';
     }).join('');
-    const monthsHtml = rows.map((row) => '<span>' + esc(parseKey(row.month + '-01').toLocaleDateString('es-ES', { month: 'short' })) + '</span>').join('');
+    const monthsHtml = rows.map((row) => {
+      const monthLabel = parseKey(row.month + '-01').toLocaleDateString('es-ES', { month: 'short' });
+      const title = fmtMonth(row.month) + ': ' + fmtHours(row.extraHours) + ' de horas extra confirmadas';
+      const accessibleLabel = fmtMonth(row.month) + ', ' + fmtHours(row.extraHours) + ' extra';
+      const compactHours = fmtHours(row.extraHours).replace(/\s/g, '');
+      return '<span class="chart-month-tick" title="' + esc(title) + '" aria-label="' + esc(accessibleLabel) + '"><span class="chart-month-name">' + esc(monthLabel) + '</span><small class="chart-month-hours">' + esc(compactHours) + '</small></span>';
+    }).join('');
     box.innerHTML = '<div class="chart-area"><div class="chart-y">' + yLabels.map((v) => '<span>' + axisFmt.format(v) + ' €</span>').join('') + '</div><div class="chart-plot"><div class="chart-grid">' + yLabels.map(() => '<span></span>').join('') + '</div><div class="chart-bars">' + bars + '</div></div><div class="chart-months">' + monthsHtml + '</div></div>';
   }
 
@@ -714,10 +709,18 @@
     box.innerHTML = '<p class="eyebrow" style="margin:8px 0 0">Revisar cambios entre dispositivos</p>' + pending.map((item) => '<div class="row" style="--edge:var(--warn)"><div class="main"><p class="title">' + esc(({ jornadas: 'Jornada', viajes: 'Viaje', pagos: 'Pago', ausencias: 'Incidencia' })[item.collection] || 'Registro') + ' · dos versiones</p><p class="sub"><b>Versión aplicada:</b> ' + esc(conflictItemLabel(item.collection, item.chosen)) + '<br><b>Versión alternativa:</b> ' + esc(conflictItemLabel(item.collection, item.alternate)) + '</p></div><div class="row-actions"><button class="btn ghost sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="keep">Conservar aplicada</button><button class="btn primary sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="restore">Restaurar alternativa</button></div></div>').join('');
   }
 
+  function applyBrandColor(value) {
+    const theme = themeTools.resolveColor(value);
+    const root = document.documentElement.style;
+    root.setProperty('--brand', theme.color);
+    root.setProperty('--brand-rgb', theme.rgb.join(', '));
+    root.setProperty('--brand-contrast', theme.contrast);
+    return theme;
+  }
+
   function applyBranding() {
     const name = 'Control Laboral';
-    const color = /^#[0-9a-f]{6}$/i.test(setting('app_color')) ? setting('app_color') : '#a6d94a';
-    document.documentElement.style.setProperty('--brand', color);
+    const color = applyBrandColor(setting('app_color')).color;
     document.title = name;
     $$('.brand-name').forEach((el) => { el.textContent = name; });
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', color);
@@ -1058,10 +1061,7 @@
   function exportJSON() {
     const fileDate = dateKey(new Date());
     const fileTime = pad(new Date().getHours()) + pad(new Date().getMinutes());
-    const backup = JSON.parse(JSON.stringify(data));
-    const backupSetting = backup.ajustes.find((row) => row.clave === 'last_backup');
-    if (backupSetting) backupSetting.valor = fileDate;
-    else backup.ajustes.push({ clave: 'last_backup', valor: fileDate });
+    const backup = backupTools.create(data, fileDate);
     const payload = JSON.stringify(backup, null, 2);
     download(new Blob([payload], { type: 'application/json' }), 'backup_' + fileDate + '_' + fileTime + '.json', function (saved) {
       if (!saved) { toast('No se guardó el backup. Elige una carpeta y confirma Guardar.', 'warn'); return; }
@@ -1099,10 +1099,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(String(reader.result));
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !Array.isArray(parsed.jornadas)) throw new Error('Formato');
-        if (parsed.jornadas.length > 50000) throw new Error('Demasiados');
-        if (hasInvalidDates(parsed)) throw new Error('Fecha');
+        const parsed = backupTools.parse(reader.result, isDateKey);
         confirmAction('Restaurar copia', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
           const previous = data; const previousLoadError = loadError;
           try { try { localStorage.setItem(KEY + '_backup', JSON.stringify(previous)); } catch (err) {} data = normalize(parsed); syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); }
@@ -1111,6 +1108,7 @@
         });
       } catch (err) { toast(err && err.message === 'Fecha' ? 'El backup contiene fechas imposibles; no se cambiaron tus datos.' : 'Backup no válido.', 'error'); }
     };
+    reader.onerror = () => toast('No se pudo leer el archivo de backup.', 'error');
     reader.readAsText(file);
   }
 
@@ -1243,7 +1241,7 @@
     }
   });
 
-  document.addEventListener('input', (event) => { if (['cfg-normal', 'cfg-extra', 'cfg-day', 'cfg-rate-date'].includes(event.target.id)) ratesDirty = true; if (event.target.id === 'jornadas-search') { ui.query = event.target.value; ui.limit = 30; renderJornadas(); } if (event.target.id === 'cfg-color') { const value = event.target.value; document.documentElement.style.setProperty('--brand', value); const hex = $('#cfg-color-hex'); if (hex) hex.value = value; } });
+  document.addEventListener('input', (event) => { if (['cfg-normal', 'cfg-extra', 'cfg-day', 'cfg-rate-date'].includes(event.target.id)) ratesDirty = true; if (event.target.id === 'jornadas-search') { ui.query = event.target.value; ui.limit = 30; renderJornadas(); } if (event.target.id === 'cfg-color') { const value = event.target.value; applyBrandColor(value); const hex = $('#cfg-color-hex'); if (hex) hex.value = value; } });
 
   document.addEventListener('change', (event) => {
     if (event.target.id === 'import-file') { importJSON(event.target.files && event.target.files[0]); event.target.value = ''; }

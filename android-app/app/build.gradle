@@ -10,8 +10,8 @@ android {
         applicationId 'com.ivory37.controllaboral'
         minSdk 24
         targetSdk 34
-        versionCode 12
-        versionName '3.3.3'
+        versionCode 14
+        versionName '3.3.5'
     }
 }
 

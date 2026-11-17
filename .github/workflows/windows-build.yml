@@ -1,4 +1,4 @@
-name: Windows desktop smoke build
+name: Windows installer build
 on:
   push:
     branches: [main, 'improvements/**']
@@ -18,12 +18,12 @@ jobs:
         run: npm ci
       - name: Validate JavaScript
         run: npm run check
-      - name: Package Windows portable
-        run: npm run dist:win:portable -- --publish never
-      - name: Upload portable Windows app
+      - name: Package Windows installer
+        run: npm run dist:win:setup -- --publish never
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: control-laboral-windows-portable
-          path: desktop-dist/*.exe
+          name: control-laboral-windows-setup
+          path: desktop-dist/*Setup*.exe
           if-no-files-found: error
           retention-days: 7

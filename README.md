@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 3.3.3" src="https://img.shields.io/badge/versi%C3%B3n-3.3.3-1f392d?labelColor=0a0f0d">
+  <img alt="Versión 3.3.5" src="https://img.shields.io/badge/versi%C3%B3n-3.3.5-1f392d?labelColor=0a0f0d">
   <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
   <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>
@@ -88,15 +88,15 @@ Abre <http://localhost:8080>. En desarrollo, el service worker y la caché sin c
 
 ### Aplicación de Windows
 
-Se requiere Node.js y npm. Instala las dependencias y genera el instalador o la versión portable:
+Se requiere Node.js y npm. Instala las dependencias, ejecuta las comprobaciones y genera el instalador de Windows:
 
 ```bash
 npm install
+npm run check
 npm run dist:win:setup
-npm run dist:win:portable
 ```
 
-Los artefactos se guardan en `desktop-dist/`. Para iniciar la app durante el desarrollo, usa `npm start`.
+El instalador se guarda en `desktop-dist/`. Para iniciar la app durante el desarrollo, usa `npm start`.
 
 ### Aplicación Android
 

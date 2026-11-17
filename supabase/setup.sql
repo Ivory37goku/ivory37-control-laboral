@@ -6,6 +6,16 @@
 
 begin;
 
+-- Esta función de evento solo debe ejecutarse como disparador, nunca como RPC público.
+-- Puede no existir en instalaciones nuevas; la protección se aplica si ya está instalada.
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated';
+  end if;
+end;
+$$;
+
 -- Control Laboral: conserva el esquema y los datos actuales.
 create table if not exists public.ivory37_sync (
   user_id uuid primary key references auth.users (id) on delete cascade,

@@ -15,6 +15,8 @@ Las tablas tienen políticas Row Level Security independientes y cada cuenta aut
 puede leer o actualizar su propia fila. El esquema inicial de Control Laboral ya estaba
 aplicado, pero la tabla de Gestión Clientes faltaba en el proyecto. Ejecuta ahora el archivo
 completo una vez en **SQL Editor**; se puede volver a ejecutar sin borrar los datos existentes.
+El script también revoca el acceso RPC público a `public.rls_auto_enable()` si existe; el
+disparador de base de datos puede seguir utilizándola al crear tablas.
 
 ## Cuentas de la app
 

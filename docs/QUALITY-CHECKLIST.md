@@ -20,7 +20,7 @@ Incluye validación de sintaxis JavaScript y pruebas de tarifas históricas, cal
 - Comprobar que el calendario y las tarifas funcionan con años bisiestos, cambios de mes y fechas inválidas.
 - Comprobar accesibilidad con teclado, lector de pantalla, zoom y tamaño de fuente aumentado.
 - Generar e instalar la APK de prueba; comprobar WebView, exportación, permisos, notificaciones y recuperación sin internet.
-- Generar y ejecutar Windows portable e instalador; verificar persistencia, exportación y actualización.
+- Generar e instalar el EXE de Windows; verificar persistencia, exportación y actualización.
 - Revisar las reglas RLS y permisos Supabase con cuentas de prueba separadas.
 - Verificar que las versiones y recursos de web, Android y Windows coinciden antes de crear la versión final.
 
