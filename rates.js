@@ -37,8 +37,11 @@
 
   function upsert(history, version, fallback) {
     var rows = normalize(history, validDateKey);
-    if (!rows.length) rows.push({ desde: '1970-01-01', normal: round2(fallback.normal), extra: round2(fallback.extra), jornada: round2(fallback.jornada) });
-    if (!version || !normalize([version], validDateKey).length) return rows.sort(function (a, b) { return a.desde.localeCompare(b.desde); });
+    if (!version || !normalize([version], validDateKey).length) return rows;
+    if (!rows.length) {
+      var initial = normalize([{ desde: '1970-01-01', normal: fallback && fallback.normal, extra: fallback && fallback.extra, jornada: fallback && fallback.jornada }], validDateKey);
+      rows = initial;
+    }
     rows = rows.filter(function (item) { return item.desde !== version.desde; });
     rows.push({ desde: version.desde, normal: round2(version.normal), extra: round2(version.extra), jornada: round2(version.jornada) });
     return rows.sort(function (a, b) { return a.desde.localeCompare(b.desde); });
