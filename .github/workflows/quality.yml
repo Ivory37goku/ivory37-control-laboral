@@ -11,10 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check JavaScript syntax
-        run: |
-          for file in app.js rates.js calendar.js reports.js pwa.js spotlight.js supabase-config.js supabase-sync.js sw.js; do
-            node --check "$file"
-          done
-      - name: Run regression tests
-        run: node --test tests/*.test.cjs
+      - name: Run quality checks
+        run: npm run check
