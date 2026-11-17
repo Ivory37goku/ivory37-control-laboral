@@ -40,10 +40,10 @@
   }
   function scheduleSafeUpdate() {
     if (!waitingWorker) return;
-    if (safeToUpdate()) { waitingWorker.postMessage({ type: 'SKIP_WAITING' }); return; }
+    // No reiniciar la aplicación automáticamente: el usuario decide cuándo actualizar.
     if (updateBanner) updateBanner.classList.add('show');
   }
-  if (updateBtn) { updateBtn.addEventListener('click', function () { if (waitingWorker && safeToUpdate()) waitingWorker.postMessage({ type: 'SKIP_WAITING' }); else if (!waitingWorker) window.location.reload(); }); }
+  if (updateBtn) { updateBtn.addEventListener('click', function () { if (waitingWorker && safeToUpdate()) waitingWorker.postMessage({ type: 'SKIP_WAITING' }); else if (waitingWorker) window.alert('Guarda y cierra los formularios antes de actualizar.'); else window.location.reload(); }); }
   window.setInterval(scheduleSafeUpdate, 8000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') scheduleSafeUpdate(); });
   document.addEventListener('click', function (event) { if (event.target.closest && event.target.closest('.nav button')) setTimeout(scheduleSafeUpdate, 400); });
