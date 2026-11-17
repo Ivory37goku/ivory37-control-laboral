@@ -1,5 +1,12 @@
 # Cambios
 
+## 3.3.3 — Pausas y cálculo neto del fichaje
+
+- Se configura una pausa habitual en minutos y se puede cambiar en cada jornada; las jornadas anteriores conservan sus horas.
+- El cálculo desde el horario, el cierre de fichaje y las jornadas creadas según el horario descuentan la pausa no computable.
+- Los informes PDF y CSV y el detalle de jornadas muestran los minutos de pausa.
+- El cálculo de turnos que cruzan medianoche usa los minutos exactos y evita perder un minuto al cerrar.
+
 ## 3.3.2 — Comparación del pago real de horas extra
 
 - El desglose de horas extra aparece antes de la gráfica de flujo de caja para que se vea con más facilidad en móvil.

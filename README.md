@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 3.3.2" src="https://img.shields.io/badge/versi%C3%B3n-3.3.2-1f392d?labelColor=0a0f0d">
+  <img alt="Versión 3.3.3" src="https://img.shields.io/badge/versi%C3%B3n-3.3.3-1f392d?labelColor=0a0f0d">
   <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
   <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>
@@ -49,7 +49,7 @@ Control Laboral es una aplicación personal para anotar horas trabajadas, revisa
 ## Funciones
 
 - **Dashboard:** horas de la semana, fichaje de hoy, nóminas y comparativa mensual de horas extra confirmadas, valor según tarifa, importe recibido y diferencia.
-- **Jornadas:** fichaje de entrada y salida, registro manual, turnos nocturnos, horas extra, filtros y confirmación de jornadas provisionales.
+- **Jornadas:** fichaje de entrada y salida, registro manual, turnos nocturnos, pausa no computable configurable, horas extra, filtros y confirmación de jornadas provisionales.
 - **Pagos y viajes:** seguimiento de nóminas, dietas y desplazamientos, con estado de pago.
 - **Calendario:** registro de descansos, vacaciones, bajas, festivos y otras incidencias.
 - **Informes:** consulta por fechas, impresión o guardado en PDF y exportación a CSV.

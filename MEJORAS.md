@@ -212,12 +212,12 @@ por defecto sin fichaje es **provisional**.
    informes, la instalación PWA y el efecto visual viven en archivos separados. La app
    sigue funcionando sin un paso de compilación.
 
-## 6. Ideas para una iteración posterior
+## 6. Mejoras pendientes para una iteración posterior
 
-- Pausas y descansos dentro del fichaje, con reglas configurables.
+- Guardar el justificante o una foto de nómina junto al importe recibido, sin sustituir la comprobación manual.
 - Cifrado local o código de acceso para dispositivos compartidos.
 - IndexedDB si crece mucho el histórico o se añaden adjuntos.
-- Más verificaciones de accesibilidad con teclado y lector de pantalla.
+- Verificación sistemática de accesibilidad con teclado y lector de pantalla.
 
 ---
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-<meta name="app-version" content="3.3.2">
+<meta name="app-version" content="3.3.3">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -1719,9 +1719,10 @@ body::before {
                 <label class="field"><span>Hora extra (€/h)</span><input class="input mono" id="cfg-extra" type="text" inputmode="decimal" autocomplete="off"></label>
                 <label class="field"><span>Jornada diaria (h)</span><input class="input mono" id="cfg-day" type="text" inputmode="decimal" autocomplete="off"></label>
                 <label class="field"><span>Horario habitual</span><input class="input mono" id="cfg-schedule" placeholder="08:00-16:00" autocomplete="off"></label>
+                <label class="field"><span>Pausa habitual no computable (min)</span><input class="input mono" id="cfg-break" type="number" min="0" max="1440" step="1" inputmode="numeric"></label>
                 <label class="field"><span>Aplicar estas tarifas desde</span><input class="input" id="cfg-rate-date" type="date"></label>
               </div>
-              <p class="hint" style="margin:2px 0 10px">Las nóminas automáticas pendientes se recalculan con las tarifas de cada fecha. Las nóminas confirmadas y las editadas manualmente se conservan.</p>
+              <p class="hint" style="margin:2px 0 10px">La pausa habitual se aplica a jornadas nuevas y se descuenta al cerrar el fichaje o calcular el horario. Puedes cambiarla en cada jornada; las jornadas antiguas no se modifican.</p>
               <div class="list" id="rate-history-list" aria-label="Histórico de tarifas"></div>
               <label class="switch" style="margin-top:4px">
                 <input type="checkbox" id="cfg-auto-fichaje">
