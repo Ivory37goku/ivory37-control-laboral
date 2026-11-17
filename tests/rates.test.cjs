@@ -59,3 +59,14 @@ test('historical rates reject impossible dates and malformed updates', () => {
   const unchanged = rates.upsert(initial, { desde: '2026-02-30', normal: 100, extra: 100, jornada: 8 }, fallback);
   assert.equal(rates.atDate(unchanged, '2026-12-01', 'normal', fallback), 12);
 });
+
+test('invalid tariff updates do not create phantom default versions', () => {
+  const fallback = { normal: 10, extra: 15, jornada: 8 };
+  const invalid = rates.upsert([], { desde: '2026-02-30', normal: 11, extra: 16, jornada: 8 }, fallback);
+  assert.equal(invalid.length, 0);
+  const missing = rates.upsert([], null, fallback);
+  assert.equal(missing.length, 0);
+  const noFallback = rates.upsert([], { desde: '2026-01-01', normal: 11, extra: 16, jornada: 8 }, {});
+  assert.equal(noFallback.length, 1);
+  assert.equal(noFallback[0].desde, '2026-01-01');
+});
