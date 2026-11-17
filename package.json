@@ -8,7 +8,10 @@
     "start": "electron .",
     "dist:win": "electron-builder --x64",
     "dist:win:setup": "electron-builder --win nsis --x64",
-    "dist:win:portable": "electron-builder --win portable --x64"
+    "dist:win:portable": "electron-builder --win portable --x64",
+    "test": "node --test tests/*.test.cjs",
+    "check:syntax": "node --check app.js && node --check rates.js && node --check calendar.js && node --check reports.js && node --check pwa.js && node --check spotlight.js && node --check supabase-config.js && node --check supabase-sync.js && node --check sw.js",
+    "check": "npm run check:syntax && npm test"
   },
   "devDependencies": {
     "electron": "^45.3.2",
@@ -49,11 +52,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
