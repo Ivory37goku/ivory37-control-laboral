@@ -45,3 +45,17 @@ test('fractional rates are rounded to cents', () => {
   assert.equal(result[0].normal, 12.35);
   assert.equal(result[0].extra, 20.13);
 });
+
+test('historical rates reject impossible dates and malformed updates', () => {
+  const fallback = { normal: 10, extra: 15, jornada: 8 };
+  const invalid = rates.normalize([
+    { desde: '2026-02-30', normal: 10, extra: 15, jornada: 8 },
+    { desde: '2025-02-29', normal: 10, extra: 15, jornada: 8 },
+    { desde: '2024-02-29', normal: 11, extra: 16, jornada: 8 }
+  ], () => true);
+  assert.equal(invalid.length, 1);
+  assert.equal(invalid[0].desde, '2024-02-29');
+  const initial = rates.upsert([], { desde: '2026-01-01', normal: 12, extra: 18, jornada: 8 }, fallback);
+  const unchanged = rates.upsert(initial, { desde: '2026-02-30', normal: 100, extra: 100, jornada: 8 }, fallback);
+  assert.equal(rates.atDate(unchanged, '2026-12-01', 'normal', fallback), 12);
+});
