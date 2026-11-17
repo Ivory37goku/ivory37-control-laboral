@@ -1,8 +1,8 @@
-# 工V龱尺ㄚ㇌7 para Android
+# Control Laboral para Android
 
 Este proyecto abre la app publicada en GitHub Pages dentro de Android System WebView, sin abrir Chrome. La primera actualización conserva el almacenamiento de la APK anterior. La interfaz se actualiza dentro de la app y mantiene una copia local para trabajar sin conexión.
 
-La APK Android es la versión 3.2.3. En el primer inicio puede mostrar «Cargando 工V龱尺ㄚ㇌7…» mientras Android prepara WebView y migra los datos locales; después aparece el panel principal.
+La APK Android es la versión 3.3.1. En el primer inicio aparece la identidad de Control Laboral mientras Android prepara WebView y conserva los datos locales; después se abre el panel principal.
 
 ## Abrir y generar APK
 

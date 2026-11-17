@@ -1,197 +1,135 @@
-# 工V龱尺ㄚ㇌7
+<p align="center">
+  <img src="brand-icon.svg" alt="Logotipo de Control Laboral" width="112">
+</p>
 
-> **Panel personal de jornadas, horas extra, viajes y nóminas.**
-> Una aplicación web de una sola página para saber qué has trabajado, qué te deben y qué
-> has cobrado. Conserva los datos en el dispositivo y puede sincronizarlos con tu cuenta.
-
-👉 **Demo:** https://ivory37goku.github.io/ivory37-control-laboral/
-
-![Versión](https://img.shields.io/badge/version-3.2.3-39ff14)
-![Licencia](https://img.shields.io/badge/license-MIT-green)
-![Dependencias](https://img.shields.io/badge/SDK-Supabase%20incluido-brightgreen)
-
----
-
-## ✨ Características
-
-### 📊 Panel
-
-- Cuatro indicadores: **Cobrado, A cobrar, Horas extra y Valor extras**.
-- **A cobrar** suma nóminas automáticas aún sin confirmar, extras confirmadas sin pagar
-  y viajes pendientes. Las horas provisionales se excluyen hasta confirmarlas.
-- **Flujo de caja (pend.)**: barras mensuales de horas extra con eje, total y aviso de
-  los viajes pendientes.
-- Desglose de lo pendiente y saludo personalizado.
-
-### ⏱️ Fichaje y jornadas
-
-- Entrada/salida con cálculo real de horas, incluidos turnos nocturnos.
-- **Fichaje automático** por horario, botón «Según horario» y «Completar mes».
-- Edición, borrado, filtros, búsqueda, paginación y confirmación masiva.
-- Horas extra por jornada con control de pago independiente.
-
-### 💰 Nóminas y pagos
-
-- Nóminas mensuales automáticas, confirmación y edición.
-- Viajes y dietas con estado cobrado/pendiente.
-- Informe imprimible (**Guardar como PDF** del navegador) con logo y cabecera de perfil.
-
-### 🎨 Personalización y datos
-
-- **Perfil**: nombre, rol y foto o logo en la barra lateral y en móvil.
-- **Logo de la app** con fondo claro/oscuro y adaptación a logos apaisados; favicon
-  dinámico.
-- Backup JSON con selector nativo en Android, copia interna diaria y aviso de la última
-  copia exportada; exportación CSV segura frente a fórmulas.
-- Guardado local y sincronización entre pestañas.
-- Sincronización opcional entre PWA, APK y EXE con la misma cuenta IVORY37.
-- **PWA instalable y offline** en GitHub Pages: manifest, iconos válidos, actualización
-  automática y copia en caché de la aplicación.
-
-## 📸 Capturas
+<h1 align="center">Control Laboral</h1>
 
 <p align="center">
-  <img src="docs/dashboard.jpg" alt="Panel principal de IVORY37" width="100%">
+  Registra jornadas, consulta horas y controla lo que tienes pendiente de cobrar.
 </p>
-<p align="center"><em>Panel principal · datos de ejemplo</em></p>
 
 <p align="center">
-  <img src="docs/jornadas.jpg" alt="Registro de jornadas" width="49%">
-  <img src="docs/ajustes.jpg" alt="Ajustes, perfil y logo" width="49%">
+  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir la aplicación</strong></a>
+  ·
+  <a href="android-app/README.md">Compilar para Android</a>
 </p>
-<p align="center"><em>Jornadas y ajustes</em></p>
 
 <p align="center">
-  <img src="docs/mobile.jpg" alt="Vista móvil del panel" width="320">
+  <img alt="Versión 3.3.1" src="https://img.shields.io/badge/versi%C3%B3n-3.3.1-1f392d?labelColor=0a0f0d">
+  <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
+  <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>
-<p align="center"><em>Vista móvil</em></p>
 
-<p align="center"><img src="docs/nube.jpg" alt="Ajustes y sincronización en la nube" width="80%"></p>
-<p align="center"><em>Cuenta y sincronización entre dispositivos</em></p>
+Control Laboral es una aplicación personal para anotar horas trabajadas, revisar nóminas y organizar viajes y ausencias. Funciona como web instalable, aplicación Android y aplicación de escritorio para Windows, con una interfaz adaptada a móvil y ordenador.
 
-<p align="center"><em>Datos de ejemplo. Solo se sincronizan con Supabase si inicias sesión.</em></p>
+## Capturas
 
----
+<p align="center">
+  <img src="docs/dashboard.jpg" alt="Dashboard de Control Laboral con resumen de jornadas, horas y cobros" width="100%">
+</p>
+<p align="center"><em>Panel de control · resumen de actividad y cantidades pendientes</em></p>
 
-## 🛠️ Tecnologías
+<p align="center">
+  <img src="docs/mobile.jpg" alt="Control Laboral en una pantalla de móvil" width="300">
+</p>
+<p align="center"><em>La misma identidad visual, adaptada al móvil</em></p>
 
-- **HTML5 + JavaScript vanilla**, sin frameworks ni build.
-- **CSS propio**, iconos SVG inline y gráficas SVG/CSS.
-- SDK de Supabase incluido localmente; la app no carga librerías desde CDN.
-- Informe mediante la impresión del navegador (sin jsPDF).
-- **localStorage** para el guardado inmediato. Al iniciar sesión, Supabase sincroniza los
-  datos de la cuenta; el service worker guarda la interfaz para abrirla sin conexión.
+<p align="center">
+  <img src="docs/jornadas.jpg" alt="Registro de jornadas en Control Laboral" width="100%">
+</p>
+<p align="center"><em>Registro de jornadas, horas extra e incidencias</em></p>
 
----
+<p align="center">
+  <img src="docs/ajustes.jpg" alt="Ajustes de perfil, identidad visual, jornada y sincronización" width="100%">
+</p>
+<p align="center"><em>Perfil, marca, tarifas, copias y sincronización</em></p>
 
-## 🚀 Cómo empezar
+> Las capturas usan datos de demostración ficticios. No contienen información de una cuenta real.
 
-### PWA en GitHub Pages
+## Funciones
 
-Abre https://ivory37goku.github.io/ivory37-control-laboral/ desde Chrome/Edge en Android
-(o Safari en iPhone/iPad). En Android usa el botón **Instalar app** o el menú del navegador;
-en iOS usa **Compartir → Añadir a pantalla de inicio**. La app se puede abrir sin conexión
-tras su primera carga.
+- **Dashboard:** horas de la semana, fichaje de hoy, nóminas y comparativa mensual de horas extra confirmadas, su valor según tarifa y su estado de pago.
+- **Jornadas:** fichaje de entrada y salida, registro manual, turnos nocturnos, horas extra, filtros y confirmación de jornadas provisionales.
+- **Pagos y viajes:** seguimiento de nóminas, dietas y desplazamientos, con estado de pago.
+- **Calendario:** registro de descansos, vacaciones, bajas, festivos y otras incidencias.
+- **Informes:** consulta por fechas, impresión o guardado en PDF y exportación a CSV.
+- **Copias y datos:** backup JSON, restauración, copia local automática y sincronización opcional entre dispositivos.
+- **Personalización:** perfil, foto y logotipo propios, además de la identidad visual de Control Laboral.
+- **PWA:** aplicación instalable, caché para uso sin conexión y actualización automática tras la primera carga.
 
-GitHub Pages ya sirve el repositorio; al publicar los cambios en `main`, sus archivos de
-raíz (`index.html`, `manifest.json`, `sw.js` e iconos) se actualizan allí automáticamente.
-La PWA instalada recibe los cambios en la misma app cuando no hay un formulario abierto.
+## Formas de uso
 
-### APK para Android
+| Plataforma | Cómo abrirla |
+| --- | --- |
+| Web y PWA | [Abrir Control Laboral](https://ivory37goku.github.io/ivory37-control-laboral/). En Android usa **Instalar app**; en iPhone o iPad, **Compartir → Añadir a pantalla de inicio**. |
+| Android | Proyecto Android Studio en [`android-app/`](android-app/). Usa WebView y conserva los datos locales. Consulta la [guía de compilación](android-app/README.md). |
+| Windows | Aplicación de escritorio basada en Electron. Para generar los instaladores, sigue los comandos de la sección [Desarrollo](#desarrollo). |
+| Desarrollo local | Sirve la carpeta por HTTP siguiendo las instrucciones de abajo. |
 
-El proyecto Android está en [`android-app/`](android-app/). La APK 3.2.3 abre la versión
-publicada dentro de Android WebView, conserva una copia local y migra los datos existentes al
-primer inicio. Después de instalar esta versión inicial, los cambios publicados llegan a la
-misma app sin reinstalar la APK. En Android Studio abre esa carpeta y compila **Build → Build
-Bundle(s) / APK(s) → Build APK(s)**; los pasos completos están en `android-app/README.md`.
+## Primeros pasos
 
-### App de Windows
+1. Abre la app y entra en **Ajustes → Mi perfil** para indicar tu nombre y, si quieres, una foto o un logo.
+2. Revisa **Ajustes → Tarifas y jornada** y configura el precio por hora y tu horario habitual.
+3. Registra una jornada con **Nueva jornada** o usa los botones de fichaje.
+4. Confirma las jornadas provisionales para incluirlas en los importes correspondientes.
+5. Descarga un backup desde **Ajustes → Datos y copias**. Para sincronizar la PWA, APK y EXE, inicia sesión con la misma cuenta en cada instalación.
 
-El EXE 3.2.3 conserva los datos de la versión local y abre el mismo HTML de GitHub Pages.
-Después de instalar esta versión inicial, la app se actualiza automáticamente y mantiene una
-copia para trabajar sin conexión.
+## Desarrollo
 
-### Uso directo
+### Ejecutar la versión web
 
-Abre `index.html` para usarla en el ordenador. La instalación PWA y el modo offline del
-service worker requieren la dirección HTTPS de GitHub Pages (o un servidor local).
-
-Para probarla por HTTP local:
+No se necesita compilar la versión web. Desde la raíz del repositorio, inicia un servidor local:
 
 ```bash
-python3 -m http.server 8080
-# http://localhost:8080
+python -m http.server 8080
 ```
 
-### Clonar
+Abre <http://localhost:8080>. En desarrollo, el service worker y la caché sin conexión funcionan en `localhost`; la versión publicada usa HTTPS en GitHub Pages.
+
+### Aplicación de Windows
+
+Se requiere Node.js y npm. Instala las dependencias y genera el instalador o la versión portable:
 
 ```bash
-git clone https://github.com/Ivory37goku/ivory37-control-laboral.git
-cd ivory37-control-laboral
+npm install
+npm run dist:win:setup
+npm run dist:win:portable
 ```
 
-> La antigua demo `/ki-control/` corresponde a una **versión anterior**. La versión
-> actual está en https://ivory37goku.github.io/ivory37-control-laboral/ y en este
-> repositorio (`index.html`).
+Los artefactos se guardan en `desktop-dist/`. Para iniciar la app durante el desarrollo, usa `npm start`.
 
-### Primeros pasos
+### Aplicación Android
 
-1. Abre **Ajustes → Mi perfil** y pon tu nombre.
-2. Revisa **Tarifas y jornada** (precio/hora, jornada diaria y horario).
-3. Para compartir datos entre instalaciones, crea una cuenta en **Ajustes → Nube** y usa
-   la misma cuenta en la PWA, APK y EXE. Confirma el correo si Supabase te lo solicita.
-4. Si vienes de la versión anterior, entra en **Ajustes → Restaurar** e importa tu
-   backup JSON. Se migran el logo y el nombre antiguos.
+Abre `android-app/` en Android Studio, sincroniza Gradle y genera la APK desde **Build → Build Bundle(s) / APK(s) → Build APK(s)**. Los requisitos y la alternativa de línea de comandos están en [`android-app/README.md`](android-app/README.md).
 
----
+## Datos y privacidad
 
-## 🔒 Privacidad
+Los cambios se guardan primero en el dispositivo. Si inicias sesión en **Ajustes → Nube**, los datos de jornadas, viajes, pagos y ajustes también se sincronizan con Supabase para compartirlos entre instalaciones. El inicio de sesión y la sincronización requieren conexión; la interfaz puede seguir funcionando sin conexión después de cargar la app.
 
-La app guarda cada cambio primero en el almacenamiento local. Si inicias sesión en
-**Ajustes → Nube**, también envía jornadas, viajes, pagos y ajustes a Supabase para
-sincronizarlos entre dispositivos. Las políticas RLS de la tabla limitan cada cuenta a sus
-propios datos. El inicio de sesión y la sincronización requieren internet; el resto de la app
-puede seguir funcionando sin conexión.
+Sin una cuenta, los datos permanecen en el dispositivo. Descarga backups JSON con regularidad: borrar el almacenamiento del navegador o reinstalar una aplicación puede eliminar la copia local.
 
-> **Aviso:** mantén una copia JSON periódica. Si no has iniciado sesión, borrar los datos
-> del sitio o reinstalar una aplicación puede eliminar la única copia de ese dispositivo.
+## Tecnologías
 
----
+- HTML, CSS y JavaScript sin framework para la interfaz.
+- PWA con manifest y service worker.
+- Supabase opcional para autenticación y sincronización; SDK incluido en `vendor/`.
+- Electron para Windows y Android WebView para la APK.
 
-## 📁 Estructura
+## Estructura del proyecto
 
-```
-index.html     Aplicación web (HTML + CSS + JS)
-supabase/      Esquema de base de datos y políticas de acceso
-vendor/        SDK de Supabase incluido localmente y su licencia
-android-app/   Proyecto Android WebView y guía para compilar APK
-docs/          Capturas para el README
-README.md      Este archivo
-CHANGELOG.md   Historial de versiones
-MEJORAS.md     Revisión técnica y siguientes pasos
-LICENSE        Licencia MIT
+```text
+index.html         Interfaz, diseño y componentes de la app
+app.js             Lógica de jornadas, dashboard, pagos y ajustes
+rates.js           Tarifas históricas
+calendar.js        Calendario de ausencias e incidencias
+reports.js         Informes y exportación CSV
+pwa.js, sw.js      Instalación, caché y actualizaciones PWA
+supabase/          Esquema y políticas de la base de datos
+android-app/       Proyecto Android y guía de compilación
+desktop/           Aplicación Electron para Windows
+docs/              Capturas de la documentación
 ```
 
----
+## Licencia
 
-## 🤝 Contribuir
-
-1. Haz un fork del proyecto.
-2. Crea una rama: `git checkout -b feature/mi-mejora`.
-3. Commit: `git commit -m 'Añade mi mejora'`.
-4. Push: `git push origin feature/mi-mejora`.
-5. Abre un Pull Request.
-
----
-
-## 📄 Licencia
-
-Distribuido bajo la licencia **MIT**. Consulta [LICENSE](LICENSE).
-
----
-
-## 👨‍💻 Autor
-
-**工V龱尺ㄚ㇌7**
-
-> «El control laboral no debería ser complicado. Debería ser elegante.»
+Este proyecto se distribuye bajo la licencia [MIT](LICENSE).

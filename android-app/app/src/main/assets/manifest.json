@@ -1,12 +1,12 @@
 {
-  "name": "工V龱尺ㄚ㇌7",
-  "short_name": "工V龱尺ㄚ㇌7",
+  "name": "Control Laboral",
+  "short_name": "Control Laboral",
   "description": "Control de jornadas, horas extra, viajes y nóminas.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#39ff14",
+  "background_color": "#0a0f0d",
+  "theme_color": "#a6d94a",
   "lang": "es",
   "icons": [
     {

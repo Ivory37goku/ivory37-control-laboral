@@ -1,5 +1,21 @@
 # Cambios
 
+## 3.3.1 — Referencia mensual de horas extra
+
+- El flujo de caja muestra las horas extra confirmadas por mes y el valor calculado con la tarifa guardada para cada jornada.
+- El desglose separa las horas marcadas como pagadas de las pendientes, para facilitar la comparación con el importe recibido.
+- La gráfica conserva el total de dinero pendiente y también incluye los meses con extras ya pagadas.
+
+## 3.3.0 — Tarifas históricas e informes por periodo
+
+- Las tarifas normal, extra y la jornada diaria se pueden programar desde una fecha; los cálculos usan la tarifa vigente en cada jornada.
+- Los cambios retroactivos piden confirmación. Las nóminas confirmadas o editadas manualmente se mantienen.
+- Calendario con descansos, vacaciones, bajas, festivos y otras incidencias por fecha o periodo de hasta un año.
+- Las incidencias excluyen días de estimaciones y de «Completar mes», sin modificar jornadas ya registradas.
+- Informes PDF y CSV con selector de fechas, detalle de jornadas, tarifas aplicadas, incidencias, viajes y pagos.
+- Los conflictos de edición entre dispositivos conservan la versión aplicada y la alternativa; se pueden revisar, restaurar o descartar.
+- Separados los scripts de aplicación, PWA, tarifas, calendario, informes y efectos visuales.
+
 ## 3.2.3 — Nombre y logo oficiales
 
 - Se aplica 工V龱尺ㄚ㇌7 como nombre de la PWA, APK, EXE, ventana y accesos directos.

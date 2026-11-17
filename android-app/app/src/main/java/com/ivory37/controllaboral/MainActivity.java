@@ -29,6 +29,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -70,10 +71,10 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Window window = getWindow();
-        window.setStatusBarColor(Color.rgb(7, 13, 24));
-        window.setNavigationBarColor(Color.rgb(7, 13, 24));
+        window.setStatusBarColor(Color.rgb(10, 15, 13));
+        window.setNavigationBarColor(Color.rgb(10, 15, 13));
 
-        int background = Color.rgb(7, 13, 24);
+        int background = Color.rgb(10, 15, 13);
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(background);
 
@@ -89,20 +90,39 @@ public final class MainActivity extends Activity {
         loading.setOrientation(LinearLayout.VERTICAL);
         loading.setGravity(Gravity.CENTER);
         loading.setBackgroundColor(background);
-        ProgressBar progress = new ProgressBar(this);
-        int spinnerSize = Math.round(48 * getResources().getDisplayMetrics().density);
-        loading.addView(progress, new LinearLayout.LayoutParams(spinnerSize, spinnerSize));
-        TextView loadingText = new TextView(this);
-        loadingText.setText("Cargando 工V龱尺ㄚ㇌7…");
-        loadingText.setTextColor(Color.WHITE);
-        loadingText.setTextSize(18);
-        loadingText.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.mipmap.ic_launcher);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int logoSize = Math.round(92 * getResources().getDisplayMetrics().density);
+        loading.addView(logo, new LinearLayout.LayoutParams(logoSize, logoSize));
+        TextView loadingTitle = new TextView(this);
+        loadingTitle.setText("Control Laboral");
+        loadingTitle.setTextColor(Color.rgb(245, 241, 230));
+        loadingTitle.setTextSize(25);
+        loadingTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        loadingTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        textParams.topMargin = Math.round(20 * getResources().getDisplayMetrics().density);
-        loading.addView(loadingText, textParams);
+        titleParams.topMargin = Math.round(18 * getResources().getDisplayMetrics().density);
+        loading.addView(loadingTitle, titleParams);
+        TextView loadingSubtitle = new TextView(this);
+        loadingSubtitle.setText("JORNADAS · NÓMINAS");
+        loadingSubtitle.setTextColor(Color.rgb(165, 175, 154));
+        loadingSubtitle.setTextSize(11);
+        loadingSubtitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        subtitleParams.topMargin = Math.round(5 * getResources().getDisplayMetrics().density);
+        loading.addView(loadingSubtitle, subtitleParams);
+        ProgressBar progress = new ProgressBar(this);
+        int spinnerSize = Math.round(38 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(spinnerSize, spinnerSize);
+        progressParams.topMargin = Math.round(28 * getResources().getDisplayMetrics().density);
+        loading.addView(progress, progressParams);
         root.addView(loading, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -250,9 +270,9 @@ public final class MainActivity extends Activity {
         if (showingLocalFailure) return;
         showingLocalFailure = true;
         String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
-                + "<body style='margin:0;background:#070d18;color:#f4f7fb;font:16px sans-serif;padding:32px'><h1>No se pudo abrir 工V龱尺ㄚ㇌7</h1>"
+                + "<body style='margin:0;background:#0a0f0d;color:#f5f1e6;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control Laboral</h1>"
                 + "<p>No se pudo cargar la app publicada ni los archivos locales. Tus datos guardados se conservan.</p>"
-                + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#39ff14;font-weight:bold'>Reintentar</button></body></html>";
+                + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#a6d94a;color:#14200e;font-weight:bold'>Reintentar</button></body></html>";
         view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
     }
 
@@ -462,7 +482,7 @@ public final class MainActivity extends Activity {
                 } else if (notificationsEnabled()) {
                     Toast.makeText(MainActivity.this, "Recordatorios activados.", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(MainActivity.this, "Activa las notificaciones de 工V龱尺ㄚ㇌7 en Ajustes de Android.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Activa las notificaciones de Control Laboral en Ajustes de Android.", Toast.LENGTH_LONG).show();
                 }
                 refreshNotificationLabel();
             });
@@ -526,8 +546,8 @@ public final class MainActivity extends Activity {
                 android.print.PrintManager printManager = (android.print.PrintManager) getSystemService(Context.PRINT_SERVICE);
                 if (printManager == null) return;
                 printManager.print(
-                        "工V龱尺ㄚ㇌7",
-                        webView.createPrintDocumentAdapter("工V龱尺ㄚ㇌7"),
+                        "Control Laboral",
+                        webView.createPrintDocumentAdapter("Control Laboral"),
                         new android.print.PrintAttributes.Builder().build()
                 );
             });

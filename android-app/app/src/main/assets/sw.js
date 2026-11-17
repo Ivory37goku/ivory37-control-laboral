@@ -2,10 +2,16 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.2.3';
+const CACHE_NAME = CACHE_PREFIX + 'v3.3.1-overtime';
 const ASSETS = [
   './',
   './index.html',
+  './app.js',
+  './rates.js',
+  './calendar.js',
+  './reports.js',
+  './pwa.js',
+  './spotlight.js',
   './supabase-config.js',
   './supabase-sync.js',
   './vendor/supabase.js',
@@ -13,6 +19,7 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
+  './brand-icon.svg',
   './assets/ivory37-logo.jpg'
 ];
 
@@ -69,7 +76,7 @@ self.addEventListener('message', (event) => {
     return;
   }
   if (data.type === 'SHOW_NOTIFICATION' && self.registration.showNotification) {
-    const title = String(data.title || '工V龱尺ㄚ㇌7');
+    const title = String(data.title || 'Control Laboral');
     const body = String(data.body || 'Tienes un recordatorio.');
     event.waitUntil(self.registration.showNotification(title, {
       body,

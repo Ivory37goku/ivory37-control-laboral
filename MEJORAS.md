@@ -1,8 +1,8 @@
 # Revisión y mejora — Control laboral (IVORY37)
 
-He reescrito la app en un único `index.html` **sin dependencias externas** y con el mismo
-esquema de datos y la misma clave de `localStorage` (`ivory37_data_v1`), para que tus
-registros actuales se sigan leyendo.
+La app conserva su esquema de datos y la clave estable de `localStorage` para leer los
+registros existentes. Desde la versión 3.3.0, el HTML mantiene la interfaz y los estilos,
+mientras que la lógica se reparte en archivos JavaScript pequeños y sin dependencias externas.
 
 Si al abrir el archivo nuevo no aparecen tus datos (según el navegador, `file://` puede
 tener un almacenamiento distinto), entra en **Ajustes → Restaurar** e importa el backup
@@ -195,25 +195,36 @@ por defecto sin fichaje es **provisional**.
 
 ---
 
-## 5. Siguientes pasos recomendados
+## 5. Mejoras de la versión 3.3.0
 
-1. **Separar el código**: `app.js`, `calc.js`, `ui.js`, `storage.js`. Hoy el archivo es
-   cómodo de distribuir, pero 1.900 líneas en un solo HTML no escala.
-2. **Tests de cálculo** (horas, nóminas, estimación, cambio de tarifa) con Vitest.
-3. **Vacaciones, bajas y festivos**: hoy la estimación rellena cualquier día laborable; un
-   calendario de ausencias lo haría correcto.
-4. **Pausas / descansos** en el fichaje (comida) y redondeo configurable.
-5. **Cifrado local** o passcode si el dispositivo es compartido.
-6. **Informe PDF por mes elegible** (hoy imprime el mes en curso).
-7. **Histórico de tarifas** por fecha, para que cambiar el precio/hora no altere meses
-   anteriores.
-8. **IndexedDB** si prevés muchos años de datos o adjuntos.
-9. **Accesibilidad**: probar con teclado y lector de pantalla; añadir `aria-describedby`
-   en los formularios.
+1. **Tarifas por fecha**: las jornadas se valoran con la tarifa histórica que les corresponde.
+   Los cambios retroactivos recalculan nóminas automáticas pendientes; las nóminas
+   confirmadas y editadas manualmente quedan intactas.
+2. **Calendario laboral**: descansos, vacaciones, bajas, festivos y otras incidencias se
+   anotan en rangos. Se excluyen de las estimaciones y de «Completar mes», sin inventar
+   jornadas ni asumir reglas de pago.
+3. **Informes por periodo**: PDF y CSV aceptan fecha inicial y final, e incluyen detalle de
+   jornadas y tarifas, incidencias, viajes y pagos.
+4. **Revisión de sincronización**: si se detectan dos versiones distintas de un mismo
+   registro, la nube conserva la versión aplicada y el borrador alternativo para que el
+   usuario elija cuál mantener.
+5. **Separación del código**: la interfaz, las reglas de tarifas, el calendario, los
+   informes, la instalación PWA y el efecto visual viven en archivos separados. La app
+   sigue funcionando sin un paso de compilación.
+
+## 6. Ideas para una iteración posterior
+
+- Pausas y descansos dentro del fichaje, con reglas configurables.
+- Cifrado local o código de acceso para dispositivos compartidos.
+- IndexedDB si crece mucho el histórico o se añaden adjuntos.
+- Más verificaciones de accesibilidad con teclado y lector de pantalla.
 
 ---
 
-## 6. Verificación realizada
+## 7. Verificación de la revisión anterior
+
+Los siguientes resultados pertenecen a la revisión 2.x; no se han vuelto a ejecutar para
+la versión 3.3.0.
 
 - Sintaxis del script validada con `node --check`.
 - Flujos probados con jsdom: alta/edición/borrado de jornada, fichaje, viaje y cobro,

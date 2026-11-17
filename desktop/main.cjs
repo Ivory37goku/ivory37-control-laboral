@@ -5,7 +5,7 @@ const { fileURLToPath, pathToFileURL } = require('node:url');
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 
 const APP_ID = 'com.ivory37.controllaboral.desktop';
-const APP_NAME = '工V龱尺ㄚ㇌7';
+const APP_NAME = 'Control Laboral';
 const APP_DATA_DIR = 'IVORY37 Control Laboral';
 const HOSTED_HOST = 'ivory37goku.github.io';
 const HOSTED_PREFIX = '/ivory37-control-laboral/';

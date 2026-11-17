@@ -5,6 +5,7 @@
   var LOCAL_KEY = '工V龱尺ㄚ㇌7_data_v1';
   var META_KEY = 'ivory37_cloud_sync_meta_v1';
   var SNAPSHOT_KEY = 'ivory37_cloud_sync_snapshot_v1';
+  var CONFLICT_KEY = 'ivory37_cloud_sync_conflicts_v1';
   var config = window.IVORY37_SUPABASE_CONFIG || {};
   var client = null;
   var initialized = false;
@@ -64,13 +65,17 @@
 
   function normalizeData(input) {
     var obj = input && typeof input === 'object' ? input : {};
-    var arrays = ['jornadas', 'viajes', 'pagos'];
+    var arrays = ['jornadas', 'viajes', 'pagos', 'ausencias'];
     var out = {};
     arrays.forEach(function (key) { out[key] = Array.isArray(obj[key]) ? obj[key].filter(function (row) { return row && row.id != null; }) : []; });
+    var calendarByDate = new Map();
+    out.ausencias.slice().sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); }).forEach(function (row) { if (row.fecha) calendarByDate.set(String(row.fecha), row); });
+    out.ausencias = Array.from(calendarByDate.values());
     out.ajustes = Array.isArray(obj.ajustes) ? obj.ajustes.filter(function (row) { return row && typeof row.clave === 'string'; }) : [];
     out.jornadas.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
     out.viajes.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
     out.pagos.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
+    out.ausencias.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
     out.ajustes.sort(function (a, b) { return a.clave.localeCompare(b.clave); });
     return out;
   }
@@ -87,8 +92,83 @@
     return stable;
   }
 
+  function cleanConflicts(value) {
+    if (!Array.isArray(value)) return [];
+    var allowed = ['jornadas', 'viajes', 'pagos', 'ausencias'];
+    var byId = new Map();
+    value.slice(-100).forEach(function (item) {
+      if (!item || !allowed.includes(item.collection) || !item.id || !item.alternate || !item.chosen) return;
+      var safe = {
+        id: String(item.id).slice(0, 500), collection: item.collection,
+        itemId: String(item.itemId == null ? '' : item.itemId).slice(0, 160),
+        createdAt: Math.max(0, Number(item.createdAt) || 0), winner: item.winner === 'remote' ? 'remote' : 'local',
+        chosen: item.chosen, alternate: item.alternate, resolved: item.resolved === true,
+        resolution: item.resolution === 'restored' ? 'restored' : item.resolution === 'kept' ? 'kept' : ''
+      };
+      byId.set(safe.id, safe);
+    });
+    return Array.from(byId.values()).slice(-100);
+  }
+
+  function conflictSignature(value) {
+    return JSON.stringify(cleanConflicts(value).map(function (item) { return { id: item.id, resolved: item.resolved, resolution: item.resolution }; }));
+  }
+
+  function mergeConflictLogs() {
+    var merged = new Map();
+    Array.prototype.slice.call(arguments).forEach(function (list) {
+      cleanConflicts(list).forEach(function (item) {
+        var old = merged.get(item.id);
+        if (!old || (!old.resolved && (item.resolved || item.createdAt > old.createdAt))) merged.set(item.id, item);
+      });
+    });
+    return Array.from(merged.values()).sort(function (a, b) { return a.createdAt - b.createdAt; }).slice(-100);
+  }
+
+  function smallHash(value) {
+    var text = JSON.stringify(value); var hash = 2166136261;
+    for (var i = 0; i < text.length; i++) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+    return (hash >>> 0).toString(36);
+  }
+
+  function collectConflicts(local, remote, localMeta, remoteMeta, baseInput) {
+    var base = normalizeData(baseInput || {});
+    var found = [];
+    ['jornadas', 'viajes', 'pagos', 'ausencias'].forEach(function (collection) {
+      var left = itemMap(local, collection); var right = itemMap(remote, collection); var baseRows = itemMap(base, collection);
+      left.forEach(function (localItem, id) {
+        var remoteItem = right.get(id);
+        if (!remoteItem || JSON.stringify(localItem) === JSON.stringify(remoteItem)) return;
+        var baseItem = baseRows.get(id);
+        var localChanged = !baseItem || JSON.stringify(localItem) !== JSON.stringify(baseItem);
+        var remoteChanged = !baseItem || JSON.stringify(remoteItem) !== JSON.stringify(baseItem);
+        if (!localChanged || !remoteChanged) return;
+        var key = syncKey(collection, id);
+        var localRevision = Number(localMeta.modified[key] || 0);
+        var remoteRevision = Number(remoteMeta.modified[key] || 0);
+        var winner = localRevision >= remoteRevision ? 'local' : 'remote';
+        var chosen = winner === 'local' ? localItem : remoteItem;
+        var alternate = winner === 'local' ? remoteItem : localItem;
+        found.push({
+          id: key + ':' + localRevision + ':' + remoteRevision + ':' + smallHash(localItem) + ':' + smallHash(remoteItem),
+          collection: collection, itemId: id, createdAt: Date.now(), winner: winner,
+          chosen: clone(chosen), alternate: clone(alternate), resolved: false, resolution: ''
+        });
+      });
+    });
+    return found;
+  }
+
+  function conflictAlreadyKnown(candidate, list) {
+    return list.some(function (item) {
+      if (item.collection !== candidate.collection || item.itemId !== candidate.itemId) return false;
+      return (JSON.stringify(item.chosen) === JSON.stringify(candidate.chosen) && JSON.stringify(item.alternate) === JSON.stringify(candidate.alternate))
+        || (JSON.stringify(item.chosen) === JSON.stringify(candidate.alternate) && JSON.stringify(item.alternate) === JSON.stringify(candidate.chosen));
+    });
+  }
+
   function payloadSignature(payload) {
-    return JSON.stringify({ data: normalizeData(payload), meta: stableMeta(payload && payload._ivory37_sync) });
+    return JSON.stringify({ data: normalizeData(payload), meta: stableMeta(payload && payload._ivory37_sync), conflicts: conflictSignature(payload && payload._ivory37_conflicts) });
   }
 
   function cleanMeta(value) {
@@ -112,7 +192,7 @@
   function itemMap(data, collection) {
     var map = new Map();
     (data[collection] || []).forEach(function (item) {
-      var id = collection === 'ajustes' ? item.clave : item.id;
+      var id = collection === 'ajustes' ? item.clave : collection === 'ausencias' ? item.fecha : item.id;
       if (id != null) map.set(String(id), item);
     });
     return map;
@@ -126,7 +206,7 @@
       return;
     }
     var now = Date.now();
-    ['jornadas', 'viajes', 'pagos', 'ajustes'].forEach(function (collection) {
+    ['jornadas', 'viajes', 'pagos', 'ausencias', 'ajustes'].forEach(function (collection) {
       var before = itemMap(snapshot, collection);
       var after = itemMap(current, collection);
       var ids = new Set(Array.from(before.keys()).concat(Array.from(after.keys())));
@@ -161,12 +241,12 @@
     return result;
   }
 
-  function mergeData(localInput, remoteInput, localMeta, remoteMeta) {
+  function mergeData(localInput, remoteInput, localMeta, remoteMeta, baseInput) {
     var local = normalizeData(localInput);
     var remote = normalizeData(remoteInput);
     var combinedMeta = maxMaps(localMeta, remoteMeta);
-    var merged = { jornadas: [], viajes: [], pagos: [], ajustes: [] };
-    ['jornadas', 'viajes', 'pagos', 'ajustes'].forEach(function (collection) {
+    var merged = { jornadas: [], viajes: [], pagos: [], ausencias: [], ajustes: [] };
+    ['jornadas', 'viajes', 'pagos', 'ausencias', 'ajustes'].forEach(function (collection) {
       var localRows = itemMap(local, collection);
       var remoteRows = itemMap(remote, collection);
       var ids = new Set(Array.from(localRows.keys()).concat(Array.from(remoteRows.keys())));
@@ -187,14 +267,23 @@
         if (selected && deletedAt <= selectedAt) merged[collection].push(selected);
       });
     });
-    return { data: normalizeData(merged), meta: combinedMeta };
+    return { data: normalizeData(merged), meta: combinedMeta, conflicts: collectConflicts(local, remote, localMeta, remoteMeta, baseInput) };
   }
 
-  function payloadFor(data, syncMeta) {
+  function payloadFor(data, syncMeta, conflictLog) {
     var payload = normalizeData(data);
     payload._ivory37_sync = cleanMeta(syncMeta);
+    payload._ivory37_conflicts = cleanConflicts(conflictLog);
     return payload;
   }
+
+  function saveConflicts(list) {
+    var safe = cleanConflicts(list);
+    writeJson(CONFLICT_KEY, safe);
+    window.dispatchEvent(new CustomEvent('ivory37:sync-conflicts', { detail: clone(safe) }));
+  }
+
+  function conflictLogFrom(payload) { return cleanConflicts(payload && payload._ivory37_conflicts); }
 
   function applyMerged(result) {
     var current = normalizeData(readJson(LOCAL_KEY, {}));
@@ -268,27 +357,37 @@
       return;
     }
 
+    var sharedBase = snapshot ? normalizeData(snapshot) : normalizeData(readJson(LOCAL_KEY, {}));
+    var attemptConflicts = [];
     for (var attempt = 0; attempt < 5; attempt++) {
       var local = normalizeData(readJson(LOCAL_KEY, {}));
       trackLocalChanges(local);
       var row = await fetchRemote(user.id);
       var remotePayload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
       var remoteMeta = extractMeta(remotePayload);
-      var merged = mergeData(local, remotePayload, meta, remoteMeta);
-      var mergedPayload = payloadFor(merged.data, merged.meta);
+      var merged = mergeData(local, remotePayload, meta, remoteMeta, sharedBase);
+      var existingConflicts = mergeConflictLogs(readJson(CONFLICT_KEY, []), conflictLogFrom(remotePayload), attemptConflicts);
+      var newConflicts = merged.conflicts.filter(function (item) { return !conflictAlreadyKnown(item, existingConflicts); });
+      attemptConflicts = mergeConflictLogs(attemptConflicts, newConflicts);
+      var conflictLog = mergeConflictLogs(existingConflicts, attemptConflicts);
+      var mergedPayload = payloadFor(merged.data, merged.meta, conflictLog);
       var remoteSignature = payloadSignature(remotePayload || {});
       var mergedSignature = payloadSignature(mergedPayload);
       if (row && remoteSignature === mergedSignature) {
+        saveConflicts(conflictLog);
         applyMerged(merged);
         lastSuccess = Date.now();
-        showStatus('Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), 'ok');
+        var pendingConflicts = conflictLog.filter(function (item) { return !item.resolved; }).length;
+        showStatus(pendingConflicts ? 'Sincronizado · ' + pendingConflicts + ' conflicto(s) por revisar' : 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), pendingConflicts ? 'error' : 'ok');
         return;
       }
       var saved = await writeRemote(user.id, row, mergedPayload);
       if (!saved) continue;
+      saveConflicts(conflictLog);
       applyMerged(merged);
       lastSuccess = Date.now();
-      showStatus('Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), 'ok');
+      var unresolved = conflictLog.filter(function (item) { return !item.resolved; }).length;
+      showStatus(unresolved ? 'Sincronizado · ' + unresolved + ' conflicto(s) por revisar' : 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), unresolved ? 'error' : 'ok');
       return;
     }
     throw new Error('Hay cambios simultáneos en otro dispositivo. Pulsa «Sincronizar ahora» de nuevo.');
@@ -443,7 +542,28 @@
     window.addEventListener('focus', function () { if (session && Date.now() - lastSuccess > 5000) syncNow(); });
   }
 
-  window.IVORY37CloudSync = { init: init, queue: queue, syncNow: syncNow };
+  function resolveConflict(id, restoreAlternate) {
+    var conflicts = cleanConflicts(readJson(CONFLICT_KEY, []));
+    var conflict = conflicts.find(function (item) { return item.id === String(id); });
+    if (!conflict) return false;
+    var data = normalizeData(readJson(LOCAL_KEY, {}));
+    if (restoreAlternate) {
+      var rows = data[conflict.collection] || [];
+      var index = rows.findIndex(function (item) { return conflict.collection === 'ausencias' ? String(item.fecha) === conflict.itemId : String(item.id) === conflict.itemId; });
+      if (index >= 0) rows[index] = clone(conflict.alternate);
+      else rows.push(clone(conflict.alternate));
+      data[conflict.collection] = rows;
+      writeJson(LOCAL_KEY, data);
+    }
+    conflict.resolved = true;
+    conflict.resolution = restoreAlternate ? 'restored' : 'kept';
+    saveConflicts(conflicts);
+    if (restoreAlternate) window.dispatchEvent(new CustomEvent('ivory37:cloud-data', { detail: clone(normalizeData(data)) }));
+    scheduleSync(100);
+    return true;
+  }
+
+  window.IVORY37CloudSync = { init: init, queue: queue, syncNow: syncNow, getConflicts: function () { return cleanConflicts(readJson(CONFLICT_KEY, [])); }, resolveConflict: resolveConflict };
   window.addEventListener('ivory37:cloud-data', function (event) {
     if (!event.detail) return;
     var current = normalizeData(event.detail);
