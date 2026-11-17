@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-<meta name="app-version" content="3.3.1">
+<meta name="app-version" content="3.3.2">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -932,37 +932,54 @@ h1,h2{letter-spacing:-.03em}
 }
 .panel[data-tab-panel="dashboard"] .chart-extra-month {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 8px;
-  padding: 8px 9px;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 5px;
+  padding: 10px;
   border: 1px solid rgba(197,225,165,.12);
   border-radius: 12px;
   background: linear-gradient(145deg, rgba(35,55,41,.55), rgba(13,26,19,.48));
 }
+.panel[data-tab-panel="dashboard"] .chart-extra-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
 .panel[data-tab-panel="dashboard"] .chart-extra-month-name {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: capitalize;
 }
 .panel[data-tab-panel="dashboard"] .chart-extra-month strong {
-  color: var(--text);
+  color: var(--brand);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .panel[data-tab-panel="dashboard"] .chart-extra-month small {
-  grid-column: 1 / -1;
-  color: var(--brand);
-  font-size: 9px;
-  white-space: nowrap;
-}
-.panel[data-tab-panel="dashboard"] .chart-extra-month .chart-extra-paid {
   color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.panel[data-tab-panel="dashboard"] .chart-extra-month small b { color: var(--text); font-family: var(--mono); }
+.panel[data-tab-panel="dashboard"] .chart-extra-month .chart-extra-paid {
+  padding-top: 4px;
+  border-top: 1px solid rgba(197,225,165,.1);
+  font-size: 9px;
+}
+.panel[data-tab-panel="dashboard"] .chart-extra-difference.ok { color: #86efac; }
+.panel[data-tab-panel="dashboard"] .chart-extra-difference.bad { color: #fca5a5; }
+.panel[data-tab-panel="dashboard"] .chart-extra-edit {
+  justify-self: start;
+  min-height: 30px;
+  margin-top: 2px;
+  font-size: 10px;
 }
 .panel[data-tab-panel="dashboard"] .chart-extra-note {
-  margin: 7px 0 0;
+  margin: 8px 0 10px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.4;
 }
 
@@ -1496,9 +1513,9 @@ body::before {
             </div>
             <div class="chart-overtime-summary"><strong>Extras confirmadas (meses mostrados)</strong><span id="bars-extra-summary">Sin extras confirmadas</span></div>
             <p class="hint" id="bars-caption" style="margin:0 0 10px" hidden></p>
-            <div id="bars"></div>
             <div class="chart-extra-grid" id="bars-extra-details" aria-label="Desglose mensual de horas extra" hidden></div>
-            <p class="chart-extra-note">Importe calculado con la tarifa guardada para cada jornada; “pagadas” indica el estado marcado en la app.</p>
+            <p class="chart-extra-note" id="bars-extra-note" hidden>El valor esperado usa la tarifa histórica. Anota el total recibido para ver la diferencia; ese dato es informativo y no cambia los estados de cobro.</p>
+            <div id="bars"></div>
             <div class="chart-legend" id="bars-legend"></div>
           </article>
         </div>

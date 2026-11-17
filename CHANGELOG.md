@@ -1,5 +1,12 @@
 # Cambios
 
+## 3.3.2 — Comparación del pago real de horas extra
+
+- El desglose de horas extra aparece antes de la gráfica de flujo de caja para que se vea con más facilidad en móvil.
+- Cada mes muestra horas confirmadas, valor calculado con su tarifa histórica y horas que la app marca como pagadas.
+- Se puede anotar el total realmente recibido, incluidos pagos parciales, y ver cuánto falta o cuánto supera el valor calculado.
+- El importe recibido se sincroniza y se incluye en las copias; sirve para comparar y no altera los estados de cobro.
+
 ## 3.3.1 — Referencia mensual de horas extra
 
 - El flujo de caja muestra las horas extra confirmadas por mes y el valor calculado con la tarifa guardada para cada jornada.
