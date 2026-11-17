@@ -32,3 +32,12 @@ test('synchronization retains conflict tracking', () => {
   assert.match(sync, /conflicts/);
   assert.match(sync, /deleted/);
 });
+
+test('PWA updates require explicit user confirmation to protect unsaved edits', () => {
+  const pwa = read('pwa.js');
+  const schedule = pwa.match(/function scheduleSafeUpdate\(\) \{([\s\S]*?)\n  \}/);
+  assert.ok(schedule, 'update scheduling function is present');
+  assert.doesNotMatch(schedule[1], /postMessage/);
+  assert.match(pwa, /updateBtn\.addEventListener\('click'/);
+  assert.match(pwa, /Guarda y cierra los formularios/);
+});
