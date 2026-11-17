@@ -54,3 +54,10 @@ test('calendar rejects reversed, malformed and impossible start dates', () => {
 test('calendar does not hang if the date increment fails to progress', () => {
   assert.equal(calendar.datesInRange('2026-11-17', '2026-11-19', parse, key, d => d, 10).length, 0);
 });
+
+test('CSV escapes formulas hidden behind invisible Unicode characters', () => {
+  for (const prefix of ['\u200b', '\u200e', '\u202e', '\u2060', '\ufeff']) {
+    assert.ok(reports.csvCell(prefix + '=2+2').startsWith('"\''), 'unsafe prefix: ' + prefix.codePointAt(0).toString(16));
+  }
+  assert.equal(reports.csvCell('Factura normal'), '"Factura normal"');
+});
