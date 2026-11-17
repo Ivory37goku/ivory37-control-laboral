@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.3.3-breaks-and-overtime';
+const CACHE_NAME = CACHE_PREFIX + 'v3.3.3-quality-and-safe-updates';
 const ASSETS = [
   './',
   './index.html',
