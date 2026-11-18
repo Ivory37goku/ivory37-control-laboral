@@ -8,13 +8,12 @@ Desde la carpeta raíz del proyecto, en Windows:
 
 ```powershell
 npm install
-npm run dist:win
+npm run dist:win:setup
 ```
 
 Los resultados aparecen en `desktop-dist/`:
 
 - El instalador **Setup** instala la app en Windows y crea accesos directos.
-- El EXE **Portable** se ejecuta sin instalar.
 
 La primera compilación descarga Electron y el instalador NSIS. La interfaz se abre desde archivos locales y conserva el funcionamiento sin conexión. Al iniciar sesión en **Ajustes → Nube**, usa internet para sincronizar de forma privada los datos con la PWA y el APK.
 

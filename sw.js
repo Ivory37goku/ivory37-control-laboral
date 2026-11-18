@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.3.3-breaks-and-overtime';
+const CACHE_NAME = CACHE_PREFIX + 'v3.3.5-shared-sync-base-monthly-hours';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,10 @@ const ASSETS = [
   './rates.js',
   './calendar.js',
   './reports.js',
+  './work-hours.js',
+  './backup-tools.js',
+  './theme-tools.js',
+  './overtime-tools.js',
   './pwa.js',
   './spotlight.js',
   './supabase-config.js',

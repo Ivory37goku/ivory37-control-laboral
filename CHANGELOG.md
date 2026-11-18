@@ -1,5 +1,19 @@
 # Cambios
 
+## 3.3.5 — Sincronización y horas mensuales más claras
+
+- Se separa la última base compartida en la nube de las ediciones locales pendientes, para detectar cambios simultáneos sin perder la versión alternativa.
+- Las horas extra aparecen en el eje de cada mes incluso cuando el importe pendiente es cero; las etiquetas son más legibles en móvil.
+- Web y Android reciben los mismos recursos y una caché nueva para esta versión.
+- Windows sigue generando solo el instalador.
+
+## 3.3.4 — Horas extra en cada mes de la gráfica
+
+- La gráfica muestra las horas extra confirmadas debajo de cada mes, junto a sus importes; el dato incluye tanto horas pagadas como pendientes.
+- El desglose mensual usa la tarifa histórica de cada jornada y mantiene separadas las horas pagadas y pendientes.
+- Mejoras internas en pausas, copias de seguridad y aplicación del color elegido, con comprobaciones automáticas para web, PWA, Windows y Android.
+- La distribución de Windows genera solo el instalador.
+
 ## 3.3.3 — Pausas y cálculo neto del fichaje
 
 - Se configura una pausa habitual en minutos y se puede cambiar en cada jornada; las jornadas anteriores conservan sus horas.

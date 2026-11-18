@@ -17,12 +17,20 @@
   }
 
   function datesInRange(from, to, parseKey, dateKey, addDays, maxDays) {
+    if (typeof from !== 'string' || typeof to !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return [];
+    var limit = Number.isInteger(maxDays) && maxDays > 0 ? maxDays : 366;
     var dates = [];
-    for (var date = parseKey(from); dateKey(date) <= to; date = addDays(date, 1)) {
-      dates.push(dateKey(date));
-      if (dates.length > (maxDays || 366)) return [];
+    var date = parseKey(from);
+    if (!(date instanceof Date) || !Number.isFinite(date.getTime()) || dateKey(date) !== from) return [];
+    for (var index = 0; index < limit; index++) {
+      var current = dateKey(date);
+      if (current > to) return dates;
+      if (dates.length && current <= dates[dates.length - 1]) return [];
+      dates.push(current);
+      date = addDays(date, 1);
+      if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return [];
     }
-    return dates;
+    return dateKey(date) > to ? dates : [];
   }
 
   function hasDate(rows, date) { return (rows || []).some(function (item) { return item.fecha === date; }); }

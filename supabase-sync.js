@@ -5,12 +5,14 @@
   var LOCAL_KEY = '工V龱尺ㄚ㇌7_data_v1';
   var META_KEY = 'ivory37_cloud_sync_meta_v1';
   var SNAPSHOT_KEY = 'ivory37_cloud_sync_snapshot_v1';
+  var SHARED_BASE_KEY = 'ivory37_cloud_sync_base_v1';
   var CONFLICT_KEY = 'ivory37_cloud_sync_conflicts_v1';
   var config = window.IVORY37_SUPABASE_CONFIG || {};
   var client = null;
   var initialized = false;
   var session = null;
   var snapshot = null;
+  var sharedBaseSnapshot = null;
   var meta = { modified: {}, deleted: {} };
   var syncTimer = null;
   var pollTimer = null;
@@ -187,6 +189,7 @@
   function persistTracking() {
     writeJson(META_KEY, meta);
     writeJson(SNAPSHOT_KEY, snapshot);
+    writeJson(SHARED_BASE_KEY, sharedBaseSnapshot);
   }
 
   function itemMap(data, collection) {
@@ -289,6 +292,7 @@
     var current = normalizeData(readJson(LOCAL_KEY, {}));
     meta = cleanMeta(result.meta);
     snapshot = normalizeData(result.data);
+    sharedBaseSnapshot = normalizeData(result.data);
     persistTracking();
     if (signature(current) !== signature(result.data)) {
       window.dispatchEvent(new CustomEvent('ivory37:cloud-data', { detail: clone(result.data) }));
@@ -357,7 +361,7 @@
       return;
     }
 
-    var sharedBase = snapshot ? normalizeData(snapshot) : normalizeData(readJson(LOCAL_KEY, {}));
+    var sharedBase = sharedBaseSnapshot ? normalizeData(sharedBaseSnapshot) : normalizeData(snapshot || readJson(LOCAL_KEY, {}));
     var attemptConflicts = [];
     for (var attempt = 0; attempt < 5; attempt++) {
       var local = normalizeData(readJson(LOCAL_KEY, {}));
@@ -503,6 +507,7 @@
     initialized = true;
     meta = cleanMeta(readJson(META_KEY, {}));
     snapshot = normalizeData(readJson(SNAPSHOT_KEY, initialData || readJson(LOCAL_KEY, {})));
+    sharedBaseSnapshot = normalizeData(readJson(SHARED_BASE_KEY, snapshot));
     if (!readJson(SNAPSHOT_KEY, null)) { snapshot = normalizeData(initialData || {}); persistTracking(); }
     if (!config.url || !config.publishableKey || !window.supabase || !window.supabase.createClient) {
       showUser(''); showStatus('La sincronización no está configurada. Esta app seguirá guardando en local.', 'error');
