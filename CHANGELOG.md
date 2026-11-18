@@ -1,5 +1,12 @@
 # Cambios
 
+## 3.3.9 — Arranque estable y sincronización sin conflictos falsos
+
+- Android vuelve a ejecutar siempre la versión incluida en el APK, sin sustituirla silenciosamente por la web publicada.
+- Los móviles que ya usaban la versión web migran sus datos locales una sola vez y conservan una copia antes de completar el cambio.
+- La sincronización trata la pausa omitida y la pausa de cero minutos como el mismo dato; los descansos reales siguen generando cambios y conflictos cuando corresponde.
+- Un error de guardado ya no vacía la jornada que se estaba editando en memoria.
+
 ## 3.3.8 — Fichajes visibles y actualización segura
 
 - Guardar una jornada del día actual reutiliza la jornada existente, evitando que un fichaje automático vacío oculte las horas introducidas manualmente.

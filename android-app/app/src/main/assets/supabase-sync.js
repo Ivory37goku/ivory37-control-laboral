@@ -66,11 +66,22 @@
     catch (error) { console.warn('No se pudo guardar el estado local de sincronización:', error); }
   }
 
+  function isDefaultPause(value) {
+    return value == null || value === '' || (typeof value !== 'boolean' && Number.isFinite(Number(value)) && Number(value) === 0);
+  }
+
   function normalizeData(input) {
     var obj = input && typeof input === 'object' ? input : {};
     var arrays = ['jornadas', 'viajes', 'pagos', 'ausencias'];
     var out = {};
-    arrays.forEach(function (key) { out[key] = Array.isArray(obj[key]) ? obj[key].filter(function (row) { return row && row.id != null; }) : []; });
+    arrays.forEach(function (key) {
+      out[key] = Array.isArray(obj[key]) ? obj[key].filter(function (row) { return row && row.id != null; }).map(function (row) {
+        if (key !== 'jornadas' || !Object.prototype.hasOwnProperty.call(row, 'descanso_minutos') || !isDefaultPause(row.descanso_minutos)) return row;
+        var normalized = Object.assign({}, row);
+        delete normalized.descanso_minutos;
+        return normalized;
+      }) : [];
+    });
     var calendarByDate = new Map();
     out.ausencias.slice().sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); }).forEach(function (row) { if (row.fecha) calendarByDate.set(String(row.fecha), row); });
     out.ausencias = Array.from(calendarByDate.values());
@@ -126,7 +137,10 @@
     if (Array.isArray(value)) return value.map(semanticValue);
     if (!value || typeof value !== 'object') return value;
     var result = {};
-    Object.keys(value).filter(function (key) { return NON_SEMANTIC_RECORD_FIELDS.indexOf(key) === -1; }).sort().forEach(function (key) {
+    Object.keys(value).filter(function (key) {
+      return NON_SEMANTIC_RECORD_FIELDS.indexOf(key) === -1
+        && !(key === 'descanso_minutos' && isDefaultPause(value[key]));
+    }).sort().forEach(function (key) {
       result[key] = semanticValue(value[key]);
     });
     return result;
@@ -553,6 +567,9 @@
   function init(initialData) {
     if (initialized) return;
     initialized = true;
+    var storedConflicts = cleanConflicts(readJson(CONFLICT_KEY, []));
+    var usefulConflicts = removeNoopConflicts(storedConflicts);
+    if (usefulConflicts.length !== storedConflicts.length) saveConflicts(usefulConflicts);
     meta = cleanMeta(readJson(META_KEY, {}));
     snapshot = normalizeData(readJson(SNAPSHOT_KEY, initialData || readJson(LOCAL_KEY, {})));
     sharedBaseSnapshot = normalizeData(readJson(SHARED_BASE_KEY, snapshot));

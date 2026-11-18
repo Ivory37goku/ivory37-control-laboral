@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.8';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.9';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -159,21 +159,48 @@
   }
   function restoreNativeStorage() {
     const bridge = nativeStorageBridge();
-    if (!bridge || typeof bridge.getLocalStorageSnapshot !== 'function') return;
     const params = new URLSearchParams(location.search);
     const forceRestore = params.get('nativeRestore') === '1';
+    if (!bridge || typeof bridge.getLocalStorageSnapshot !== 'function') {
+      if (forceRestore) loadError = true;
+      return !forceRestore;
+    }
     try {
-      if (!forceRestore && localStorage.getItem(KEY) !== null) return;
+      if (!forceRestore && localStorage.getItem(KEY) !== null) return true;
       const raw = bridge.getLocalStorageSnapshot();
-      if (!raw || raw.length > 12 * 1024 * 1024) return;
+      if (!raw || raw.length > 12 * 1024 * 1024) throw new Error('La copia local no está disponible.');
       const saved = JSON.parse(raw);
-      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
-      Object.keys(saved).forEach((key) => {
-        if (typeof saved[key] === 'string' && key.length < 512) {
-          if (forceRestore || localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('La copia local no es válida.');
+      if (forceRestore) {
+        if (typeof saved[KEY] !== 'string' || typeof bridge.completeLocalStorageMigration !== 'function') throw new Error('Faltan los datos para completar la migración.');
+        const savedData = JSON.parse(saved[KEY]);
+        if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData)) throw new Error('Los datos guardados no son válidos.');
+        const previous = storageSnapshot();
+        try {
+          localStorage.clear();
+          Object.keys(saved).forEach((key) => {
+            if (typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
+          });
+        } catch (restoreError) {
+          try {
+            localStorage.clear();
+            Object.keys(previous).forEach((key) => localStorage.setItem(key, previous[key]));
+          } catch (rollbackError) { console.error('No se pudo revertir la restauración local:', rollbackError); }
+          throw restoreError;
         }
+        bridge.completeLocalStorageMigration();
+        window.history.replaceState(null, '', location.pathname + location.hash);
+        return true;
+      }
+      Object.keys(saved).forEach((key) => {
+        if (typeof saved[key] === 'string' && key.length < 512 && localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
       });
-    } catch (err) { console.warn('No se pudo restaurar la copia local de la app.'); }
+      return true;
+    } catch (err) {
+      if (forceRestore) loadError = true;
+      console.error('No se pudo restaurar la copia local de la app:', err);
+      return !forceRestore;
+    }
   }
   function ensureInternalBackup() {
     try {
@@ -247,7 +274,8 @@
       if (previous) {
         try { data = normalize(JSON.parse(previous)); return; } catch (err) { console.error('No se pudo recuperar la copia previa:', err); }
       }
-      data = normalize({});
+      // Si no se pudo leer un estado anterior, conserva la edición en memoria.
+      // Vaciarla aquí podía borrar jornadas tras un fallo de almacenamiento.
     };
     try { syncPayrolls(); }
     catch (err) { console.error('syncPayrolls:', err); restorePrevious(); toast('Error al recalcular las nóminas.', 'error'); return false; }
