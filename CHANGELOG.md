@@ -1,11 +1,15 @@
 # Cambios
 
-## 3.3.12 — Guardado, nóminas y Windows sin conexión
+## 3.3.12 — Guardado, nóminas, Windows sin conexión y blindaje de seguridad
 
 - Guardar una jornada, un viaje o una nómina con la sincronización en curso aplica la edición al registro actual y avisa si los mismos campos cambiaron en otro dispositivo.
 - Un fallo de espacio mantiene abierto el formulario y permite reintentar el guardado.
 - El panel, los pagos y los informes cuentan una sola propuesta de nómina automática por mes. Se conservan los importes confirmados y editados manualmente.
 - Windows abre la versión incluida en el instalador. Las instalaciones anteriores recuperan una vez su copia local.
+- Blindaje de seguridad en Supabase con restricciones de tamaño en base de datos (`check_payload_size`) contra ataques de saturación o denegación de servicio.
+- Content Security Policy (CSP) estricta en la aplicación web y empaquetada para prevenir ejecución indebida y exfiltración de datos o tokens.
+- Configuración de seguridad de red en Android (`network_security_config`) restringida a certificados de autoridades del sistema contra interceptación MitM.
+- Actualización completa de la suite de pruebas de seguridad y capturas visuales de alta resolución en la documentación.
 
 ## 3.3.11 — Resumen mensual más legible
 

@@ -26,6 +26,17 @@ create table if not exists public.ivory37_sync (
 alter table public.ivory37_sync add column if not exists payload jsonb not null default '{"jornadas":[],"viajes":[],"pagos":[],"ajustes":[]}'::jsonb;
 alter table public.ivory37_sync add column if not exists revision bigint not null default 1;
 alter table public.ivory37_sync add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'check_payload_size_ivory37_sync') then
+    alter table public.ivory37_sync
+      add constraint check_payload_size_ivory37_sync
+      check (octet_length(payload::text) <= 5242880);
+  end if;
+end;
+$$;
+
 alter table public.ivory37_sync enable row level security;
 revoke all on table public.ivory37_sync from public, anon, authenticated;
 grant select, insert, update on table public.ivory37_sync to authenticated;
@@ -66,6 +77,17 @@ create table if not exists public.gestion_clientes (
 );
 alter table public.gestion_clientes add column if not exists payload jsonb not null default '{}'::jsonb;
 alter table public.gestion_clientes add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'check_payload_size_gestion_clientes') then
+    alter table public.gestion_clientes
+      add constraint check_payload_size_gestion_clientes
+      check (octet_length(payload::text) <= 5242880);
+  end if;
+end;
+$$;
+
 alter table public.gestion_clientes enable row level security;
 revoke all on table public.gestion_clientes from public, anon, authenticated;
 grant select, insert, update on table public.gestion_clientes to authenticated;

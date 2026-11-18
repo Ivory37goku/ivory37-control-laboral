@@ -64,13 +64,27 @@ test('Electron acknowledges a storage migration once, after persisting the marke
   ]);
 });
 
-test('Android disables system backup and cleartext traffic', () => {
+test('Android disables system backup, cleartext traffic and enforces network security config', () => {
   const manifest = read('android-app/app/src/main/AndroidManifest.xml');
   assert.match(manifest, /android:allowBackup='false'/);
   assert.match(manifest, /android:usesCleartextTraffic='false'/);
+  assert.match(manifest, /android:networkSecurityConfig='@xml\/network_security_config'/);
+  const netConf = read('android-app/app/src/main/res/xml/network_security_config.xml');
+  assert.match(netConf, /cleartextTrafficPermitted="false"/);
+  assert.match(netConf, /certificates src="system"/);
 });
 
-test('Supabase sync tables are owner-scoped and the event helper is not an RPC', () => {
+test('Web and Android HTML define a strict Content Security Policy meta tag', () => {
+  for (const htmlPath of ['index.html', 'android-app/app/src/main/assets/index.html']) {
+    const html = read(htmlPath);
+    assert.match(html, /<meta http-equiv="Content-Security-Policy"/);
+    assert.match(html, /connect-src[^>]*https:\/\/\*\.supabase\.co/);
+    assert.match(html, /object-src 'none'/);
+    assert.match(html, /base-uri 'self'/);
+  }
+});
+
+test('Supabase sync tables enforce payload size limits, owner-scoped RLS and non-RPC event helper', () => {
   const sql = read('supabase/setup.sql');
   for (const table of ['ivory37_sync', 'gestion_clientes']) {
     const policies = sql.match(new RegExp('create policy[^;]+on public\\.' + table + '[\\s\\S]*?;', 'gi')) || [];
@@ -78,6 +92,7 @@ test('Supabase sync tables are owner-scoped and the event helper is not an RPC',
     assert.ok(policies.some(policy => /for select to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/i.test(policy)));
     assert.ok(policies.some(policy => /for insert to authenticated with check \(\(select auth\.uid\(\)\) = user_id\)/i.test(policy)));
     assert.ok(policies.some(policy => /for update to authenticated using \(\(select auth\.uid\(\)\) = user_id\)[\s\S]*?with check \(\(select auth\.uid\(\)\) = user_id\)/i.test(policy)));
+    assert.match(sql, new RegExp('check_payload_size_' + table, 'i'));
   }
   assert.match(sql, /revoke execute on function public\.rls_auto_enable\(\) from public, anon, authenticated/i);
 });

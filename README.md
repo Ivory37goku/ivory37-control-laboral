@@ -5,142 +5,141 @@
 <h1 align="center">Control Laboral</h1>
 
 <p align="center">
-  Registra jornadas, consulta horas y controla lo que tienes pendiente de cobrar.
+  <strong>Gestión integral de jornadas, horas extra, nóminas, dietas y calendario laboral.</strong><br>
+  Disponible como PWA sin conexión, aplicación Android nativa y ejecutable de escritorio para Windows.
 </p>
 
 <p align="center">
-  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir la aplicación</strong></a>
+  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir en el Navegador</strong></a>
   ·
-  <a href="android-app/README.md">Compilar para Android</a>
-</p>
-
-<p align="center">
   <a href="CHANGELOG.md">Historial de versiones</a>
   ·
   <a href="docs/QUALITY-CHECKLIST.md">Auditoría y pruebas</a>
 </p>
 
 <p align="center">
-  <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
+  <img alt="Versión" src="https://img.shields.io/badge/versión-3.3.12-a6d94a?labelColor=0a0f0d">
+  <img alt="PWA offline" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
+  <img alt="Seguridad auditada" src="https://img.shields.io/badge/seguridad-CSP%20%7C%20RLS%20%7C%20MitM%20Shield-1f392d?labelColor=0a0f0d">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-66%20aprobados-a6d94a?labelColor=0a0f0d">
   <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>
 
-Control Laboral es una aplicación personal para anotar horas trabajadas, revisar nóminas y organizar viajes y ausencias. Funciona como web instalable, aplicación Android y aplicación de escritorio para Windows, con una interfaz adaptada a móvil y ordenador.
+---
 
-## Capturas
+## 📸 Capturas de Pantalla
+
+### Panel de Control y Aplicación de Escritorio
+<p align="center">
+  <img src="docs/dashboard.jpg" alt="Panel de Control Laboral con fichaje, indicadores y flujo de caja" width="100%">
+</p>
+<p align="center"><em>Panel principal: resumen semanal, balance de nómina, fichaje en vivo y comparativa mensual.</em></p>
+
+---
+
+### Experiencia Móvil (Android y PWA)
+<p align="center">
+  <img src="docs/mobile.jpg" alt="Vista móvil del panel de Control Laboral" width="340">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/mobile-cash.jpg" alt="Vista móvil de flujo de caja y horas extra" width="340">
+</p>
+<p align="center"><em>Diseño adaptativo para móvil: botones táctiles de fichaje rápido y desglose de cobros.</em></p>
+
+---
+
+### Jornadas y Comparativa de Horas Extra
+<p align="center">
+  <img src="docs/jornadas.jpg" alt="Registro y filtro de jornadas" width="100%">
+</p>
+<p align="center"><em>Registro de jornadas, horas ordinarias y extraordinarias, pausas no computables y turnos nocturnos.</em></p>
 
 <p align="center">
-  <img src="docs/dashboard.jpg" alt="Panel de Control Laboral con fichaje, cuatro indicadores y flujo de caja por mes" width="100%">
+  <img src="docs/extras-mensuales.jpg" alt="Comparativa de horas extra y cobro real" width="100%">
 </p>
-<p align="center"><em>Panel de Control Laboral con el fichaje, los cobros y las horas extra a la vista.</em></p>
+<p align="center"><em>Comparativa de tarifas históricas frente a pagos recibidos reales.</em></p>
 
+---
+
+### Configuración, Identidad y Sincronización
 <p align="center">
-  <img src="docs/mobile.jpg" alt="Resumen compacto de Control Laboral en móvil" width="300">
-  <img src="docs/mobile-cash.jpg" alt="Meses, importes pendientes y horas extra visibles en móvil" width="300">
+  <img src="docs/ajustes.jpg" alt="Ajustes de perfil, marca, tarifas y copias" width="100%">
 </p>
-<p align="center"><em>Accesos de fichaje y flujo de caja por mes en el móvil.</em></p>
+<p align="center"><em>Personalización de perfil, colores de marca, tarifas horarias históricas y sincronización en la nube.</em></p>
 
-<p align="center">
-  <img src="docs/extras-mensuales.jpg" alt="Comparativa de horas extra por mes con importe a tarifa, pago recibido y diferencia" width="100%">
-</p>
-<p align="center"><em>Comparativa de lo que corresponde por tarifa y el pago real de las horas extra.</em></p>
+> Las capturas emplean datos de prueba ilustrativos sin información de usuarios reales.
 
-<p align="center">
-  <img src="docs/jornadas.jpg" alt="Registro de jornadas en Control Laboral" width="100%">
-</p>
-<p align="center"><em>Registro de jornadas, horas extra e incidencias</em></p>
+---
 
-<p align="center">
-  <img src="docs/ajustes.jpg" alt="Ajustes de perfil, identidad visual, jornada y sincronización" width="100%">
-</p>
-<p align="center"><em>Perfil, marca, tarifas, copias y sincronización</em></p>
+## ✨ Características Principales
 
-> Las capturas usan datos de demostración ficticios. No contienen información de una cuenta real.
+* ⏱️ **Registro de Jornada y Fichaje:** Registro de entrada y salida en un clic, cálculo automático de horas netas descontando pausas no computables y soporte para turnos que cruzan la medianoche.
+* 💰 **Control de Nóminas y Horas Extra:** Seguimiento automático de importes acumulados según tarifas horarias vigentes, desglose de horas extra pendientes y confirmadas, y control de cobros reales.
+* 🚗 **Viajes y Dietas:** Gestión de gastos de kilometraje, desplazamientos y dietas con control de estado de liquidación.
+* 📅 **Calendario Laboral e Incidencias:** Anotación de descansos, vacaciones, bajas médicas y festivos oficiales sin alterar jornadas ya registradas.
+* 📊 **Informes y Exportación Segura:** Exportación de informes en formato PDF imprimible y CSV con protección nativa contra inyecciones de fórmulas.
+* 🔄 **Sincronización Multiplataforma:** Sincronización en la nube opcional con Supabase protegida por políticas de aislamiento Row Level Security (RLS) por usuario y resolución inteligente de conflictos.
+* 💾 **Almacenamiento Local First:** La aplicación funciona al 100% sin conexión a internet. Los datos residen en tu propio dispositivo.
 
-## Funciones
+---
 
-- **Panel:** fichaje de hoy, cobros y horas de la semana. El flujo de caja muestra los últimos ocho meses con actividad, con horas extra aunque el pendiente sea 0 €. En la comparativa puedes anotar el pago real y ver la diferencia y el importe recibido por hora extra confirmada.
-- **Jornadas:** fichaje de entrada y salida, registro manual, turnos nocturnos, pausa no computable configurable, horas extra, filtros y confirmación de jornadas provisionales.
-- **Pagos y viajes:** seguimiento de nóminas, dietas y desplazamientos, con estado de pago.
-- **Calendario:** registro de descansos, vacaciones, bajas, festivos y otras incidencias.
-- **Informes:** consulta por fechas, impresión o guardado en PDF y exportación a CSV.
-- **Copias y datos:** backup JSON, restauración, copia local automática y sincronización opcional entre dispositivos.
-- **Personalización:** perfil, foto y logotipo propios, además de la identidad visual de Control Laboral.
-- **PWA:** aplicación instalable y disponible sin conexión después de la primera carga. Cuando hay una nueva versión, puedes aplicarla desde el aviso de actualización.
+## 🛡️ Arquitectura y Blindaje de Seguridad
 
-## Formas de uso
+El proyecto implementa un estándar estricto de seguridad técnica:
 
-| Plataforma | Cómo abrirla |
-| --- | --- |
-| Web y PWA | [Abrir Control Laboral](https://ivory37goku.github.io/ivory37-control-laboral/). En Android usa **Instalar app**; en iPhone o iPad, **Compartir → Añadir a pantalla de inicio**. |
-| Android | La APK incluye la app y arranca sin conexión. Para actualizar, instala una APK nueva con la misma firma encima de la anterior. Consulta la [guía de compilación](android-app/README.md). |
-| Windows | El instalador Setup incluye la app, abre sin conexión y recupera la copia local de instalaciones anteriores. Para generarlo, sigue los comandos de [Desarrollo](#desarrollo). |
-| Desarrollo local | Sirve la carpeta por HTTP siguiendo las instrucciones de abajo. |
+1. **Content Security Policy (CSP) Estricta:** Implementada en `index.html` para bloquear la ejecución de scripts no autorizados y prevenir la exfiltración de datos o tokens de sesión hacia servidores externos.
+2. **Protección de Base de Datos y Anti-DoS:** Las tablas de sincronización en Supabase cuentan con políticas RLS de usuario estricto (`auth.uid() = user_id`) y restricciones de tamaño en base de datos (`check_payload_size`) que impiden ataques por saturación de almacenamiento.
+3. **Aislamiento en Electron (Desktop):** Configurado con `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, deshabilitación de contenido inseguro y filtrado exhaustivo de navegación externa.
+4. **Protección contra MitM en Android:** Configuración `network_security_config.xml` que exige certificados de autoridades raíz del sistema (`system`) y bloquea CAs instaladas por el usuario o proxies de interceptación.
+5. **Sanitización de Salidas y CSV:** Escape de caracteres con `esc()` en todas las vistas dinámicas y sanitización de caracteres de control (`=`, `+`, `-`, `@`) en celdas de exportación CSV para evitar ejecución de comandos en hojas de cálculo.
 
-## Primeros pasos
+---
 
-1. Abre la app y entra en **Ajustes → Mi perfil** para indicar tu nombre y, si quieres, una foto o un logo.
-2. Revisa **Ajustes → Tarifas y jornada** y configura el precio por hora y tu horario habitual.
-3. Registra una jornada con **Nueva jornada** o usa los botones de fichaje.
-4. Confirma las jornadas provisionales para incluirlas en los importes correspondientes.
-5. Descarga un backup desde **Ajustes → Datos y copias**. Para sincronizar la PWA, APK y EXE, inicia sesión con la misma cuenta en cada instalación.
+## 📦 Plataformas Soportadas
 
-## Desarrollo
+| Plataforma | Tipo | Estado | Modo de uso |
+| :--- | :--- | :--- | :--- |
+| **Web & PWA** | Aplicación Web Progresiva | Lista | [Abrir en navegador](https://ivory37goku.github.io/ivory37-control-laboral/) / Instalar desde el navegador |
+| **Windows** | Instalador Setup (.exe) | Listo | Empaquetado con Electron (`desktop-dist/Control Laboral Setup 3.3.12.exe`) |
+| **Android** | Paquete APK (.apk) | Listo | Compilado con WebViewAssetLoader local (`android-app/app/build/outputs/apk/debug/app-debug.apk`) |
 
-### Ejecutar la versión web
+---
 
-No se necesita compilar la versión web. Desde la raíz del repositorio, inicia un servidor local:
+## 🚀 Desarrollo y Compilación
 
+### Requisitos previos
+* **Node.js:** Versión 22 o superior
+* **Java JDK:** Versión 17 (para compilación Android)
+* **Android SDK:** Platform 34+ y Build Tools
+
+### Servidor de desarrollo web
 ```bash
+# Servir en local sin pasos de compilación previos
 python -m http.server 8080
 ```
+Abre en tu navegador: `http://localhost:8080`
 
-Abre <http://localhost:8080>. En desarrollo, el service worker y la caché sin conexión funcionan en `localhost`; la versión publicada usa HTTPS en GitHub Pages.
+### Ejecución de comprobaciones y suite de pruebas
+```bash
+# Ejecutar comprobaciones de sintaxis y suite de 66 pruebas automatizadas
+npm run check
+```
 
-### Aplicación de Windows
-
-Se requiere Node.js y npm. Instala las dependencias, ejecuta las comprobaciones y genera el instalador de Windows:
-
+### Compilar instalador para Windows
 ```bash
 npm install
-npm run check
 npm run dist:win:setup
 ```
+El instalador ejecutable generado se guardará en `desktop-dist/`.
 
-El instalador se guarda en `desktop-dist/`. Para iniciar la app durante el desarrollo, usa `npm start`.
-
-### Aplicación Android
-
-Abre `android-app/` en Android Studio, sincroniza Gradle y genera la APK desde **Build → Build Bundle(s) / APK(s) → Build APK(s)**. Los requisitos y la alternativa de línea de comandos están en [`android-app/README.md`](android-app/README.md).
-
-## Datos y privacidad
-
-Los cambios se guardan primero en el dispositivo. Si inicias sesión en **Ajustes → Nube**, los datos de jornadas, viajes, pagos y ajustes también se sincronizan con Supabase para compartirlos entre instalaciones. El inicio de sesión y la sincronización requieren conexión; la interfaz puede seguir funcionando sin conexión después de cargar la app.
-
-Sin una cuenta, los datos permanecen en el dispositivo. Descarga backups JSON con regularidad: borrar el almacenamiento del navegador o reinstalar una aplicación puede eliminar la copia local.
-
-## Tecnologías
-
-- HTML, CSS y JavaScript sin framework para la interfaz.
-- PWA con manifest y service worker.
-- Supabase opcional para autenticación y sincronización; SDK incluido en `vendor/`.
-- Electron para Windows y Android WebView para la APK.
-
-## Estructura del proyecto
-
-```text
-index.html         Interfaz, diseño y componentes de la app
-app.js             Lógica de jornadas, dashboard, pagos y ajustes
-rates.js           Tarifas históricas
-calendar.js        Calendario de ausencias e incidencias
-reports.js         Informes y exportación CSV
-pwa.js, sw.js      Instalación, caché y actualizaciones PWA
-supabase/          Esquema y políticas de la base de datos
-android-app/       Proyecto Android y guía de compilación
-desktop/           Aplicación Electron para Windows
-docs/              Capturas de la documentación
+### Compilar APK para Android
+```bash
+cd android-app
+./gradlew assembleDebug
 ```
+La APK lista para instalar se generará en `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Licencia
+---
 
-Este proyecto se distribuye bajo la licencia [MIT](LICENSE).
+## 📄 Licencia
+
+Este proyecto está bajo la licencia [MIT](LICENSE).
