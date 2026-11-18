@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const RELEASE_VERSION = '3.3.10';
+const RELEASE_VERSION = '3.3.11';
 const CACHE_NAME = CACHE_PREFIX + 'v' + RELEASE_VERSION + '-stable-clock-in';
 const ASSETS = [
   './',

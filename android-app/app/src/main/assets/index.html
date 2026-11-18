@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-  <meta name="app-version" content="3.3.10">
+  <meta name="app-version" content="3.3.11">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -168,20 +168,6 @@ h2{margin:0;font-size:16px;letter-spacing:-.01em}
 
 .chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .donut-sub{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line-soft);padding-top:12px;margin-top:10px;font-size:12px;color:var(--muted)}
-.chart-area{display:grid;grid-template-columns:52px 1fr;grid-template-rows:220px auto;gap:8px 10px;margin-top:4px}
-.chart-y{grid-column:1;grid-row:1;display:flex;flex-direction:column;justify-content:space-between;text-align:right;font-size:10px;line-height:1;color:var(--muted);padding:0 0 1px}
-.chart-plot{grid-column:2;grid-row:1;position:relative;height:220px}
-.chart-grid{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
-.chart-grid span{display:block;border-top:1px dashed rgba(148,163,184,.16)}
-.chart-bars{position:absolute;inset:0;display:flex;align-items:flex-end;gap:8px;padding:0 4px}
-.chart-col{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center}
-.chart-stack{position:relative;width:min(48px,72%);min-height:3px;display:flex;flex-direction:column-reverse;border-radius:8px 8px 0 0;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.05)}
-.chart-seg{display:block;width:100%}
-.chart-total{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;font-family:var(--mono);font-size:9.5px;line-height:1.4;color:#fff;background:rgba(11,18,32,.78);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:0 5px;pointer-events:none}
-.chart-months{grid-column:2;grid-row:2;display:flex;gap:8px;padding:0 4px}
-.chart-months .chart-month-tick{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;text-align:center;white-space:nowrap;overflow:visible}
-.chart-months .chart-month-name{font-size:10.5px;color:var(--muted);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis}
-.chart-months .chart-month-hours{justify-self:center;width:max-content;max-width:100%;padding:1px 3px;border:1px solid color-mix(in srgb,var(--brand) 28%,transparent);border-radius:5px;background:color-mix(in srgb,var(--brand) 10%,transparent);font-family:var(--mono);font-size:9.5px;line-height:1.2;font-weight:800;color:var(--brand);white-space:nowrap;overflow:visible}
 .chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:11px;color:var(--muted)}
 .chart-legend span{display:inline-flex;align-items:center;gap:5px}
 .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
@@ -314,11 +300,6 @@ textarea.input{resize:vertical;min-height:78px}
   .topbar{display:none}
 }
 @media(max-width:520px){
-  .chart-area{grid-template-columns:42px 1fr;grid-template-rows:190px auto}
-  .chart-y{font-size:9px}
-  .chart-plot{height:190px}
-  .chart-bars,.chart-months{gap:5px;padding:0 2px}
-  .chart-stack{width:min(40px,80%)}
   .kpis{grid-template-columns:1fr 1fr;gap:10px}
   .kpi{padding:14px}
   .kpi strong{font-size:20px}
@@ -1256,6 +1237,137 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .panel[data-tab-panel="dashboard"]::before { filter: none; }
 }
+
+/* Resumen: ritmo del panel de Gestión Clientes */
+.panel[data-tab-panel="dashboard"] {
+  --dashboard-gap: 14px;
+  --dashboard-glass: linear-gradient(150deg, rgba(36,55,42,.73), rgba(15,27,21,.92));
+}
+.panel[data-tab-panel="dashboard"]::before { left: 0; width: 100%; }
+.panel[data-tab-panel="dashboard"] .card {
+  min-width: 0;
+  border-color: rgba(220,245,221,.13);
+  background: var(--dashboard-glass);
+}
+.panel[data-tab-panel="dashboard"] .dash-hero {
+  min-height: 0;
+  grid-template-rows: auto;
+  align-items: center;
+}
+.panel[data-tab-panel="dashboard"] .dash-hero-top { display: grid; gap: 13px; min-width: 0; }
+.panel[data-tab-panel="dashboard"] .dash-hero-title { overflow-wrap: anywhere; }
+.panel[data-tab-panel="dashboard"] .dash-hero-title .name { animation: none; }
+.panel[data-tab-panel="dashboard"] .dash-hero-sub { margin: 5px 0 0; }
+.panel[data-tab-panel="dashboard"] .dash-hero-today { grid-row: 1; }
+.panel[data-tab-panel="dashboard"] .dash-hero-today .big { font-size: clamp(26px, 4vw, 46px); }
+.hero-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.hero-badges:empty { display: none; }
+.panel[data-tab-panel="dashboard"] .qa-btn { flex-direction: row; align-items: center; gap: 9px; padding: 9px 12px; min-width: 0; min-height: 52px; }
+.qa-btn .qa-icon { width: 32px; height: 32px; flex: none; }
+.qa-btn .qa-icon .i { width: 16px; height: 16px; }
+.qa-btn .qa-title { line-height: 1.25; }
+.qa-btn .qa-sub { line-height: 1.25; }
+
+.dash-metrics, .dash-finance, .dash-finance-aside { display: grid; gap: var(--dashboard-gap); }
+.dash-metrics { grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: var(--dashboard-gap); }
+.dash-finance { grid-template-columns: minmax(0,1.9fr) minmax(235px,1fr); align-items: start; margin-bottom: var(--dashboard-gap); }
+.dash-finance-aside > .card { margin: 0; }
+.dash-finance-aside .donut-v3 { width: 130px; }
+.dash-finance-aside .donut-v3-wrap { margin-block: 0; }
+.dash-finance-aside .next-pay { min-height: 0; }
+.dash-overtime { grid-column: 1 / -1; grid-row: 2; }
+.dash-finance-aside { grid-column: 2; grid-row: 1; }
+.dash-activity { gap: var(--dashboard-gap); }
+.dash-activity .radial-wrap { width: 125px; height: 125px; }
+.dash-activity .radial-eyebrow { font-size: 8px; letter-spacing: .05em; }
+.dash-activity .radial-hours { display: block; font-size: 24px; }
+.dash-activity .radial-actions { margin-top: 10px; }
+.panel[data-tab-panel="dashboard"] .dash-metric { padding: 14px; }
+.dash-metric-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.dash-metric-head h2 { margin: 0; font-size: 13px; color: var(--muted); }
+.dash-metric-head .kpi-mini-icon { width: 27px; height: 27px; border-radius: 8px; }
+.dash-metric-head .i { width: 15px; height: 15px; }
+.dash-metric > strong, .cash-total strong { display: block; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.dash-metric > strong { font-size: clamp(16px, 2.1vw, 26px); line-height: 1.16; overflow-wrap: anywhere; }
+.dash-metric > small, .dash-caption { font-size: 12px; color: var(--muted); }
+.dash-metric > small { display: block; margin-top: 4px; }
+.dash-metric .kpi-link { margin-top: 4px; min-height: 28px; font-size: 12px; text-align: left; }
+.dash-metric .kpi-hero-spark { height: 16px; margin: 6px 0 0; max-width: 140px; }
+.dash-metric .kpi-hero-spark:empty { display: none; }
+
+.dash-cash .chart-head, .dash-overtime .chart-head { align-items: flex-start; margin-bottom: 13px; }
+.dash-cash h2, .dash-overtime h2 { margin: 0; font-size: 17px; }
+.dash-caption { margin: 4px 0 0; }
+.dash-cash .dash-caption::first-letter,
+.cash-row .chart-month-name::first-letter,
+.chart-extra-top h3::first-letter { text-transform: uppercase; }
+.cash-total { display: grid; gap: 3px; text-align: right; }
+.cash-total span { color: var(--muted); font-size: 11px; }
+.cash-total strong { font-size: clamp(15px, 2.6vw, 20px); }
+.cash-chart { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
+.cash-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto;
+  grid-template-areas: "month hours amount" "track track track";
+  align-items: baseline;
+  gap: 7px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(220,245,221,.075);
+  border-radius: 10px;
+  background: rgba(232,252,233,.032);
+}
+.cash-row .chart-month-name { grid-area: month; font-size: 13px; font-weight: 650; }
+.cash-amount { grid-area: amount; color: var(--text); text-align: right; font-size: 13px; }
+.chart-month-hours { grid-area: hours; justify-self: end; color: #d8f1ab; font-size: 12px; }
+.cash-amount, .chart-month-hours { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.cash-track { grid-area: track; display: flex; overflow: hidden; height: 5px; border-radius: 6px; background: rgba(233,255,233,.08); }
+.cash-payroll { background: #8db8df; }
+.cash-extras { background: #d6e88e; }
+.cash-trips { background: #edb37b; }
+.dash-cash .empty-chart,
+.dash-overtime .empty-chart { grid-column: 1 / -1; margin: 0; min-height: 72px; height: auto; padding: 12px; }
+
+.panel[data-tab-panel="dashboard"] .chart-extra-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 224px), 1fr)); gap: 10px; margin: 0; }
+.panel[data-tab-panel="dashboard"] .chart-extra-month { gap: 8px; padding: 13px; background: rgba(231,252,232,.045); }
+.chart-extra-top h3 { margin: 0; font-size: 13px; font-weight: 700; }
+.panel[data-tab-panel="dashboard"] .chart-extra-top strong { font-size: 16px; }
+.chart-extra-values { display: grid; gap: 6px; margin: 0; }
+.chart-extra-values > div { display: flex; justify-content: space-between; gap: 9px; align-items: baseline; }
+.chart-extra-values dt { color: var(--muted); font-size: 12px; }
+.chart-extra-values dd { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.panel[data-tab-panel="dashboard"] .chart-extra-values small { display: block; margin-top: 2px; font: 11px/1.35 var(--sans); }
+.chart-extra-difference { margin: 0; font-size: 12px; font-weight: 650; }
+.panel[data-tab-panel="dashboard"] .chart-extra-month .chart-extra-paid,
+.panel[data-tab-panel="dashboard"] .chart-extra-note { font-size: 12px; }
+.panel[data-tab-panel="dashboard"] .chart-extra-edit { min-height: 38px; font-size: 12px; }
+
+@media (max-width: 890px) {
+  .dash-finance { grid-template-columns: minmax(0, 1fr); }
+  .dash-finance-aside { grid-column: 1; grid-row: auto; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .dash-overtime { grid-row: auto; }
+}
+@media (max-width: 640px) {
+  .panel[data-tab-panel="dashboard"] { --dashboard-gap: 10px; }
+  .panel[data-tab-panel="dashboard"] .dash-hero { padding: 16px; gap: 10px; grid-template-rows: auto auto; margin-bottom: 10px; }
+  .panel[data-tab-panel="dashboard"] .dash-hero-top { gap: 9px; }
+  .panel[data-tab-panel="dashboard"] .dash-hero-today { grid-row: 2; padding: 10px 12px; gap: 2px 8px; }
+  .dash-hero-greeting { font-size: 10px; letter-spacing: .11em; }
+  .dash-hero-title { font-size: clamp(22px, 6vw, 30px); }
+  .panel[data-tab-panel="dashboard"] .dash-hero-sub { font-size: 12px; }
+  .qa-grid { gap: 7px; margin-bottom: 10px; }
+  .panel[data-tab-panel="dashboard"] .qa-btn { padding: 8px; }
+  .qa-btn .qa-icon { width: 26px; height: 26px; }
+  .qa-btn .qa-title { font-size: 12px; }
+  .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel[data-tab-panel="dashboard"] .dash-metric { padding: 10px; }
+  .dash-metric-head { gap: 5px; margin-bottom: 6px; }
+  .dash-metric-head h2 { font-size: 12px; }
+  .dash-finance-aside { grid-template-columns: minmax(0,1fr); }
+  .panel[data-tab-panel="dashboard"] .dash-cash, .panel[data-tab-panel="dashboard"] .dash-overtime { padding: 14px; }
+  .cash-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "month amount" "hours amount" "track track"; gap: 2px 10px; }
+  .chart-month-hours { justify-self: start; }
+  .cash-track { margin-top: 4px; }
+}
 </style>
 </head>
 <body>
@@ -1331,7 +1443,7 @@ body::before {
                 <span id="hero-greeting">Buenos días</span>,
                 <span class="name" id="hero-name">Control Laboral</span>.
               </h1>
-              <p class="dash-hero-sub" id="hero-sub">Tu resumen laboral, al día.</p>
+              <div id="hero-badges" class="hero-badges"></div>
             </div>
             <div class="dash-hero-actions">
               <button class="btn ghost" type="button" data-action="print">
@@ -1347,7 +1459,6 @@ body::before {
             <span class="label">Hoy</span>
             <span class="meta" id="hero-today-meta">Sin fichar</span>
           </div>
-          <div id="hero-badges" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
         </div>
 
         <div class="qa-grid">
@@ -1369,7 +1480,121 @@ body::before {
           </button>
         </div>
 
-        <div class="dash-main">
+        <section class="dash-metrics" aria-label="Indicadores de cobro y horas">
+          <article class="card dash-metric" style="--tone:var(--brand)">
+            <div class="dash-metric-head"><span class="kpi-mini-icon"><svg class="i" aria-hidden="true"><use href="#i-wallet"></use></svg></span><h2>Cobrado</h2></div>
+            <strong id="kpi-collected">0,00 €</strong>
+            <div class="kpi-hero-spark" id="kpi-hero-spark" aria-hidden="true"></div>
+          </article>
+          <article class="card dash-metric" style="--tone:#f9b985">
+            <div class="dash-metric-head"><span class="kpi-mini-icon"><svg class="i" aria-hidden="true"><use href="#i-clock"></use></svg></span><h2>Pendiente</h2></div>
+            <strong id="kpi-pending">0,00 €</strong>
+            <button class="kpi-link" type="button" data-action="pending-detail">Ver desglose</button>
+          </article>
+          <article class="card dash-metric" style="--tone:#e6ca75">
+            <div class="dash-metric-head"><span class="kpi-mini-icon"><svg class="i" aria-hidden="true"><use href="#i-bolt"></use></svg></span><h2>Horas extra</h2></div>
+            <strong id="kpi-extra">0,00 h</strong>
+            <small>Confirmadas</small>
+            <span class="flag" id="kpi-est-flag" hidden>Estimación activa</span>
+          </article>
+          <article class="card dash-metric" style="--tone:#b8b1e8">
+            <div class="dash-metric-head"><span class="kpi-mini-icon"><svg class="i" aria-hidden="true"><use href="#i-check"></use></svg></span><h2>Valor de extras</h2></div>
+            <strong id="kpi-extra-value">0,00 €</strong>
+            <small>Según tarifa histórica</small>
+          </article>
+        </section>
+
+        <div class="dash-finance">
+          <article class="card dash-cash" aria-labelledby="bars-heading">
+            <div class="chart-head">
+              <div>
+                <h2 id="bars-heading">Flujo de caja</h2>
+                <p id="bars-range" class="dash-caption">Por mes</p>
+              </div>
+              <div class="cash-total">
+                <span>Pendiente del período</span>
+                <strong id="bars-total">0,00 €</strong>
+              </div>
+            </div>
+            <div id="bars"></div>
+            <div class="chart-legend" id="bars-legend" hidden></div>
+          </article>
+
+          <article class="card dash-overtime" aria-labelledby="overtime-heading">
+            <div class="chart-head">
+              <h2 id="overtime-heading">Horas extra por mes</h2>
+              <p id="bars-extra-summary" class="dash-caption">Sin extras confirmadas</p>
+            </div>
+            <div class="chart-extra-grid" id="bars-extra-details"></div>
+            <p class="chart-extra-note" id="bars-extra-note" hidden>El valor esperado usa la tarifa de cada jornada. El importe recibido por hora se calcula sobre todas las extras confirmadas de ese mes. Anotar un pago sirve para comparar y no cambia el estado de cobro de las jornadas.</p>
+          </article>
+
+          <div class="dash-finance-aside">
+            <article class="card donut-card-v3">
+              <div class="chart-head" style="width:100%">
+                <h2>Estado de cobro</h2>
+                <span class="badge muted" id="donut-status">—</span>
+              </div>
+              <div class="donut-v3-wrap">
+                <svg class="donut-v3" viewBox="0 0 120 120" role="img" aria-labelledby="donut-title">
+                  <title id="donut-title">Porcentaje cobrado</title>
+                  <circle class="track" cx="60" cy="60" r="50"></circle>
+                  <circle class="arc" id="donut-arc" cx="60" cy="60" r="50" transform="rotate(-90 60 60)" stroke-dasharray="0 314.16"></circle>
+                </svg>
+                <div class="donut-v3-label">
+                  <strong id="donut-pct">0%</strong>
+                  <span>Cobrado</span>
+                </div>
+              </div>
+              <div class="donut-v3-foot">
+                <span id="donut-sub">—</span>
+                <span id="donut-sub2">—</span>
+              </div>
+            </article>
+
+            <article class="card next-pay">
+              <div>
+                <div class="chart-head" style="margin-bottom:0">
+                  <h2>Próxima nómina</h2>
+                  <span class="badge muted">Estimada</span>
+                </div>
+                <div class="next-pay-value" id="next-pay-value">—</div>
+                <div class="next-pay-meta" id="next-pay-meta">—</div>
+              </div>
+              <button class="btn ghost sm" type="button" data-action="tab" data-tab="pagos" style="margin-top:14px;width:100%">
+                <svg class="i"><use href="#i-wallet"></use></svg> Gestionar pagos
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <div class="dash-three dash-activity">
+          <article class="card">
+            <div class="chart-head">
+              <h2>Esta semana</h2>
+              <span class="badge info" id="week-badge">—</span>
+            </div>
+            <div class="week-chart" id="week-chart"></div>
+            <div class="week-summary" id="week-summary"></div>
+          </article>
+
+          <article class="card">
+            <div class="chart-head">
+              <h2>Actividad</h2>
+              <span class="badge muted">12 semanas</span>
+            </div>
+            <div class="heatmap-wrap" id="heatmap"></div>
+            <div class="hm-legend">
+              <span>Menos</span>
+              <i class="hm-cell" data-lvl="0"></i>
+              <i class="hm-cell" data-lvl="1"></i>
+              <i class="hm-cell" data-lvl="2"></i>
+              <i class="hm-cell" data-lvl="3"></i>
+              <i class="hm-cell" data-lvl="4"></i>
+              <span>Más</span>
+            </div>
+          </article>
+
           <article class="card clock-radial">
             <div class="radial-wrap">
               <svg class="radial-svg" viewBox="0 0 200 200" aria-hidden="true">
@@ -1395,130 +1620,6 @@ body::before {
               <span class="dot" id="ring-dot"></span>
               <span id="today-status-inline">Sin actividad registrada</span>
             </p>
-          </article>
-
-          <div class="kpi-board" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-            <article class="kpi-hero">
-              <div>
-                <div class="kpi-hero-eyebrow">
-                  <svg class="i" style="width:14px;height:14px"><use href="#i-check"></use></svg>
-                  Cobrado
-                </div>
-                <div class="kpi-hero-value" id="kpi-collected">0,00 €</div>
-                <div class="kpi-hero-sub">Nóminas + extras + viajes</div>
-              </div>
-              <div class="kpi-hero-spark" id="kpi-hero-spark"></div>
-            </article>
-            <div class="kpi-mini-col">
-              <div class="kpi-mini" style="--tone:#f87171">
-                <div class="kpi-mini-l">
-                  <div class="kpi-mini-icon"><svg class="i"><use href="#i-clock"></use></svg></div>
-                  <div class="kpi-mini-text">
-                    <div class="kpi-mini-label">A cobrar</div>
-                    <div class="kpi-mini-val" id="kpi-pending">0,00 €</div>
-                  </div>
-                </div>
-                <button class="kpi-link" type="button" data-action="pending-detail" style="margin:0;font-size:10px">Ver</button>
-              </div>
-              <div class="kpi-mini" style="--tone:#fbbf24">
-                <div class="kpi-mini-l">
-                  <div class="kpi-mini-icon"><svg class="i"><use href="#i-bolt"></use></svg></div>
-                  <div class="kpi-mini-text">
-                    <div class="kpi-mini-label">Horas extra</div>
-                    <div class="kpi-mini-val" id="kpi-extra">0,00 h</div>
-                  </div>
-                </div>
-                <span class="flag" id="kpi-est-flag" hidden style="margin:0">Est.</span>
-              </div>
-              <div class="kpi-mini" style="--tone:#a78bfa">
-                <div class="kpi-mini-l">
-                  <div class="kpi-mini-icon"><svg class="i"><use href="#i-wallet"></use></svg></div>
-                  <div class="kpi-mini-text">
-                    <div class="kpi-mini-label">Valor extras</div>
-                    <div class="kpi-mini-val" id="kpi-extra-value">0,00 €</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="dash-three">
-          <article class="card">
-            <div class="chart-head">
-              <h2>Esta semana</h2>
-              <span class="badge info" id="week-badge">—</span>
-            </div>
-            <div class="week-chart" id="week-chart"></div>
-            <div class="week-summary" id="week-summary"></div>
-          </article>
-
-          <article class="card next-pay">
-            <div>
-              <div class="chart-head" style="margin-bottom:0">
-                <h2>Próxima nómina</h2>
-                <span class="badge muted">Estimada</span>
-              </div>
-              <div class="next-pay-value" id="next-pay-value">—</div>
-              <div class="next-pay-meta" id="next-pay-meta">—</div>
-            </div>
-            <button class="btn ghost sm" type="button" data-action="tab" data-tab="pagos" style="margin-top:14px;width:100%">
-              <svg class="i"><use href="#i-wallet"></use></svg> Gestionar pagos
-            </button>
-          </article>
-
-          <article class="card">
-            <div class="chart-head">
-              <h2>Actividad</h2>
-              <span class="badge muted">12 semanas</span>
-            </div>
-            <div class="heatmap-wrap" id="heatmap"></div>
-            <div class="hm-legend">
-              <span>Menos</span>
-              <i class="hm-cell" data-lvl="0"></i>
-              <i class="hm-cell" data-lvl="1"></i>
-              <i class="hm-cell" data-lvl="2"></i>
-              <i class="hm-cell" data-lvl="3"></i>
-              <i class="hm-cell" data-lvl="4"></i>
-              <span>Más</span>
-            </div>
-          </article>
-        </div>
-
-        <div class="dash-split">
-          <article class="card donut-card-v3">
-            <div class="chart-head" style="width:100%">
-              <h2>Estado de cobro</h2>
-              <span class="badge muted" id="donut-status">—</span>
-            </div>
-            <div class="donut-v3-wrap">
-              <svg class="donut-v3" viewBox="0 0 120 120" role="img" aria-labelledby="donut-title">
-                <title id="donut-title">Porcentaje cobrado</title>
-                <circle class="track" cx="60" cy="60" r="50"></circle>
-                <circle class="arc" id="donut-arc" cx="60" cy="60" r="50" transform="rotate(-90 60 60)" stroke-dasharray="0 314.16"></circle>
-              </svg>
-              <div class="donut-v3-label">
-                <strong id="donut-pct">0%</strong>
-                <span>Cobrado</span>
-              </div>
-            </div>
-            <div class="donut-v3-foot">
-              <span id="donut-sub">—</span>
-              <span id="donut-sub2">—</span>
-            </div>
-          </article>
-
-          <article class="card">
-            <div class="chart-head">
-              <h2>Flujo de caja</h2>
-              <span class="badge bad" id="bars-total" title="Importe pendiente total en los meses mostrados">0,00 €</span>
-            </div>
-            <div class="chart-overtime-summary"><strong>Extras confirmadas (meses mostrados)</strong><span id="bars-extra-summary">Sin extras confirmadas</span></div>
-            <p class="hint" id="bars-caption" style="margin:0 0 10px" hidden></p>
-            <div class="chart-extra-grid" id="bars-extra-details" aria-label="Desglose mensual de horas extra" hidden></div>
-            <p class="chart-extra-note" id="bars-extra-note" hidden>El valor esperado usa la tarifa histórica. Anota el total recibido para ver la diferencia; ese dato es informativo y no cambia los estados de cobro.</p>
-            <div id="bars"></div>
-            <div class="chart-legend" id="bars-legend"></div>
           </article>
         </div>
 
