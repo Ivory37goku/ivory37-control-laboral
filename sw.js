@@ -2,7 +2,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.3.5-shared-sync-base-monthly-hours';
+const CACHE_NAME = CACHE_PREFIX + 'v3.3.6-semantic-sync-conflicts';
 const ASSETS = [
   './',
   './index.html',

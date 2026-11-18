@@ -24,7 +24,7 @@ function createSyncHarness() {
     addEventListener(name, listener) { listeners.set(name, listener); },
     dispatchEvent(event) { const listener = listeners.get(event.type); if (listener) listener(event); }
   };
-  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; } };\n' + hook);
+  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; }, sameBusinessRecord: sameBusinessRecord, removeNoopConflicts: removeNoopConflicts };\n' + hook);
   vm.runInNewContext(instrumented, {
     window,
     document: { querySelector() { return null; } },
@@ -120,6 +120,30 @@ test('concurrent edits retain the newer version and expose the alternate', () =>
   assert.equal(result.conflicts.length, 1);
   assert.equal(result.conflicts[0].winner, 'remote');
   assert.equal(result.conflicts[0].alternate.notas, 'Cambio del móvil');
+});
+
+test('device timestamps and object key order do not create false conflicts', () => {
+  const local = plain(base);
+  const remote = plain(base);
+  local.jornadas[0].creado = '2026-11-17T08:00:00.000Z';
+  remote.jornadas[0].creado = '2026-11-18T08:00:00.000Z';
+  local.jornadas[0] = Object.fromEntries(Object.entries(local.jornadas[0]).reverse());
+  const result = createSyncHarness().core.mergeData(
+    local, remote,
+    metadata({ [key('jornadas', 'j-1')]: 100 }),
+    metadata({ [key('jornadas', 'j-1')]: 200 }),
+    base
+  );
+  assert.equal(result.conflicts.length, 0);
+});
+
+test('historical conflicts with only creation metadata differences are removed safely', () => {
+  const core = createSyncHarness().core;
+  const chosen = { id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: '[CONFIRMADO] Jornada estándar verificada.', creado: '2026-11-17T08:00:00.000Z' };
+  const alternate = { ...chosen, creado: '2026-11-18T08:00:00.000Z' };
+  const noOpConflict = { id: 'jornadas|j-1:1:2', collection: 'jornadas', itemId: 'j-1', chosen, alternate, createdAt: 1 };
+  assert.equal(core.removeNoopConflicts([noOpConflict]).length, 0);
+  assert.equal(core.removeNoopConflicts([{ ...noOpConflict, alternate: { ...alternate, horas_extra: 1 } }]).length, 1);
 });
 
 test('a later tombstone wins over an older edit; a newer edit restores the record', () => {

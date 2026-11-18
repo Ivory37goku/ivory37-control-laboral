@@ -1,5 +1,12 @@
 # Cambios
 
+## 3.3.6 — Limpieza segura de conflictos de sincronización
+
+- Las diferencias de orden de campos y las fechas técnicas de creación/actualización ya no generan conflictos entre dispositivos.
+- Los conflictos anteriores cuyas dos versiones solo difieren en esos metadatos se retiran automáticamente del aviso, sin cambiar jornadas, pagos ni otros datos de trabajo.
+- Los conflictos con diferencias reales se mantienen para revisión y ahora muestran qué campos son distintos.
+- Web, Android y Windows comparten esta corrección; la PWA renueva su caché.
+
 ## 3.3.5 — Sincronización y horas mensuales más claras
 
 - Se separa la última base compartida en la nube de las ediciones locales pendientes, para detectar cambios simultáneos sin perder la versión alternativa.
