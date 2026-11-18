@@ -31,7 +31,7 @@ test('web, Android, Windows and changelog share the release version', () => {
   assert.match(read('index.html'), new RegExp('<meta name="app-version" content="' + version + '">'));
   assert.match(read('app.js'), new RegExp("content \\|\\| '" + version + "'"));
   assert.match(read('android-app/app/build.gradle'), new RegExp("versionName '" + version + "'"));
-  assert.match(read('sw.js'), new RegExp('v' + version.replace(/\./g, '\\.') + '-'));
+  assert.match(read('sw.js'), new RegExp("const RELEASE_VERSION = '" + version + "'"));
   assert.match(read('CHANGELOG.md'), new RegExp('## ' + version.replace(/\./g, '\\.') + ' —'));
 });
 
@@ -51,13 +51,16 @@ test('synchronization retains conflict tracking', () => {
   assert.match(sync, /deleted/);
 });
 
-test('PWA updates require explicit user confirmation to protect unsaved edits', () => {
+test('PWA offers only newer service workers and keeps updates out of active forms', () => {
   const pwa = read('pwa.js');
   const schedule = pwa.match(/function scheduleSafeUpdate\(\) \{([\s\S]*?)\n  \}/);
   assert.ok(schedule, 'update scheduling function is present');
   assert.doesNotMatch(schedule[1], /postMessage/);
+  assert.match(schedule[1], /!safeToUpdate\(\)/);
+  assert.match(pwa, /type: 'GET_VERSION'/);
+  assert.match(pwa, /compareVersions\(version, appVersion\) <= 0/);
   assert.match(pwa, /updateBtn\.addEventListener\('click'/);
-  assert.match(pwa, /Guarda y cierra los formularios/);
+  assert.doesNotMatch(pwa, /else window\.location\.reload\(\)/);
 });
 
 test('Windows release creates only the installer, never a portable executable', () => {

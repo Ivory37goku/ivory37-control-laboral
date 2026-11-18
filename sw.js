@@ -2,7 +2,8 @@
 'use strict';
 
 const CACHE_PREFIX = 'control-laboral-';
-const CACHE_NAME = CACHE_PREFIX + 'v3.3.7-stable-sync-status';
+const RELEASE_VERSION = '3.3.8';
+const CACHE_NAME = CACHE_PREFIX + 'v' + RELEASE_VERSION + '-stable-clock-in';
 const ASSETS = [
   './',
   './index.html',
@@ -75,6 +76,10 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('message', (event) => {
   const data = event.data || {};
+  if (data.type === 'GET_VERSION') {
+    if (event.ports && event.ports[0]) event.ports[0].postMessage({ version: RELEASE_VERSION });
+    return;
+  }
   if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
     return;
