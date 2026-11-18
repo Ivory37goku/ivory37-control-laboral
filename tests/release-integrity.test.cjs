@@ -30,7 +30,7 @@ test('PWA precache includes application scripts', () => {
   }
   assert.match(read('index.html'), /chart-month-hours/);
   assert.match(read('app.js'), /fmtHours\(row\.extraHours\)/);
-  assert.match(read('app.js'), /const compactHours = fmtHours\(row\.extraHours\)\.replace/);
+  assert.match(read('app.js'), /class="chart-month-hours">\$\{esc\(fmtHours\(row\.extraHours\)\)\} extra/);
   assert.doesNotMatch(read('app.js'), /filter\(\(row\) => row\.total > 0 \|\| row\.extraHours > 0\)/);
 });
 

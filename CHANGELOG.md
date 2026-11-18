@@ -1,5 +1,18 @@
 # Cambios
 
+## 3.3.12 — Guardado, nóminas y Windows sin conexión
+
+- Guardar una jornada, un viaje o una nómina con la sincronización en curso aplica la edición al registro actual y avisa si los mismos campos cambiaron en otro dispositivo.
+- Un fallo de espacio mantiene abierto el formulario y permite reintentar el guardado.
+- El panel, los pagos y los informes cuentan una sola propuesta de nómina automática por mes. Se conservan los importes confirmados y editados manualmente.
+- Windows abre la versión incluida en el instalador. Las instalaciones anteriores recuperan una vez su copia local.
+
+## 3.3.11 — Resumen mensual más legible
+
+- Cabecera y accesos compactos, cuatro indicadores de cobros y horas, y tarjetas de vidrio inspiradas en Gestión Clientes.
+- Flujo de caja con el pendiente y las horas extra junto a cada mes, incluso cuando el pendiente es cero.
+- Comparativa mensual del valor esperado y el pago anotado, con diferencia e importe por hora extra confirmada.
+
 ## 3.3.10 — Protege las jornadas durante la sincronización
 
 - Una sincronización que empezó antes de guardar ya no puede aplicar su copia anterior y quitar la jornada nueva.

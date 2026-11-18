@@ -15,7 +15,12 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 3.3.8" src="https://img.shields.io/badge/versi%C3%B3n-3.3.8-1f392d?labelColor=0a0f0d">
+  <a href="CHANGELOG.md">Historial de versiones</a>
+  ·
+  <a href="docs/QUALITY-CHECKLIST.md">Auditoría y pruebas</a>
+</p>
+
+<p align="center">
   <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
   <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>
@@ -25,14 +30,20 @@ Control Laboral es una aplicación personal para anotar horas trabajadas, revisa
 ## Capturas
 
 <p align="center">
-  <img src="docs/dashboard.jpg" alt="Dashboard de Control Laboral con resumen de jornadas, horas y cobros" width="100%">
+  <img src="docs/dashboard.jpg" alt="Panel de Control Laboral con fichaje, cuatro indicadores y flujo de caja por mes" width="100%">
 </p>
-<p align="center"><em>Panel de control · resumen de actividad y cantidades pendientes</em></p>
+<p align="center"><em>Panel de Control Laboral con el fichaje, los cobros y las horas extra a la vista.</em></p>
 
 <p align="center">
-  <img src="docs/mobile.jpg" alt="Control Laboral en una pantalla de móvil" width="300">
+  <img src="docs/mobile.jpg" alt="Resumen compacto de Control Laboral en móvil" width="300">
+  <img src="docs/mobile-cash.jpg" alt="Meses, importes pendientes y horas extra visibles en móvil" width="300">
 </p>
-<p align="center"><em>La misma identidad visual, adaptada al móvil</em></p>
+<p align="center"><em>Accesos de fichaje y flujo de caja por mes en el móvil.</em></p>
+
+<p align="center">
+  <img src="docs/extras-mensuales.jpg" alt="Comparativa de horas extra por mes con importe a tarifa, pago recibido y diferencia" width="100%">
+</p>
+<p align="center"><em>Comparativa de lo que corresponde por tarifa y el pago real de las horas extra.</em></p>
 
 <p align="center">
   <img src="docs/jornadas.jpg" alt="Registro de jornadas en Control Laboral" width="100%">
@@ -48,22 +59,22 @@ Control Laboral es una aplicación personal para anotar horas trabajadas, revisa
 
 ## Funciones
 
-- **Dashboard:** horas de la semana, fichaje de hoy, nóminas y comparativa mensual de horas extra confirmadas, valor según tarifa, importe recibido y diferencia.
+- **Panel:** fichaje de hoy, cobros y horas de la semana. El flujo de caja muestra los últimos ocho meses con actividad, con horas extra aunque el pendiente sea 0 €. En la comparativa puedes anotar el pago real y ver la diferencia y el importe recibido por hora extra confirmada.
 - **Jornadas:** fichaje de entrada y salida, registro manual, turnos nocturnos, pausa no computable configurable, horas extra, filtros y confirmación de jornadas provisionales.
 - **Pagos y viajes:** seguimiento de nóminas, dietas y desplazamientos, con estado de pago.
 - **Calendario:** registro de descansos, vacaciones, bajas, festivos y otras incidencias.
 - **Informes:** consulta por fechas, impresión o guardado en PDF y exportación a CSV.
 - **Copias y datos:** backup JSON, restauración, copia local automática y sincronización opcional entre dispositivos.
 - **Personalización:** perfil, foto y logotipo propios, además de la identidad visual de Control Laboral.
-- **PWA:** aplicación instalable, caché para uso sin conexión y actualización automática tras la primera carga.
+- **PWA:** aplicación instalable y disponible sin conexión después de la primera carga. Cuando hay una nueva versión, puedes aplicarla desde el aviso de actualización.
 
 ## Formas de uso
 
 | Plataforma | Cómo abrirla |
 | --- | --- |
 | Web y PWA | [Abrir Control Laboral](https://ivory37goku.github.io/ivory37-control-laboral/). En Android usa **Instalar app**; en iPhone o iPad, **Compartir → Añadir a pantalla de inicio**. |
-| Android | Proyecto Android Studio en [`android-app/`](android-app/). Usa WebView y conserva los datos locales. Consulta la [guía de compilación](android-app/README.md). |
-| Windows | Aplicación de escritorio basada en Electron. Para generar los instaladores, sigue los comandos de la sección [Desarrollo](#desarrollo). |
+| Android | La APK incluye la app y arranca sin conexión. Para actualizar, instala una APK nueva con la misma firma encima de la anterior. Consulta la [guía de compilación](android-app/README.md). |
+| Windows | El instalador Setup incluye la app, abre sin conexión y recupera la copia local de instalaciones anteriores. Para generarlo, sigue los comandos de [Desarrollo](#desarrollo). |
 | Desarrollo local | Sirve la carpeta por HTTP siguiendo las instrucciones de abajo. |
 
 ## Primeros pasos
