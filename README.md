@@ -30,9 +30,9 @@ Control Laboral es una aplicación personal para anotar horas trabajadas, revisa
 ## Capturas
 
 <p align="center">
-  <img src="docs/dashboard.jpg" alt="Panel de Control Laboral con fichaje, cuatro indicadores y flujo de caja por mes" width="100%">
+  <img src="docs/dashboard.jpg" alt="Panel Aurora de Control Laboral con la jornada de hoy y el flujo de caja por mes" width="100%">
 </p>
-<p align="center"><em>Panel de Control Laboral con el fichaje, los cobros y las horas extra a la vista.</em></p>
+<p align="center"><em>Panel Aurora con el fichaje, los cobros y las horas extra a la vista.</em></p>
 
 <p align="center">
   <img src="docs/mobile.jpg" alt="Resumen compacto de Control Laboral en móvil" width="300">

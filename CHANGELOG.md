@@ -1,5 +1,11 @@
 # Cambios
 
+## 3.3.13 — Panel Aurora
+
+- Nuevo acabado de vidrio verde menta para el resumen, con la jornada de hoy y su estado en la cabecera.
+- La tarjeta de hoy muestra la entrada o la salida según el fichaje que corresponda.
+- El flujo de caja y la comparativa mensual conservan las horas extra, los importes y el detalle de cobro.
+
 ## 3.3.12 — Guardado, nóminas y Windows sin conexión
 
 - Guardar una jornada, un viaje o una nómina con la sincronización en curso aplica la edición al registro actual y avisa si los mismos campos cambiaron en otro dispositivo.

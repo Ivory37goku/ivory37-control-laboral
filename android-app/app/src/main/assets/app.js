@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.12';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.13';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -417,7 +417,6 @@
     const badges = $('#hero-badges');
     if (badges) {
       const list = [];
-      if (j && j.entrada && !j.salida) list.push('<span class="badge info">Jornada abierta</span>');
       if (isEstimation()) list.push('<span class="badge warn">Estimación activa</span>');
       badges.innerHTML = list.join('');
     }
@@ -454,6 +453,25 @@
     if (inline) inline.textContent = inlineText;
     if (qaIn) qaIn.textContent = j && j.entrada ? 'A las ' + j.entrada : 'Fichar ahora';
     if (qaOut) qaOut.textContent = j && j.salida ? 'A las ' + j.salida : 'Cerrar jornada';
+    const state = $('#hero-clock-state');
+    if (state && state.textContent !== label) state.textContent = label;
+    const action = $('#hero-clock-action');
+    if (action) {
+      const open = Boolean(j && j.entrada && !j.salida);
+      const nextAction = open ? 'clock-out' : 'clock-in';
+      action.hidden = Boolean(j && j.salida);
+      if (action.dataset.action !== nextAction) {
+        action.dataset.action = nextAction;
+        action.querySelector('span').textContent = open ? 'Fichar salida' : 'Fichar entrada';
+        action.querySelector('use').setAttribute('href', open ? '#i-logout' : '#i-login');
+      }
+      if (open) {
+        const heroHours = $('#hero-today-hours');
+        const heroMeta = $('#hero-today-meta');
+        if (heroHours) heroHours.textContent = fmtHours(worked);
+        if (heroMeta) heroMeta.textContent = subLabel;
+      }
+    }
   }
 
   function renderSparklines() {

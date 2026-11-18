@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-  <meta name="app-version" content="3.3.12">
+  <meta name="app-version" content="3.3.13">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -1369,6 +1369,98 @@ body::before {
   .cash-track { margin-top: 4px; }
 }
 </style>
+
+<style id="aurora-dashboard">
+.aurora-dashboard {
+  --aurora-accent: #b5eed8;
+  --aurora-ink: #eaf8f3;
+  --aurora-muted: #adcbc3;
+  --aurora-line: rgb(182 235 215 / .18);
+  --aurora-surface: linear-gradient(142deg, #213a34, #152824 78%);
+  --aurora-shadow: 0 15px 34px rgb(0 12 9 / .22), inset 0 1px rgb(226 255 244 / .055);
+}
+.panel.aurora-dashboard::before {
+  top: 0;
+  height: 470px;
+  background: radial-gradient(ellipse at 75% 20%, rgb(84 188 150 / .15), transparent 66%);
+}
+.panel.aurora-dashboard .dash-hero {
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px,1fr);
+  gap: clamp(12px, 3vw, 26px);
+  padding: clamp(18px, 3vw, 32px);
+  color: var(--aurora-ink);
+  border-color: rgb(178 232 211 / .28);
+  border-radius: 23px;
+  background: radial-gradient(ellipse at 77% -80%, rgb(149 236 197 / .42), transparent 77%),
+    radial-gradient(ellipse at 108% 12%, rgb(136 196 203 / .24), transparent 57%),
+    linear-gradient(120deg, #263f37 2%, #1b332d 52%, #172925);
+  box-shadow: 0 22px 50px rgb(0 12 9 / .25), inset 0 1px rgb(220 255 239 / .12);
+}
+.panel.aurora-dashboard .dash-hero::after { display: none; }
+.aurora-dashboard .dash-hero-greeting { color: var(--aurora-muted); letter-spacing: .1em; }
+.aurora-dashboard .dash-hero-title { margin: 0 0 4px; font-size: clamp(25px, 4.4vw, 47px); }
+.aurora-greeting { margin: 0; color: var(--aurora-muted); font-size: 13px; overflow-wrap: anywhere; }
+.aurora-greeting #hero-name { color: var(--aurora-accent); }
+.panel.aurora-dashboard .dash-hero-today {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  align-content: center;
+  min-width: 0;
+  padding: 15px 17px;
+  gap: 4px;
+  border-radius: 15px;
+  border-color: var(--aurora-line);
+  background: linear-gradient(145deg, rgb(190 242 219 / .12), rgb(167 229 204 / .055));
+}
+.panel.aurora-dashboard .dash-hero-today .big {
+  color: var(--aurora-ink);
+  background: none;
+  filter: none;
+  font-size: clamp(25px, 4.2vw, 44px);
+  line-height: 1.11;
+}
+.panel.aurora-dashboard .dash-hero-today .meta { color: var(--aurora-muted); margin: 0; }
+.aurora-clock-state { display: flex; gap: 7px; align-items: center; color: var(--aurora-accent); font-size: 12px; }
+.aurora-clock-state::before { content: ""; width: 7px; height: 7px; flex: none; background: currentColor; border-radius: 50%; }
+.aurora-dashboard .aurora-clock-button { justify-self: start; min-height: 40px; margin-top: 5px; background: var(--aurora-accent); color: #153629; box-shadow: none; }
+.aurora-dashboard .aurora-clock-button:hover { background: #d7faec; }
+.panel.aurora-dashboard .card,
+.panel.aurora-dashboard .qa-btn {
+  border-color: var(--aurora-line);
+  background: var(--aurora-surface);
+  box-shadow: var(--aurora-shadow);
+}
+.panel.aurora-dashboard .qa-btn:hover { border-color: rgb(181 238 216 / .4); }
+.aurora-dashboard .qa-btn .qa-sub,
+.aurora-dashboard .dash-metric-head h2,
+.aurora-dashboard .dash-metric > small,
+.aurora-dashboard .dash-caption,
+.aurora-dashboard .cash-total span { color: var(--aurora-muted); }
+.aurora-dashboard .cash-row { border-color: rgb(182 235 215 / .10); background: rgb(175 235 213 / .045); }
+.aurora-dashboard .chart-month-hours { color: var(--aurora-accent); }
+.aurora-dashboard .cash-payroll { background: #a4bddb; }
+.aurora-dashboard .cash-extras { background: #9ee1c8; }
+.aurora-dashboard .cash-trips { background: #e6bc88; }
+.panel.aurora-dashboard .chart-extra-month { background: rgb(174 240 216 / .055); border-color: var(--aurora-line); }
+.panel.aurora-dashboard .chart-extra-month .chart-extra-top strong { color: var(--aurora-accent); }
+.aurora-dashboard .dash-hero-actions .btn { flex: 0 0 auto; }
+.aurora-dashboard .dash-metrics .dash-metric { border-radius: 13px; }
+@media (max-width: 640px) {
+  .panel.aurora-dashboard .dash-hero { grid-template-columns: minmax(0,1fr); padding: 14px; gap: 11px; }
+  .aurora-dashboard .dash-hero-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); }
+  .aurora-dashboard .dash-hero-actions .btn { min-width: 0; white-space: normal; text-align: center; }
+  .panel.aurora-dashboard .dash-hero-today {
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
+    padding: 10px 12px;
+  }
+  .aurora-dashboard .aurora-clock-state { grid-column: 1; grid-row: 1; }
+  .aurora-dashboard #hero-today-hours { grid-column: 1; grid-row: 2; }
+  .panel.aurora-dashboard #hero-today-meta { grid-column: 1 / -1; }
+  .aurora-dashboard .aurora-clock-button { grid-column: 2; grid-row: 1 / span 2; margin: 0; padding-inline: 9px; }
+  .aurora-dashboard .aurora-clock-button .i { width: 14px; }
+}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Saltar al contenido</a>
@@ -1433,16 +1525,14 @@ body::before {
     <main id="main">
 
       <!-- ============ DASHBOARD 3.0 ============ -->
-      <section class="panel" data-tab-panel="dashboard">
+      <section class="panel aurora-dashboard" data-tab-panel="dashboard">
 
         <div class="dash-hero">
           <div class="dash-hero-top">
             <div>
               <p class="dash-hero-greeting" id="today-label">—</p>
-              <h1 class="dash-hero-title">
-                <span id="hero-greeting">Buenos días</span>,
-                <span class="name" id="hero-name">Control Laboral</span>.
-              </h1>
+              <h1 class="dash-hero-title">Tu jornada de hoy</h1>
+              <p class="aurora-greeting"><span id="hero-greeting">Buenos días</span>, <span id="hero-name">Control Laboral</span>.</p>
               <div id="hero-badges" class="hero-badges"></div>
             </div>
             <div class="dash-hero-actions">
@@ -1455,9 +1545,13 @@ body::before {
             </div>
           </div>
           <div class="dash-hero-today">
+            <span class="aurora-clock-state" id="hero-clock-state" aria-live="polite">Sin fichar</span>
             <span class="big" id="hero-today-hours">0,00 h</span>
-            <span class="label">Hoy</span>
             <span class="meta" id="hero-today-meta">Sin fichar</span>
+            <button class="btn primary aurora-clock-button" type="button" data-action="clock-in" id="hero-clock-action">
+              <svg class="i" aria-hidden="true"><use href="#i-login"></use></svg>
+              <span>Fichar entrada</span>
+            </button>
           </div>
         </div>
 
