@@ -3,6 +3,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
+const { pathToFileURL } = require('node:url');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
@@ -27,6 +29,39 @@ test('Electron desktop bridge does not expose raw ipcRenderer', () => {
   const preload = read('desktop/preload.cjs');
   assert.match(preload, /contextBridge\.exposeInMainWorld/);
   assert.doesNotMatch(preload, /ipcRenderer:\s*ipcRenderer/);
+});
+
+test('Electron acknowledges a storage migration once, after persisting the marker', () => {
+  const handlers = new Map();
+  let markerWritten = false;
+  const electron = {
+    app: {
+      setName() {}, setAppUserModelId() {}, setPath() {}, getPath() { return root; },
+      getAppPath() { return root; }, commandLine: { getSwitchValue() { return ''; } },
+      whenReady() { return { then() {} }; }, on() {}
+    },
+    ipcMain: { on(name, handle) { handlers.set(name, handle); }, handle() {} }
+  };
+  vm.runInNewContext(read('desktop/main.cjs'), {
+    URL,
+    require(name) {
+      if (name === 'electron') return electron;
+      if (name === 'node:fs') return { mkdirSync() {}, writeFileSync() { markerWritten = true; } };
+      return require(name);
+    }
+  });
+  const replies = [];
+  const replyTo = (url) => ({
+    senderFrame: { url },
+    set returnValue(value) { replies.push({ value, markerWritten }); }
+  });
+  const finish = handlers.get('ivory37:finish-storage-migration');
+  finish(replyTo('https://example.invalid/index.html'));
+  finish(replyTo(pathToFileURL(path.join(root, 'index.html')).href + '?nativeRestore=1'));
+  assert.deepEqual(replies, [
+    { value: false, markerWritten: false },
+    { value: true, markerWritten: true }
+  ]);
 });
 
 test('Android disables system backup and cleartext traffic', () => {

@@ -60,13 +60,18 @@ ipcMain.on('ivory37:write-storage-shadow', (event, raw) => {
 });
 
 ipcMain.on('ivory37:finish-storage-migration', (event) => {
-  event.returnValue = false;
-  if (!isTrustedAppDocument(event.senderFrame?.url || '')) return;
+  if (!isTrustedAppDocument(event.senderFrame?.url || '')) {
+    event.returnValue = false;
+    return;
+  }
   try {
     fs.mkdirSync(userDataPath, { recursive: true });
     fs.writeFileSync(bundledStorageMarker, 'enabled', 'utf8');
-    event.returnValue = true;
-  } catch (_) {}
+  } catch (_) {
+    event.returnValue = false;
+    return;
+  }
+  event.returnValue = true;
 });
 
 ipcMain.handle('ivory37:save-file', async (event, fileName, mimeType, encoded) => {
