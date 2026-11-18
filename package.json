@@ -1,6 +1,6 @@
 {
   "name": "ivory37-control-laboral",
-  "version": "3.3.6",
+  "version": "3.3.7",
   "private": true,
   "description": "Control Laboral — jornadas, horas extra, viajes y nóminas",
   "main": "desktop/main.cjs",

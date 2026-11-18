@@ -1,5 +1,11 @@
 # Cambios
 
+## 3.3.7 — Estado de sincronización estable
+
+- Las comprobaciones automáticas siguen manteniendo la nube al día, pero ya no hacen parpadear «Sincronizando» cuando no hay cambios.
+- Aplicar una copia con distinto orden de campos o marcas técnicas ya no vuelve a encolar la misma sincronización.
+- Los cambios reales de jornadas y pagos, y los errores de conexión, siguen reflejándose en el estado.
+
 ## 3.3.6 — Limpieza segura de conflictos de sincronización
 
 - Las diferencias de orden de campos y las fechas técnicas de creación/actualización ya no generan conflictos entre dispositivos.

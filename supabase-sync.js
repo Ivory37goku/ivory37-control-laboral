@@ -18,6 +18,7 @@
   var pollTimer = null;
   var inFlight = null;
   var rerun = false;
+  var rerunQuiet = true;
   var channel = null;
   var lastSuccess = 0;
 
@@ -82,7 +83,7 @@
     return out;
   }
 
-  function signature(data) { return JSON.stringify(normalizeData(data)); }
+  function signature(data) { return semanticSignature(normalizeData(data)); }
   function syncKey(collection, id) { return collection + '|' + String(id); }
 
   function stableMeta(value) {
@@ -334,7 +335,7 @@
     channel = client.channel('ivory37-sync-' + userId)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'ivory37_sync', filter: 'user_id=eq.' + userId
-      }, function () { scheduleSync(100); })
+      }, function () { scheduleSync(100, true, true); })
       .subscribe(function (status) {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('Realtime no disponible; se mantiene la comprobación periódica.');
       });
@@ -371,7 +372,8 @@
     return Boolean(updated.data);
   }
 
-  async function performSync() {
+  async function performSync(options) {
+    var quiet = Boolean(options && options.quiet);
     if (!client) return;
     var authResult = await client.auth.getSession();
     if (authResult.error) throw authResult.error;
@@ -403,8 +405,7 @@
         saveConflicts(conflictLog);
         applyMerged(merged);
         lastSuccess = Date.now();
-        var pendingConflicts = conflictLog.filter(function (item) { return !item.resolved; }).length;
-        showStatus(pendingConflicts ? 'Sincronizado · ' + pendingConflicts + ' conflicto(s) por revisar' : 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), pendingConflicts ? 'error' : 'ok');
+        showSyncResult(conflictLog, quiet, false);
         return;
       }
       var saved = await writeRemote(user.id, row, mergedPayload);
@@ -412,45 +413,70 @@
       saveConflicts(conflictLog);
       applyMerged(merged);
       lastSuccess = Date.now();
-      var unresolved = conflictLog.filter(function (item) { return !item.resolved; }).length;
-      showStatus(unresolved ? 'Sincronizado · ' + unresolved + ' conflicto(s) por revisar' : 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), unresolved ? 'error' : 'ok');
+      showSyncResult(conflictLog, quiet, true);
       return;
     }
     throw new Error('Hay cambios simultáneos en otro dispositivo. Pulsa «Sincronizar ahora» de nuevo.');
   }
 
-  function syncNow() {
+  function showSyncResult(conflictLog, quiet, changed) {
+    var pending = conflictLog.filter(function (item) { return !item.resolved; }).length;
+    if (pending) showStatus('Sincronizado · ' + pending + ' conflicto(s) por revisar', 'error');
+    else if (!quiet || changed) showStatus('Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), 'ok');
+  }
+
+  function syncNow(options) {
+    var quiet = Boolean(options && options.quiet);
+    var rerunIfBusy = Boolean(options && options.rerunIfBusy);
     if (!client || !session) {
-      if (client) showStatus('Inicia sesión para sincronizar. Los datos locales están guardados.', 'neutral');
+      if (client && !quiet) showStatus('Inicia sesión para sincronizar. Los datos locales están guardados.', 'neutral');
       return Promise.resolve();
     }
-    if (inFlight) { rerun = true; return inFlight; }
+    if (inFlight) {
+      if (rerunIfBusy || !quiet) {
+        rerun = true;
+        if (!quiet) rerunQuiet = false;
+      }
+      return inFlight;
+    }
     clearTimeout(syncTimer);
-    setBusy(true);
-    showStatus(navigator.onLine === false ? 'Sin conexión · los cambios quedan en cola local.' : 'Sincronizando…', 'busy');
-    inFlight = performSync()
+    if (!quiet) {
+      setBusy(true);
+      showStatus(navigator.onLine === false ? 'Sin conexión · los cambios quedan en cola local.' : 'Sincronizando…', 'busy');
+    }
+    inFlight = performSync({ quiet: quiet })
       .catch(function (error) {
         console.error('Sincronización IVORY37:', error);
         showStatus(navigator.onLine === false ? 'Sin conexión · cambios guardados localmente; se reintentarán al volver internet.' : 'No se pudo sincronizar: ' + (error.message || 'error de conexión'), 'error');
       })
       .finally(function () {
         inFlight = null;
-        setBusy(false);
-        if (rerun) { rerun = false; scheduleSync(100); }
+        if (!quiet) setBusy(false);
+        if (rerun) {
+          var nextQuiet = rerunQuiet;
+          rerun = false;
+          rerunQuiet = true;
+          scheduleSync(100, true, nextQuiet);
+        }
       });
     return inFlight;
   }
 
-  function scheduleSync(delay) {
+  function scheduleSync(delay, rerunIfBusy, quiet) {
     if (!client || !session) return;
+    if (inFlight) {
+      if (rerunIfBusy) rerun = true;
+      if (quiet === false) rerunQuiet = false;
+      return;
+    }
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, delay == null ? 700 : delay);
+    syncTimer = setTimeout(function () { syncNow({ quiet: quiet !== false, rerunIfBusy: Boolean(rerunIfBusy) }); }, delay == null ? 700 : delay);
   }
 
   function queue(data) {
     if (!initialized || !data) return;
     trackLocalChanges(data);
-    scheduleSync(700);
+    scheduleSync(700, true, true);
   }
 
   function readCredentials() {
@@ -521,7 +547,7 @@
       } catch (error) { showStatus(friendlyAuthError(error), 'error'); }
       finally { setBusy(false); }
     });
-    if (sync) sync.addEventListener('click', syncNow);
+    if (sync) sync.addEventListener('click', function () { syncNow(); });
   }
 
   function init(initialData) {
@@ -564,9 +590,9 @@
       console.warn('No se pudo recuperar la sesión de Supabase:', error);
       showStatus('Sin conexión o sesión no disponible. Los datos locales están guardados.', 'neutral');
     });
-    pollTimer = setInterval(function () { if (session) syncNow(); }, 25000);
-    window.addEventListener('online', function () { if (session) syncNow(); });
-    window.addEventListener('focus', function () { if (session && Date.now() - lastSuccess > 5000) syncNow(); });
+    pollTimer = setInterval(function () { if (session) syncNow({ quiet: true }); }, 25000);
+    window.addEventListener('online', function () { if (session) syncNow({ quiet: true }); });
+    window.addEventListener('focus', function () { if (session && Date.now() - lastSuccess > 5000) syncNow({ quiet: true }); });
   }
 
   function resolveConflict(id, restoreAlternate) {
@@ -586,7 +612,7 @@
     conflict.resolution = restoreAlternate ? 'restored' : 'kept';
     saveConflicts(conflicts);
     if (restoreAlternate) window.dispatchEvent(new CustomEvent('ivory37:cloud-data', { detail: clone(normalizeData(data)) }));
-    scheduleSync(100);
+    scheduleSync(100, true, true);
     return true;
   }
 
