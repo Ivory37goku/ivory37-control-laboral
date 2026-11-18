@@ -12,6 +12,7 @@ assert.ok(source.includes(hook), 'sync test hook point exists');
 function createSyncHarness(options) {
   const values = new Map();
   const listeners = new Map();
+  const events = [];
   const statusElement = { textContent: '', dataset: {} };
   const localStorage = {
     getItem(key) { return values.has(key) ? values.get(key) : null; },
@@ -22,10 +23,10 @@ function createSyncHarness(options) {
   };
   const window = {
     IVORY37_SUPABASE_CONFIG: {},
-    addEventListener(name, listener) { listeners.set(name, listener); },
-    dispatchEvent(event) { const listener = listeners.get(event.type); if (listener) listener(event); }
+    addEventListener(name, listener) { const list = listeners.get(name) || []; list.push(listener); listeners.set(name, list); },
+    dispatchEvent(event) { events.push(event); (listeners.get(event.type) || []).forEach(listener => listener(event)); }
   };
-  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; }, sameBusinessRecord: sameBusinessRecord, removeNoopConflicts: removeNoopConflicts, signature: signature, syncNow: syncNow, performSync: performSync, setSyncContext: function (testClient, testSession) { client = testClient; session = testSession; } };\n' + hook);
+  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; }, sameBusinessRecord: sameBusinessRecord, removeNoopConflicts: removeNoopConflicts, signature: signature, applyMerged: applyMerged, syncNow: syncNow, performSync: performSync, setSyncContext: function (testClient, testSession) { client = testClient; session = testSession; } };\n' + hook);
   vm.runInNewContext(instrumented, {
     window,
     document: { querySelector(selector) { return selector === '#cloud-status' ? statusElement : null; } },
@@ -38,7 +39,7 @@ function createSyncHarness(options) {
     setInterval() { return 1; },
     clearInterval() {}
   }, { filename: 'supabase-sync.js' });
-  return { sync: window.IVORY37CloudSync, core: window.__syncTestCore, localStorage, statusElement };
+  return { sync: window.IVORY37CloudSync, core: window.__syncTestCore, localStorage, statusElement, events };
 }
 
 const base = {
@@ -154,6 +155,18 @@ test('cloud apply signature ignores key order and device timestamps but keeps wo
   assert.equal(core.signature(local), core.signature(remote));
   remote.jornadas[0].horas_extra = 1;
   assert.notEqual(core.signature(local), core.signature(remote));
+});
+
+test('applying an equivalent cloud record does not emit a re-queue event', () => {
+  const harness = createSyncHarness();
+  const keyName = '工V龱尺ㄚ㇌7_data_v1';
+  const local = { jornadas: [{ id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: 'Confirmada', creado: '2026-11-17T08:00:00.000Z' }] };
+  const remote = { jornadas: [{ notas: 'Confirmada', horas_extra: 0, horas_normales: 8, fecha: '2026-06-30', id: 'j-1', creado: '2026-11-18T08:00:00.000Z' }] };
+  harness.localStorage.setItem(keyName, JSON.stringify(local));
+
+  harness.core.applyMerged({ data: remote, meta: { modified: {}, deleted: {} } });
+
+  assert.equal(harness.events.filter(event => event.type === 'ivory37:cloud-data').length, 0);
 });
 
 test('a quiet no-op cloud poll leaves the successful status unchanged', async () => {
