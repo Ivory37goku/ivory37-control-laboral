@@ -1,5 +1,11 @@
 # Cambios
 
+## 3.3.10 — Protege las jornadas durante la sincronización
+
+- Una sincronización que empezó antes de guardar ya no puede aplicar su copia anterior y quitar la jornada nueva.
+- La sincronización vuelve a comparar los datos locales antes de escribir y antes de aplicar la respuesta; si hubo cambios, repite la mezcla con la jornada más reciente.
+- Se añade una prueba que guarda jornadas durante la lectura y la escritura remotas.
+
 ## 3.3.9 — Arranque estable y sincronización sin conflictos falsos
 
 - Android vuelve a ejecutar siempre la versión incluida en el APK, sin sustituirla silenciosamente por la web publicada.

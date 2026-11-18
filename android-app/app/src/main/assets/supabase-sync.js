@@ -185,9 +185,12 @@
         var key = syncKey(collection, id);
         var localRevision = Number(localMeta.modified[key] || 0);
         var remoteRevision = Number(remoteMeta.modified[key] || 0);
-        var winner = localRevision >= remoteRevision ? 'local' : 'remote';
-        var chosen = winner === 'local' ? localItem : remoteItem;
-        var alternate = winner === 'local' ? remoteItem : localItem;
+        // Both devices changed this record from the shared base. Keep this
+        // device's working copy and expose the cloud edit as the alternative;
+        // device clocks must not silently decide which jornada disappears.
+        var winner = 'local';
+        var chosen = localItem;
+        var alternate = remoteItem;
         found.push({
           id: key + ':' + localRevision + ':' + remoteRevision + ':' + smallHash(localItem) + ':' + smallHash(remoteItem),
           collection: collection, itemId: id, createdAt: Date.now(), winner: winner,
@@ -285,21 +288,36 @@
     var local = normalizeData(localInput);
     var remote = normalizeData(remoteInput);
     var combinedMeta = maxMaps(localMeta, remoteMeta);
+    var base = normalizeData(baseInput || {});
     var merged = { jornadas: [], viajes: [], pagos: [], ausencias: [], ajustes: [] };
     ['jornadas', 'viajes', 'pagos', 'ausencias', 'ajustes'].forEach(function (collection) {
       var localRows = itemMap(local, collection);
       var remoteRows = itemMap(remote, collection);
+      var baseRows = itemMap(base, collection);
       var ids = new Set(Array.from(localRows.keys()).concat(Array.from(remoteRows.keys())));
       ids.forEach(function (id) {
         var key = syncKey(collection, id);
         var localItem = localRows.get(id);
         var remoteItem = remoteRows.get(id);
+        var baseItem = baseRows.get(id);
         var localRevision = Number(localMeta.modified[key] || 0);
         var remoteRevision = Number(remoteMeta.modified[key] || 0);
         var deletedAt = Number(combinedMeta.deleted[key] || 0);
         var selected = null;
         var selectedAt = 0;
-        if (localItem && remoteItem) {
+        var localChangedFromBase = Boolean(localItem && (!baseItem || !sameBusinessRecord(localItem, baseItem)));
+        var remoteChangedFromBase = Boolean(remoteItem && (!baseItem || !sameBusinessRecord(remoteItem, baseItem)));
+        if (localChangedFromBase) {
+          selected = localItem;
+          selectedAt = Math.max(Date.now(), localRevision, remoteRevision, deletedAt) + 1;
+          combinedMeta.modified[key] = selectedAt;
+          delete combinedMeta.deleted[key];
+        } else if (localItem && remoteItem && remoteChangedFromBase) {
+          selected = remoteItem;
+          selectedAt = Math.max(Date.now(), localRevision, remoteRevision, deletedAt) + 1;
+          combinedMeta.modified[key] = selectedAt;
+          delete combinedMeta.deleted[key];
+        } else if (localItem && remoteItem) {
           if (localRevision >= remoteRevision) { selected = localItem; selectedAt = localRevision; }
           else { selected = remoteItem; selectedAt = remoteRevision; }
         } else if (localItem) { selected = localItem; selectedAt = localRevision; }
@@ -386,6 +404,12 @@
     return Boolean(updated.data);
   }
 
+  function localChangedSince(value) {
+    var latest = normalizeData(readJson(LOCAL_KEY, {}));
+    trackLocalChanges(latest);
+    return signature(latest) !== signature(value);
+  }
+
   async function performSync(options) {
     var quiet = Boolean(options && options.quiet);
     if (!client) return;
@@ -405,6 +429,9 @@
       var local = normalizeData(readJson(LOCAL_KEY, {}));
       trackLocalChanges(local);
       var row = await fetchRemote(user.id);
+      // The user can save while the network request is in flight. Never apply
+      // or upload the stale snapshot if local data changed during that wait.
+      if (localChangedSince(local)) continue;
       var remotePayload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
       var remoteMeta = extractMeta(remotePayload);
       var merged = mergeData(local, remotePayload, meta, remoteMeta, sharedBase);
@@ -424,6 +451,9 @@
       }
       var saved = await writeRemote(user.id, row, mergedPayload);
       if (!saved) continue;
+      // A save can also happen during the conditional cloud write. Retry the
+      // merge with the newest local data before applying anything to the UI.
+      if (localChangedSince(local)) continue;
       saveConflicts(conflictLog);
       applyMerged(merged);
       lastSuccess = Date.now();
