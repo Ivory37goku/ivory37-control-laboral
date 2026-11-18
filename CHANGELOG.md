@@ -1,5 +1,13 @@
 # Cambios
 
+## 3.3.8 — Fichajes visibles y actualización segura
+
+- Guardar una jornada del día actual reutiliza la jornada existente, evitando que un fichaje automático vacío oculte las horas introducidas manualmente.
+- El resumen diario prefiere el fichaje manual completo si quedaron registros duplicados de versiones anteriores.
+- Los formularios ya no se cierran si el guardado local falla; se recuperan los datos guardados anteriormente.
+- El aviso de actualización solo aparece si el service worker anuncia una versión superior a la que está abierta y se oculta mientras hay formularios o ajustes abiertos.
+- El aviso queda detrás de los formularios para que no tape sus campos ni el botón Guardar.
+
 ## 3.3.7 — Estado de sincronización estable
 
 - Las comprobaciones automáticas siguen manteniendo la nube al día, pero ya no hacen parpadear «Sincronizando» cuando no hay cambios.

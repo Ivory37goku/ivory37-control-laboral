@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.7';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.8';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -218,6 +218,19 @@
 
   function initials(value) { const parts = String(value == null ? '' : value).trim().split(/\s+/).filter(Boolean); if (!parts.length) return '37'; return (parts[0].charAt(0) + (parts[1] ? parts[1].charAt(0) : '')).toUpperCase(); }
   function scheduleWindow() { const raw = String(setting('horario_habitual') || ''); const match = raw.match(/(\d{1,2}:\d{2})\s*(?:[-–]|\ba\b)\s*(\d{1,2}:\d{2})/i); if (!match) return null; const start = hhmm(match[1].padStart(5, '0')); const end = hhmm(match[2].padStart(5, '0')); if (!start || !end) return null; const startMin = toMinutes(start); const endMin = toMinutes(end); if (startMin === endMin) return null; return { start, end, startMin, endMin, overnight: endMin < startMin, hours: hoursBetween(start, end) }; }
+  function jornadaForDate(date) {
+    const rows = data.jornadas.filter((item) => item.fecha === date);
+    return rows.find((item) => !item.auto && item.entrada && item.salida)
+      || rows.find((item) => !item.auto)
+      || rows.find((item) => item.entrada && item.salida)
+      || rows[0]
+      || null;
+  }
+  function openJornadaForDate(date) {
+    const rows = data.jornadas.filter((item) => item.fecha === date && item.entrada && !item.salida);
+    if (data.jornadas.some((item) => item.fecha === date && !item.auto && item.entrada && item.salida)) return null;
+    return rows.find((item) => !item.auto) || rows[0] || null;
+  }
 
   function missingMonthDays() {
     const month = monthKey(new Date()); const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -227,16 +240,23 @@
   }
 
   function persist(message) {
-    if (loadError) { toast('No se pudieron leer tus datos guardados. Importa un backup o usa «Borrar todo».', 'error'); return; }
-    const snapshot = JSON.stringify(data);
-    let saved = true;
+    if (loadError) { toast('No se pudieron leer tus datos guardados. Importa un backup o usa «Borrar todo».', 'error'); return false; }
+    let previous = null;
+    try { previous = localStorage.getItem(KEY); } catch (err) { console.error('No se pudo leer la copia previa:', err); }
+    const restorePrevious = () => {
+      if (previous) {
+        try { data = normalize(JSON.parse(previous)); return; } catch (err) { console.error('No se pudo recuperar la copia previa:', err); }
+      }
+      data = normalize({});
+    };
     try { syncPayrolls(); }
-    catch (err) { console.error('syncPayrolls:', err); try { data = JSON.parse(snapshot); } catch (_) { data = normalize({}); } toast('Error al recalcular las nóminas.', 'error'); return; }
+    catch (err) { console.error('syncPayrolls:', err); restorePrevious(); toast('Error al recalcular las nóminas.', 'error'); return false; }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
-    catch (err) { saved = false; console.error(err); try { data = JSON.parse(snapshot); } catch (_) { data = normalize({}); } toast('No se pudo guardar. Exporta un backup.', 'error'); return; }
+    catch (err) { saved = false; console.error(err); restorePrevious(); toast('No se pudo guardar. Libera espacio o exporta un backup.', 'error'); return false; }
     window.IVORY37CloudSync?.queue(data);
     mirrorNativeStorage();
-    renderAll(); updateStorageUsage(); if (message && saved) toast(message);
+    renderAll(); updateStorageUsage(); if (message) toast(message);
+    return true;
   }
 
   function estimatedDates(month, records) {
@@ -269,6 +289,8 @@
   }
 
   function syncPayrolls() {
+    const manuallyCompletedDates = new Set(data.jornadas.filter((item) => !item.auto && item.entrada && item.salida).map((item) => item.fecha));
+    if (manuallyCompletedDates.size) data.jornadas = data.jornadas.filter((item) => !item.auto || !manuallyCompletedDates.has(item.fecha));
     const months = new Set(data.jornadas.filter((j) => j.estado === 'confirmado').map((j) => j.fecha.slice(0, 7)));
     const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean));
     Array.from(months).sort().forEach((month) => {
@@ -317,7 +339,7 @@
     const name = String(setting('user_name') || 'Control Laboral').trim() || 'Control Laboral';
     const nameEl = $('#hero-name'); if (nameEl) nameEl.textContent = name;
     const today = dateKey(now);
-    const j = data.jornadas.find((x) => x.fecha === today);
+    const j = jornadaForDate(today);
     let todayHours = 0; let metaText = 'Sin fichar';
     if (j) {
       if (j.entrada && j.salida) { todayHours = round2(j.horas_normales + j.horas_extra); metaText = j.entrada + '–' + j.salida; }
@@ -348,8 +370,8 @@
     const today = dateKey(now);
     const yesterday = dateKey(addDays(now, -1));
     const base = dayHours();
-    let j = data.jornadas.find((x) => x.fecha === today);
-    if (!j) { const openYesterday = data.jornadas.find((x) => x.fecha === yesterday && x.entrada && !x.salida); if (openYesterday) j = openYesterday; }
+    let j = jornadaForDate(today);
+    if (!j) j = openJornadaForDate(yesterday);
     const ring = $('#radial-progress');
     const eyebrow = $('#radial-eyebrow');
     const hoursEl = $('#radial-hours');
@@ -628,13 +650,13 @@
       body: '<label class="field"><span>Total recibido por estas horas</span><input class="input" id="extra-paid-amount" type="text" inputmode="decimal" autocomplete="off" value="' + esc(hasSaved ? fmtInput(num(saved, 0)) : '') + '" placeholder="Ej.: 125,50 €"></label><p class="hint">Introduce el total acumulado recibido por las horas extra de este mes. Si te lo han pagado en varias partes, suma los importes. Se comparará con las horas confirmadas y su tarifa histórica; este dato no cambia las horas marcadas como pagadas en la app.</p>',
       onSave: () => {
         const raw = String($('#extra-paid-amount').value || '').trim();
-        if (!raw) { removeSetting(key); persist('Importe recibido eliminado'); return; }
+        if (!raw) { removeSetting(key); return persist('Importe recibido eliminado'); }
         const amount = num(raw, NaN);
         if (!Number.isFinite(amount) || amount < 0) { toast('Escribe un importe válido igual o superior a 0 €.', 'error'); return false; }
         setSetting(key, round2(amount).toFixed(2));
-        persist('Importe recibido guardado');
+        return persist('Importe recibido guardado');
       },
-      onDelete: hasSaved ? () => { removeSetting(key); persist('Importe recibido eliminado'); } : null
+      onDelete: hasSaved ? () => { removeSetting(key); return persist('Importe recibido eliminado'); } : null
     });
   }
 
@@ -814,17 +836,18 @@
 
   function clockIn() {
     const now = new Date(); const today = dateKey(now); const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
-    let j = data.jornadas.find((x) => x.fecha === today);
-    if (j && j.salida) { toast('La jornada ya está cerrada. Edítala si necesitas corregirla.', 'warn'); return; }
+    let j = openJornadaForDate(today) || data.jornadas.find((x) => x.fecha === today && !x.entrada && !x.salida);
+    if (!j && jornadaForDate(today)?.salida) { toast('La jornada ya está cerrada. Edítala si necesitas corregirla.', 'warn'); return; }
     if (!j) { j = { id: uid(), fecha: today, entrada: time, salida: '', horas_normales: 0, horas_extra: 0, descanso_minutos: habitualPauseMinutes(), estado: 'confirmado', notas: '[Fichado en la app]', pagado_extras: false, fecha_pago_extras: '', auto: false, backfill: false, creado: now.toISOString() }; data.jornadas.push(j); }
     else { if (!j.entrada) j.descanso_minutos = habitualPauseMinutes(); j.entrada = time; j.estado = 'confirmado'; if (!j.notas) j.notas = '[Fichado en la app]'; }
+    j.auto = false; j.backfill = false;
     persist('Entrada registrada a las ' + time);
   }
 
   function clockOut() {
     const now = new Date(); const today = dateKey(now); const yesterday = dateKey(addDays(now, -1)); const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
-    let j = data.jornadas.find((x) => x.fecha === today && x.entrada && !x.salida);
-    if (!j) j = data.jornadas.find((x) => x.fecha === yesterday && x.entrada && !x.salida);
+    let j = openJornadaForDate(today);
+    if (!j) j = openJornadaForDate(yesterday);
     if (!j) { toast('Primero registra la entrada.', 'warn'); return; }
     if (j.salida) { toast('Ya has fichado la salida.', 'warn'); return; }
     const elapsed = minutesBetween(j.entrada, time);
@@ -835,7 +858,8 @@
     const base = rateOn(j.fecha, 'jornada');
     j.salida = time; j.horas_normales = round2(Math.min(worked, base)); j.horas_extra = round2(Math.max(0, worked - base)); j.estado = 'confirmado';
     if (worked < base) { const short = round2(base - worked); j.notas = (j.notas ? j.notas + ' | ' : '') + 'Salida anticipada: ' + fmtHours(short) + ' menos.'; }
-    persist('Salida a las ' + time + ' · ' + fmtHours(worked));
+    j.auto = false; j.backfill = false;
+    if (!persist('Salida a las ' + time + ' · ' + fmtHours(worked))) return;
     notify('Jornada cerrada', 'Has trabajado ' + fmtHours(worked) + ' hoy.');
   }
 
@@ -848,9 +872,10 @@
     const weekAgo = dateKey(addDays(now, -7)); const openPrevious = data.jornadas.find((j) => j.auto && j.entrada && !j.salida && j.fecha < today && j.fecha >= weekAgo);
     if (openPrevious) { applyAutoClose(openPrevious, win, '[AUTO] Cierre automático de jornada anterior.'); persist('Jornada anterior cerrada automáticamente'); return; }
     if (now.getDay() === 0 || now.getDay() === 6 || calendarEntryOn(today)) return; if (setting('auto_dismissed') === today) return;
-    const j = data.jornadas.find((x) => x.fecha === today);
-    if (j && j.auto && j.entrada && !j.salida && nowMin >= win.endMin) { applyAutoClose(j, win, '[AUTO] Salida automática.'); persist('Jornada cerrada automáticamente'); return; }
-    if (!j && nowMin >= win.startMin && nowMin <= win.startMin + 30) { data.jornadas.push({ id: uid(), fecha: today, entrada: win.start, salida: '', horas_normales: 0, horas_extra: 0, descanso_minutos: habitualPauseMinutes(), estado: 'confirmado', notas: '[AUTO] Entrada automática (' + win.start + '–' + win.end + ').', pagado_extras: false, fecha_pago_extras: '', auto: true, backfill: false, creado: now.toISOString() }); persist('Entrada fichada automáticamente'); }
+    const j = data.jornadas.find((item) => item.fecha === today && item.auto);
+    if (data.jornadas.some((item) => item.fecha === today && !item.auto && item.entrada && item.salida)) return;
+    if (j && j.entrada && !j.salida && nowMin >= win.endMin) { applyAutoClose(j, win, '[AUTO] Salida automática.'); persist('Jornada cerrada automáticamente'); return; }
+    if (!data.jornadas.some((item) => item.fecha === today) && nowMin >= win.startMin && nowMin <= win.startMin + 30) { data.jornadas.push({ id: uid(), fecha: today, entrada: win.start, salida: '', horas_normales: 0, horas_extra: 0, descanso_minutos: habitualPauseMinutes(), estado: 'confirmado', notas: '[AUTO] Entrada automática (' + win.start + '–' + win.end + ').', pagado_extras: false, fecha_pago_extras: '', auto: true, backfill: false, creado: now.toISOString() }); persist('Entrada fichada automáticamente'); }
   }
 
   function fillToday() {
@@ -881,7 +906,11 @@
   }
 
   function jornadaModal(id) {
-    const isNew = !id; const j = isNew ? null : data.jornadas.find((x) => String(x.id) === String(id)); if (!isNew && !j) return;
+    if (!id) {
+      const existingToday = jornadaForDate(dateKey(new Date()));
+      if (existingToday) id = existingToday.id;
+    }
+    const isNew = !id; let j = isNew ? null : data.jornadas.find((x) => String(x.id) === String(id)); if (!isNew && !j) return;
     const today = dateKey(new Date()); const defaultPause = habitualPauseMinutes(); const base = { fecha: today, entrada: '', salida: '', horas_normales: round2(Math.max(0, rateOn(today, 'jornada') - defaultPause / 60)), horas_extra: 0, descanso_minutos: defaultPause, estado: 'confirmado', notas: '' }; const item = j || base;
     openModal({
       title: isNew ? 'Nueva jornada' : 'Editar jornada',
@@ -893,13 +922,22 @@
         if (normales < 0 || extra < 0 || normales > 24 || extra > 24) { toast('Horas entre 0 y 24.', 'error'); return false; }
         if (round2(normales + extra) > 24) { toast('No puede superar 24 h en un día.', 'error'); return false; }
         const payload = { fecha, entrada: hhmm($('#f-entrada').value), salida: hhmm($('#f-salida').value), horas_normales: round2(normales), horas_extra: round2(extra), descanso_minutos: pauseMinutes, estado: $('#f-estado').value === 'provisional' ? 'provisional' : 'confirmado', notas: $('#f-notas').value.trim(), auto: false, backfill: false };
+        const duplicate = data.jornadas.find((row) => row.fecha === fecha && (!j || String(row.id) !== String(j.id)) && !row.auto);
+        if (duplicate && (!j || j.fecha !== fecha)) { toast('Ya existe una jornada para esa fecha. Ábrela desde la lista y edítala para evitar duplicarla.', 'warn'); return false; }
         const elapsed = payload.entrada && payload.salida ? minutesBetween(payload.entrada, payload.salida) : null;
         if (payload.entrada && payload.salida && (!Number.isFinite(elapsed) || elapsed === 0)) { toast('Horario no válido: entrada y salida deben ser distintas.', 'error'); return false; }
         if (elapsed != null && pauseMinutes > elapsed) { toast('La pausa no puede superar el tiempo fichado.', 'error'); return false; }
-        if (j) { const extrasChanged = round2(j.horas_extra) !== payload.horas_extra; Object.assign(j, payload); if (extrasChanged) { j.pagado_extras = false; j.fecha_pago_extras = ''; } } else data.jornadas.push(Object.assign({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString() }, payload));
-        persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
+        const automaticDuplicate = !j && data.jornadas.find((row) => row.fecha === fecha && row.auto);
+        if (automaticDuplicate) j = automaticDuplicate;
+        if (j) {
+          const extrasChanged = round2(j.horas_extra) !== payload.horas_extra;
+          Object.assign(j, payload);
+          if (extrasChanged) { j.pagado_extras = false; j.fecha_pago_extras = ''; }
+          data.jornadas = data.jornadas.filter((row) => row.fecha !== fecha || !row.auto || String(row.id) === String(j.id));
+        } else data.jornadas.push(Object.assign({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString() }, payload));
+        return persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
       },
-      onDelete: j ? () => { if (j.fecha === dateKey(new Date()) && j.auto) setSetting('auto_dismissed', j.fecha); data.jornadas = data.jornadas.filter((x) => String(x.id) !== String(j.id)); persist('Jornada eliminada'); } : null
+      onDelete: j ? () => { if (j.fecha === dateKey(new Date()) && j.auto) setSetting('auto_dismissed', j.fecha); data.jornadas = data.jornadas.filter((x) => String(x.id) !== String(j.id)); return persist('Jornada eliminada'); } : null
     });
     const calc = $('#calc-hours');
     if (calc) calc.addEventListener('click', () => { const grossMinutes = minutesBetween($('#f-entrada').value, $('#f-salida').value); if (grossMinutes == null) { toast('Indica entrada y salida.', 'warn'); return; } const pauseMinutes = num($('#f-pausa').value, -1); if (!Number.isInteger(pauseMinutes) || pauseMinutes < 0 || pauseMinutes > grossMinutes) { toast('La pausa debe ser un número válido y no superar el tiempo fichado.', 'warn'); return; } const worked = netHoursBetween($('#f-entrada').value, $('#f-salida').value, pauseMinutes); const b = rateOn($('#f-fecha').value, 'jornada'); $('#f-normales').value = round2(Math.min(worked, b)); $('#f-extra').value = round2(Math.max(0, worked - b)); const hintEl = $('#calc-hint'); if (hintEl) hintEl.textContent = hoursFmt.format(grossMinutes / 60) + ' h fichadas − ' + pauseMinutes + ' min = ' + fmtHours(worked); toast('Horas calculadas.', 'info'); });
@@ -919,7 +957,7 @@
         j.horas_extra = round2(j.horas_extra + hours);
         if (wasPaid) { j.pagado_extras = false; j.fecha_pago_extras = ''; }
         if (note) j.notas = (j.notas ? j.notas + ' | ' : '') + '+' + String(hours).replace('.', ',') + ' h: ' + note;
-        persist(wasPaid ? '+' + fmtHours(hours) + ' extra; revisa el nuevo pendiente de pago' : '+' + fmtHours(hours) + ' extra');
+        return persist(wasPaid ? '+' + fmtHours(hours) + ' extra; revisa el nuevo pendiente de pago' : '+' + fmtHours(hours) + ' extra');
       }
     });
   }
@@ -942,9 +980,9 @@
         if (existing) data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== group);
         const created = new Date().toISOString();
         dates.forEach((fecha, index) => data.ausencias.push(Object.assign({ id: existing && index === 0 ? existing.id : uid(), grupo, fecha, creado: existing && index === 0 ? existing.creado : created }, payload)));
-        persist(existing ? 'Incidencia actualizada' : dates.length === 1 ? 'Fecha añadida al calendario' : dates.length + ' fechas añadidas al calendario');
+        return persist(existing ? 'Incidencia actualizada' : dates.length === 1 ? 'Fecha añadida al calendario' : dates.length + ' fechas añadidas al calendario');
       },
-      onDelete: existing ? () => { data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== group); persist('Incidencia eliminada'); } : null
+      onDelete: existing ? () => { data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== group); return persist('Incidencia eliminada'); } : null
     });
   }
 
@@ -984,9 +1022,9 @@
         if (!concepto) { toast('Indica concepto.', 'error'); return false; } if (!isDateKey(fecha)) { toast('Fecha no válida.', 'error'); return false; } if (importe < 0) { toast('Importe no válido.', 'error'); return false; }
         const payload = { concepto, fecha, importe: round2(importe), notas: $('#t-notas').value.trim() };
         if (v) Object.assign(v, payload); else data.viajes.push(Object.assign({ id: uid(), pagado: 0, fecha_pago: '', creado: new Date().toISOString() }, payload));
-        persist(isNew ? 'Viaje añadido' : 'Viaje actualizado');
+        return persist(isNew ? 'Viaje añadido' : 'Viaje actualizado');
       },
-      onDelete: v ? () => { data.viajes = data.viajes.filter((x) => String(x.id) !== String(v.id)); persist('Viaje eliminado'); } : null
+      onDelete: v ? () => { data.viajes = data.viajes.filter((x) => String(x.id) !== String(v.id)); return persist('Viaje eliminado'); } : null
     });
   }
 
@@ -1001,9 +1039,9 @@
         if (importe !== p.importe) p.manual_edit = true;
         p.concepto = concepto; p.importe = round2(importe); p.fecha = fecha;
         if (p.tipo === 'nomina_auto') { const newMonth = fecha.slice(0, 7); if (newMonth !== p.mes_key) { p.mes_key = newMonth; p.concepto = 'Nómina ' + fmtMonth(newMonth); } }
-        persist('Nómina actualizada');
+        return persist('Nómina actualizada');
       },
-      onDelete: () => { data.pagos = data.pagos.filter((x) => String(x.id) !== String(p.id)); persist('Nómina eliminada'); }
+      onDelete: () => { data.pagos = data.pagos.filter((x) => String(x.id) !== String(p.id)); return persist('Nómina eliminada'); }
     });
   }
 
@@ -1217,7 +1255,7 @@
       case 'new-jornada': jornadaModal(null); break;
       case 'edit-jornada': jornadaModal(id); break;
       case 'add-extra': extraModal(id); break;
-      case 'add-extra-quick': { const today = dateKey(new Date()); const j = data.jornadas.find((x) => x.fecha === today); if (!j) { toast('Crea primero la jornada de hoy.', 'warn'); return; } extraModal(j.id); break; }
+      case 'add-extra-quick': { const today = dateKey(new Date()); const j = jornadaForDate(today); if (!j) { toast('Crea primero la jornada de hoy.', 'warn'); return; } extraModal(j.id); break; }
       case 'new-trip': tripModal(null); break;
       case 'edit-trip': tripModal(id); break;
       case 'delete-trip': { const v = data.viajes.find((x) => String(x.id) === String(id)); if (v) confirmAction('Eliminar viaje', '¿Eliminar «' + v.concepto + '»?', 'Eliminar', () => { data.viajes = data.viajes.filter((x) => String(x.id) !== String(id)); persist('Viaje eliminado'); }, true); break; }
@@ -1297,7 +1335,7 @@
   const modalSaveBtn = $('#modal-save');
   if (modalSaveBtn) modalSaveBtn.addEventListener('click', () => { if (!modalSave) return; const result = modalSave(); if (result !== false) closeModal(); });
   const modalDelBtn = $('#modal-delete');
-  if (modalDelBtn) modalDelBtn.addEventListener('click', () => { if (!modalDelete) return; modalDelete(); closeModal(); });
+  if (modalDelBtn) modalDelBtn.addEventListener('click', () => { if (!modalDelete) return; const result = modalDelete(); if (result !== false) closeModal(); });
 
   document.addEventListener('keydown', (event) => {
     const modal = $('#modal'); if (!modal || modal.hidden) return;
