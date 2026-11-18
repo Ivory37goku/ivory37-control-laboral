@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.6';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.7';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';

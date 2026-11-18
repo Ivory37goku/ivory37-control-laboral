@@ -9,9 +9,10 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'supabase-sync.js'), '
 const hook = '  window.IVORY37CloudSync =';
 assert.ok(source.includes(hook), 'sync test hook point exists');
 
-function createSyncHarness() {
+function createSyncHarness(options) {
   const values = new Map();
   const listeners = new Map();
+  const statusElement = { textContent: '', dataset: {} };
   const localStorage = {
     getItem(key) { return values.has(key) ? values.get(key) : null; },
     setItem(key, value) { values.set(String(key), String(value)); },
@@ -24,12 +25,12 @@ function createSyncHarness() {
     addEventListener(name, listener) { listeners.set(name, listener); },
     dispatchEvent(event) { const listener = listeners.get(event.type); if (listener) listener(event); }
   };
-  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; }, sameBusinessRecord: sameBusinessRecord, removeNoopConflicts: removeNoopConflicts };\n' + hook);
+  const instrumented = source.replace(hook, '  window.__syncTestCore = { mergeData: mergeData, normalizeData: normalizeData, sharedBaseSnapshot: function () { return sharedBaseSnapshot; }, sameBusinessRecord: sameBusinessRecord, removeNoopConflicts: removeNoopConflicts, signature: signature, syncNow: syncNow, performSync: performSync, setSyncContext: function (testClient, testSession) { client = testClient; session = testSession; } };\n' + hook);
   vm.runInNewContext(instrumented, {
     window,
-    document: { querySelector() { return null; } },
+    document: { querySelector(selector) { return selector === '#cloud-status' ? statusElement : null; } },
     localStorage,
-    navigator: { onLine: false },
+    navigator: { onLine: Boolean(options && options.online) },
     CustomEvent: class CustomEvent { constructor(type, options) { this.type = type; this.detail = options && options.detail; } },
     console: { warn() {}, error() {}, log() {} },
     setTimeout() { return 1; },
@@ -37,7 +38,7 @@ function createSyncHarness() {
     setInterval() { return 1; },
     clearInterval() {}
   }, { filename: 'supabase-sync.js' });
-  return { sync: window.IVORY37CloudSync, core: window.__syncTestCore, localStorage };
+  return { sync: window.IVORY37CloudSync, core: window.__syncTestCore, localStorage, statusElement };
 }
 
 const base = {
@@ -144,6 +145,52 @@ test('historical conflicts with only creation metadata differences are removed s
   const noOpConflict = { id: 'jornadas|j-1:1:2', collection: 'jornadas', itemId: 'j-1', chosen, alternate, createdAt: 1 };
   assert.equal(core.removeNoopConflicts([noOpConflict]).length, 0);
   assert.equal(core.removeNoopConflicts([{ ...noOpConflict, alternate: { ...alternate, horas_extra: 1 } }]).length, 1);
+});
+
+test('cloud apply signature ignores key order and device timestamps but keeps work-hour changes', () => {
+  const core = createSyncHarness().core;
+  const local = { jornadas: [{ id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: 'Confirmada', creado: '2026-11-17T08:00:00.000Z' }] };
+  const remote = { jornadas: [{ notas: 'Confirmada', horas_extra: 0, horas_normales: 8, fecha: '2026-06-30', id: 'j-1', creado: '2026-11-18T08:00:00.000Z' }] };
+  assert.equal(core.signature(local), core.signature(remote));
+  remote.jornadas[0].horas_extra = 1;
+  assert.notEqual(core.signature(local), core.signature(remote));
+});
+
+test('a quiet no-op cloud poll leaves the successful status unchanged', async () => {
+  const harness = createSyncHarness();
+  const payload = { jornadas: [], viajes: [], pagos: [], ausencias: [], ajustes: [], _ivory37_sync: { modified: {}, deleted: {} }, _ivory37_conflicts: [] };
+  const testClient = {
+    auth: { getSession: async () => ({ data: { session: { user: { id: 'test-user', email: 'test@example.com' } } }, error: null }) },
+    from() {
+      const query = { select() { return query; }, eq() { return query; }, maybeSingle: async () => ({ data: { payload, revision: 1 }, error: null }) };
+      return query;
+    }
+  };
+  harness.core.setSyncContext(testClient, { user: { id: 'test-user', email: 'test@example.com' } });
+  harness.statusElement.textContent = 'Sincronizado · 07:39';
+  harness.statusElement.dataset.state = 'ok';
+
+  await harness.core.syncNow({ quiet: true });
+
+  assert.equal(harness.statusElement.textContent, 'Sincronizado · 07:39');
+  assert.equal(harness.statusElement.dataset.state, 'ok');
+});
+
+test('quiet background sync still surfaces actual cloud failures', async () => {
+  const harness = createSyncHarness({ online: true });
+  const testClient = {
+    auth: { getSession: async () => ({ data: { session: { user: { id: 'test-user', email: 'test@example.com' } } }, error: null }) },
+    from() {
+      const query = { select() { return query; }, eq() { return query; }, maybeSingle: async () => ({ data: null, error: new Error('network unavailable') }) };
+      return query;
+    }
+  };
+  harness.core.setSyncContext(testClient, { user: { id: 'test-user', email: 'test@example.com' } });
+
+  await harness.core.syncNow({ quiet: true });
+
+  assert.equal(harness.statusElement.dataset.state, 'error');
+  assert.match(harness.statusElement.textContent, /No se pudo sincronizar/);
 });
 
 test('a later tombstone wins over an older edit; a newer edit restores the record', () => {
