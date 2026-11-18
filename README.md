@@ -74,7 +74,7 @@ Control Laboral es una aplicación personal para anotar horas trabajadas, revisa
 | --- | --- |
 | Web y PWA | [Abrir Control Laboral](https://ivory37goku.github.io/ivory37-control-laboral/). En Android usa **Instalar app**; en iPhone o iPad, **Compartir → Añadir a pantalla de inicio**. |
 | Android | La APK incluye la app y arranca sin conexión. Para actualizar, instala una APK nueva con la misma firma encima de la anterior. Consulta la [guía de compilación](android-app/README.md). |
-| Windows | Aplicación de escritorio basada en Electron. Para generar los instaladores, sigue los comandos de la sección [Desarrollo](#desarrollo). |
+| Windows | El instalador Setup incluye la app, abre sin conexión y recupera la copia local de instalaciones anteriores. Para generarlo, sigue los comandos de [Desarrollo](#desarrollo). |
 | Desarrollo local | Sirve la carpeta por HTTP siguiendo las instrucciones de abajo. |
 
 ## Primeros pasos

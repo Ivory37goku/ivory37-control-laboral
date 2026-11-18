@@ -1,6 +1,6 @@
 # Control Laboral para Windows
 
-Esta carpeta contiene el lanzador de escritorio. Abre el `index.html` local dentro de una ventana de Windows; no cambia la app web ni requiere Chrome para ejecutarse.
+El instalador abre la versión incluida en el paquete dentro de una ventana de Windows. Funciona sin Chrome y puede arrancar sin conexión.
 
 ## Compilar los EXE
 
@@ -27,3 +27,5 @@ npm start
 ## Datos
 
 Windows guarda una copia local en `%APPDATA%\IVORY37 Control Laboral`. Si inicias sesión con la misma cuenta IVORY37 en cada dispositivo, la app combina y sincroniza jornadas, viajes, pagos y ajustes. Sin iniciar sesión, cada instalación mantiene sus propios datos. Conserva también copias con **Ajustes → Backup JSON**.
+
+Al actualizar desde una edición que abría la web, Windows recupera en el primer inicio la copia del perfil anterior. Para instalar una versión posterior, ejecuta el Setup nuevo sobre la instalación existente.

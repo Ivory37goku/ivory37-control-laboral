@@ -1,15 +1,17 @@
 # Control Laboral — comprobaciones de calidad
 
-## Auditoría de la versión 3.3.10
+## Fallos de la 3.3.10 corregidos en la 3.3.12
 
 Se revisaron el fichaje, la sincronización, las nóminas, las copias, la actualización y el panel. Los siguientes fallos se reprodujeron ejecutando el código de la aplicación con datos ficticios.
 
-| Prioridad | Caso reproducido | Siguiente comprobación |
-| --- | --- | --- |
-| Alta | Una sincronización durante «Editar jornada» puede hacer que «Guardar» confirme la edición y conserve las horas anteriores. El formulario apunta al registro que había al abrirlo. | Abrir la edición, aplicar datos remotos, guardar y verificar las horas tras reabrir la app. Revisar también los formularios de extras, viajes y nóminas. |
-| Alta | Si falla la escritura por falta de espacio, la ruta de recuperación lanza otro error antes de restaurar los datos y avisar. | Simular el fallo, comprobar que se conservan los datos y que se puede reintentar el guardado. |
-| Alta | Al abrir la copia sin conexión de Windows, la app puede bloquear el guardado tras intentar usar un método del puente de Android. | Iniciar el EXE con una copia local existente y la web inaccesible. Comprobar lectura, guardado y reapertura. |
-| Alta | Dos perfiles ficticios registraron una jornada de 8 h a 12,50 €/h en días distintos del mismo mes. La mezcla conservó dos nóminas automáticas. Tras recalcular, quedaron 200 € y 100 €, y el panel mostró 300 € pendientes cuando correspondían 200 €. | Repetir con dos dispositivos de prueba, verificar que solo se cuenta una nómina por mes y comprobar que se conservan los pagos confirmados. |
+| Caso reproducido en 3.3.10 | Cobertura de regresión |
+| --- | --- |
+| Una sincronización durante «Editar jornada» podía confirmar el guardado mientras conservaba las horas anteriores. | Abrir la edición, aplicar datos remotos y guardar. Comprobar que se mantiene la nota remota y que la app detecta una edición incompatible o un registro eliminado. |
+| Agotar el espacio producía un segundo error y ocultaba el aviso de guardado. | Simular el fallo, verificar que el dato persistido permanece intacto y reintentar desde el mismo formulario. |
+| La copia local de Windows podía bloquear el guardado tras intentar usar un método del puente de Android. | Restaurar una copia antigua en la versión incluida en el instalador. Un respaldo con fechas inválidas deja intactos los datos locales. |
+| Dos jornadas de 8 h a 12,50 €/h, añadidas en perfiles sin conexión, podían producir 300 € pendientes al combinarse. | Mezclar los registros y comprobar 200 € y una sola nómina automática visible. Los pagos confirmados o editados siguen disponibles. |
+
+Si dos registros del mismo mes ya están confirmados o editados a mano, se conservan ambos. Su contenido puede reflejar pagos distintos que requieren la revisión del usuario.
 
 ## Comprobación automática
 

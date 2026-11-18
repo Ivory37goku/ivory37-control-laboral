@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.11';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.12';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -174,7 +174,7 @@
       if (forceRestore) {
         if (typeof saved[KEY] !== 'string' || typeof bridge.completeLocalStorageMigration !== 'function') throw new Error('Faltan los datos para completar la migración.');
         const savedData = JSON.parse(saved[KEY]);
-        if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData)) throw new Error('Los datos guardados no son válidos.');
+        if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData) || hasInvalidDates(savedData)) throw new Error('Los datos guardados no son válidos.');
         const previous = storageSnapshot();
         try {
           localStorage.clear();
@@ -188,8 +188,8 @@
           } catch (rollbackError) { console.error('No se pudo revertir la restauración local:', rollbackError); }
           throw restoreError;
         }
-        bridge.completeLocalStorageMigration();
-        window.history.replaceState(null, '', location.pathname + location.hash);
+        if (bridge.completeLocalStorageMigration() === false) throw new Error('No se pudo finalizar la recuperación de datos.');
+        if (location.protocol !== 'file:') window.history.replaceState(null, '', location.pathname + location.hash);
         return true;
       }
       Object.keys(saved).forEach((key) => {
@@ -280,7 +280,7 @@
     try { syncPayrolls(); }
     catch (err) { console.error('syncPayrolls:', err); restorePrevious(); toast('Error al recalcular las nóminas.', 'error'); return false; }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
-    catch (err) { saved = false; console.error(err); restorePrevious(); toast('No se pudo guardar. Libera espacio o exporta un backup.', 'error'); return false; }
+    catch (err) { console.error(err); restorePrevious(); toast('No se pudo guardar. Libera espacio o exporta un backup.', 'error'); return false; }
     window.IVORY37CloudSync?.queue(data);
     mirrorNativeStorage();
     renderAll(); updateStorageUsage(); if (message) toast(message);
@@ -311,9 +311,32 @@
     let extraH = 0; let extraPending = 0; let extraPaid = 0; let extraEarned = 0; let trips = 0; let tripsPaid = 0; let autoPaid = 0; let payrollPending = 0; let manualPaid = 0;
     data.jornadas.forEach((j) => { if (j.estado !== 'confirmado') return; const value = j.horas_extra * rateOn(j.fecha, 'extra'); extraH += j.horas_extra; extraEarned += value; if (j.pagado_extras) extraPaid += value; else extraPending += value; });
     data.viajes.forEach((v) => { trips += v.importe; if (v.pagado) tripsPaid += v.importe; });
-    data.pagos.forEach((p) => { if (p.tipo === 'nomina_auto') { if (p.confirmado) autoPaid += p.importe; else payrollPending += p.importe; } else if (p.confirmado) manualPaid += p.importe; });
+    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto') { if (p.confirmado) autoPaid += p.importe; else payrollPending += p.importe; } else if (p.confirmado) manualPaid += p.importe; });
     const payrollPaid = autoPaid + manualPaid; const payrollEarned = payrollPaid + payrollPending; const earned = round2(payrollEarned + extraEarned + trips); const collected = round2(payrollPaid + extraPaid + tripsPaid);
     return { extraH: round2(extraH), extraPending: round2(extraPending), extraPaid: round2(extraPaid), extraValue: round2(extraEarned), trips: round2(trips), tripsPaid: round2(tripsPaid), payrollPaid: round2(payrollPaid), payrollPending: round2(payrollPending), earned, collected, pending: round2(earned - collected), rn: rateNormal(), re: rateExtra() };
+  }
+
+  function generatedPayrollsByMonth(payments) {
+    // Preserve proposals in storage so a confirmation from an offline device can still sync.
+    const generated = new Map();
+    const protectedMonths = new Set();
+    for (const payment of payments) {
+      if (payment.tipo !== 'nomina_auto') continue;
+      if (payment.confirmado || payment.manual_edit) {
+        protectedMonths.add(payment.mes_key);
+      } else {
+        const current = generated.get(payment.mes_key);
+        if (!current || String(payment.id) < String(current.id)) generated.set(payment.mes_key, payment);
+      }
+    }
+    protectedMonths.forEach((month) => generated.delete(month));
+    return generated;
+  }
+
+  function effectivePayments() {
+    const generated = generatedPayrollsByMonth(data.pagos);
+    return data.pagos.filter((payment) => payment.tipo !== 'nomina_auto' || payment.confirmado
+      || payment.manual_edit || generated.get(payment.mes_key) === payment);
   }
 
   function syncPayrolls() {
@@ -321,19 +344,31 @@
     if (manuallyCompletedDates.size) data.jornadas = data.jornadas.filter((item) => !item.auto || !manuallyCompletedDates.has(item.fecha));
     const months = new Set(data.jornadas.filter((j) => j.estado === 'confirmado').map((j) => j.fecha.slice(0, 7)));
     const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean));
+    const generated = generatedPayrollsByMonth(data.pagos);
+    const protectedMonths = new Set(data.pagos.filter((p) => p.tipo === 'nomina_auto' && (p.confirmado || p.manual_edit)).map((p) => p.mes_key));
     Array.from(months).sort().forEach((month) => {
       if (omitted.has(month)) return;
-      const stats = monthStats(month); const amount = stats.normalValue;
-      const existing = data.pagos.find((p) => p.tipo === 'nomina_auto' && p.mes_key === month);
-      if (existing) { if (!existing.confirmado && !existing.manual_edit && existing.importe !== amount) { existing.importe = amount; existing.actualizado = new Date().toISOString(); } existing.horas_normales_mes = stats.normalTotal; existing.horas_extra_mes = stats.extra; existing.dias_laborables = stats.days; }
-      else { data.pagos.push({ id: uid(), fecha: month + '-28', concepto: 'Nómina ' + fmtMonth(month), importe: amount, tipo: 'nomina_auto', mes_key: month, confirmado: false, horas_normales_mes: stats.normalTotal, horas_extra_mes: stats.extra, dias_laborables: stats.days, manual_edit: false, created: new Date().toISOString() }); }
+      const stats = monthStats(month);
+      const existing = generated.get(month);
+      if (existing) {
+        if (existing.importe !== stats.normalValue) {
+          existing.importe = stats.normalValue;
+          existing.actualizado = new Date().toISOString();
+        }
+        existing.horas_normales_mes = stats.normalTotal;
+        existing.horas_extra_mes = stats.extra;
+        existing.dias_laborables = stats.days;
+      } else if (!protectedMonths.has(month)) {
+        data.pagos.push({ id: uid(), fecha: month + '-28', concepto: 'Nómina ' + fmtMonth(month), importe: stats.normalValue, tipo: 'nomina_auto', mes_key: month, confirmado: false, horas_normales_mes: stats.normalTotal, horas_extra_mes: stats.extra, dias_laborables: stats.days, manual_edit: false, created: new Date().toISOString() });
+      }
     });
-    data.pagos = data.pagos.filter((p) => { if (p.tipo !== 'nomina_auto') return true; if (omitted.has(p.mes_key)) return false; if (p.confirmado) return true; if (p.manual_edit) return true; return months.has(p.mes_key); });
+    data.pagos = data.pagos.filter((p) => p.tipo !== 'nomina_auto' || p.confirmado || p.manual_edit
+      || (!omitted.has(p.mes_key) && months.has(p.mes_key)));
   }
 
   function monthBreakdown(month) {
     let payroll = 0; let extras = 0; let trips = 0;
-    data.pagos.forEach((p) => { if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) payroll += p.importe; });
+    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) payroll += p.importe; });
     data.jornadas.forEach((j) => { if (j.estado === 'confirmado' && j.fecha.slice(0, 7) === month && !j.pagado_extras) extras += j.horas_extra * rateOn(j.fecha, 'extra'); });
     data.viajes.forEach((v) => { if (v.fecha.slice(0, 7) === month && !v.pagado) trips += v.importe; });
     payroll = round2(payroll); extras = round2(extras); trips = round2(trips);
@@ -589,7 +624,7 @@
 
   function renderRecentPayrolls() {
     const box = $('#recent-payrolls'); if (!box) return;
-    const rows = data.pagos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 3);
+    const rows = effectivePayments().sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 3);
     if (!rows.length) { box.innerHTML = '<div class="empty" style="padding:22px"><strong>Sin nóminas</strong>Añade jornadas y pulsa «Recalcular» en Pagos.</div>'; return; }
     box.innerHTML = rows.map((p) => {
       const ok = p.confirmado; const meta = [fmtMonth(p.mes_key || p.fecha.slice(0, 7))];
@@ -659,7 +694,7 @@
     const el1 = $('#sum-pending-payrolls'); if (el1) el1.textContent = fmtMoney(t.payrollPending);
     const el2 = $('#sum-pending-extras'); if (el2) el2.textContent = fmtMoney(t.extraPending);
     const el3 = $('#sum-paid'); if (el3) el3.textContent = fmtMoney(t.collected);
-    const products = data.pagos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const products = effectivePayments().sort((a, b) => b.fecha.localeCompare(a.fecha));
     const subEl = $('#sum-pending-payrolls-sub'); if (subEl) subEl.textContent = products.filter((p) => !p.confirmado && p.tipo === 'nomina_auto').length + ' sin confirmar';
     const payroll = $('#payroll-list');
     if (payroll) {
@@ -876,6 +911,27 @@
     openModal({ title, body: '<p class="muted" style="white-space:pre-line">' + esc(message) + '</p>', saveText: confirmText || 'Confirmar', danger: Boolean(danger), onSave: () => onConfirm() });
   }
 
+  function editableRecord(collection, id) {
+    const current = data[collection].find((row) => String(row.id) === String(id));
+    if (!current) toast('El registro se eliminó en otro dispositivo. Cierra el formulario para actualizar la lista.', 'warn');
+    return current;
+  }
+
+  function changesFromForm(original, current, payload) {
+    const changes = {};
+    for (const [key, value] of Object.entries(payload)) {
+      const before = typeof original[key] === 'string' ? original[key].trim() : original[key];
+      const latest = typeof current[key] === 'string' ? current[key].trim() : current[key];
+      if (value === before || value === latest) continue;
+      if (before !== latest) {
+        toast('Este registro cambió en otro dispositivo. Vuelve a abrirlo para revisar la última versión.', 'warn');
+        return null;
+      }
+      changes[key] = value;
+    }
+    return changes;
+  }
+
   function clockIn() {
     const now = new Date(); const today = dateKey(now); const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
     let j = openJornadaForDate(today) || data.jornadas.find((x) => x.fecha === today && !x.entrada && !x.salida);
@@ -948,38 +1004,53 @@
   }
 
   function jornadaModal(id) {
-    if (!id) {
+    if (id == null || id === '') {
       const existingToday = jornadaForDate(dateKey(new Date()));
-      if (existingToday) id = existingToday.id;
+      id = existingToday ? existingToday.id : null;
     }
-    const isNew = !id; let j = isNew ? null : data.jornadas.find((x) => String(x.id) === String(id)); if (!isNew && !j) return;
-    const today = dateKey(new Date()); const defaultPause = habitualPauseMinutes(); const base = { fecha: today, entrada: '', salida: '', horas_normales: round2(Math.max(0, rateOn(today, 'jornada') - defaultPause / 60)), horas_extra: 0, descanso_minutos: defaultPause, estado: 'confirmado', notas: '' }; const item = j || base;
+    const isNew = id == null;
+    const record = isNew ? null : editableRecord('jornadas', id);
+    if (!isNew && !record) return;
+    const today = dateKey(new Date()); const defaultPause = habitualPauseMinutes(); const base = { fecha: today, entrada: '', salida: '', horas_normales: round2(Math.max(0, rateOn(today, 'jornada') - defaultPause / 60)), horas_extra: 0, descanso_minutos: defaultPause, estado: 'confirmado', notas: '' };
+    const item = record ? { ...record } : base;
     openModal({
       title: isNew ? 'Nueva jornada' : 'Editar jornada',
       body: '<div class="form-grid"><label class="field"><span>Fecha</span><input class="input" id="f-fecha" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Estado</span><select class="input" id="f-estado"><option value="confirmado"' + (item.estado === 'confirmado' ? ' selected' : '') + '>Confirmada</option><option value="provisional"' + (item.estado === 'provisional' ? ' selected' : '') + '>Provisional</option></select></label><label class="field"><span>Entrada</span><input class="input mono" id="f-entrada" type="time" value="' + esc(item.entrada) + '"></label><label class="field"><span>Salida</span><input class="input mono" id="f-salida" type="time" value="' + esc(item.salida) + '"></label><label class="field"><span>Pausa no computable (min)</span><input class="input mono" id="f-pausa" type="number" min="0" max="1440" step="1" value="' + esc(recordPauseMinutes(item)) + '"></label><label class="field"><span>Horas normales</span><input class="input mono" id="f-normales" type="text" inputmode="decimal" value="' + fmtInput(item.horas_normales) + '"></label><label class="field"><span>Horas extra</span><input class="input mono" id="f-extra" type="text" inputmode="decimal" value="' + fmtInput(item.horas_extra) + '"></label></div><div class="hint-row"><button class="btn ghost sm" type="button" id="calc-hours">Calcular desde fichaje</button><span class="muted small" id="calc-hint"></span></div><label class="field"><span>Notas</span><textarea class="input" id="f-notas" rows="3">' + esc(item.notas) + '</textarea></label>',
       onSave: () => {
+        let j = isNew ? null : editableRecord('jornadas', id);
+        if (!isNew && !j) return false;
         const fecha = $('#f-fecha').value; if (!isDateKey(fecha)) { toast('Fecha no válida.', 'error'); return false; }
         const normales = num($('#f-normales').value, -1); const extra = num($('#f-extra').value, -1); const pauseMinutes = num($('#f-pausa').value, -1);
         if (!Number.isInteger(pauseMinutes) || pauseMinutes < 0 || pauseMinutes > 1440) { toast('La pausa debe ser un número entero entre 0 y 1.440 minutos.', 'error'); return false; }
         if (normales < 0 || extra < 0 || normales > 24 || extra > 24) { toast('Horas entre 0 y 24.', 'error'); return false; }
         if (round2(normales + extra) > 24) { toast('No puede superar 24 h en un día.', 'error'); return false; }
-        const payload = { fecha, entrada: hhmm($('#f-entrada').value), salida: hhmm($('#f-salida').value), horas_normales: round2(normales), horas_extra: round2(extra), descanso_minutos: pauseMinutes, estado: $('#f-estado').value === 'provisional' ? 'provisional' : 'confirmado', notas: $('#f-notas').value.trim(), auto: false, backfill: false };
-        const duplicate = data.jornadas.find((row) => row.fecha === fecha && (!j || String(row.id) !== String(j.id)) && !row.auto);
-        if (duplicate && (!j || j.fecha !== fecha)) { toast('Ya existe una jornada para esa fecha. Ábrela desde la lista y edítala para evitar duplicarla.', 'warn'); return false; }
-        const elapsed = payload.entrada && payload.salida ? minutesBetween(payload.entrada, payload.salida) : null;
-        if (payload.entrada && payload.salida && (!Number.isFinite(elapsed) || elapsed === 0)) { toast('Horario no válido: entrada y salida deben ser distintas.', 'error'); return false; }
-        if (elapsed != null && pauseMinutes > elapsed) { toast('La pausa no puede superar el tiempo fichado.', 'error'); return false; }
-        const automaticDuplicate = !j && data.jornadas.find((row) => row.fecha === fecha && row.auto);
+        const payload = { fecha, entrada: hhmm($('#f-entrada').value), salida: hhmm($('#f-salida').value), horas_normales: round2(normales), horas_extra: round2(extra), descanso_minutos: pauseMinutes, estado: $('#f-estado').value === 'provisional' ? 'provisional' : 'confirmado', notas: $('#f-notas').value.trim() };
+        const changes = j ? changesFromForm(item, j, payload) : payload;
+        if (!changes) return false;
+        const result = { ...j, ...changes };
+        const duplicate = data.jornadas.find((row) => row.fecha === result.fecha && (!j || String(row.id) !== String(j.id)) && !row.auto);
+        if (duplicate && (!j || j.fecha !== result.fecha)) { toast('Ya existe una jornada para esa fecha. Ábrela desde la lista y edítala para evitar duplicarla.', 'warn'); return false; }
+        const elapsed = result.entrada && result.salida ? minutesBetween(result.entrada, result.salida) : null;
+        if (result.entrada && result.salida && (!Number.isFinite(elapsed) || elapsed === 0)) { toast('Horario no válido: entrada y salida deben ser distintas.', 'error'); return false; }
+        if (elapsed != null && result.descanso_minutos > elapsed) { toast('La pausa no puede superar el tiempo fichado.', 'error'); return false; }
+        if (round2(result.horas_normales + result.horas_extra) > 24) { toast('No puede superar 24 h en un día.', 'error'); return false; }
+        const automaticDuplicate = !j && data.jornadas.find((row) => row.fecha === result.fecha && row.auto);
         if (automaticDuplicate) j = automaticDuplicate;
         if (j) {
-          const extrasChanged = round2(j.horas_extra) !== payload.horas_extra;
-          Object.assign(j, payload);
+          const extrasChanged = round2(j.horas_extra) !== result.horas_extra;
+          Object.assign(j, changes, { auto: false, backfill: false });
           if (extrasChanged) { j.pagado_extras = false; j.fecha_pago_extras = ''; }
-          data.jornadas = data.jornadas.filter((row) => row.fecha !== fecha || !row.auto || String(row.id) === String(j.id));
-        } else data.jornadas.push(Object.assign({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString() }, payload));
+          data.jornadas = data.jornadas.filter((row) => row.fecha !== result.fecha || !row.auto || String(row.id) === String(j.id));
+        } else data.jornadas.push({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString(), ...payload, auto: false, backfill: false });
         return persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
       },
-      onDelete: j ? () => { if (j.fecha === dateKey(new Date()) && j.auto) setSetting('auto_dismissed', j.fecha); data.jornadas = data.jornadas.filter((x) => String(x.id) !== String(j.id)); return persist('Jornada eliminada'); } : null
+      onDelete: record ? () => {
+        const current = editableRecord('jornadas', id);
+        if (!current) return false;
+        if (current.fecha === dateKey(new Date()) && current.auto) setSetting('auto_dismissed', current.fecha);
+        data.jornadas = data.jornadas.filter((row) => row !== current);
+        return persist('Jornada eliminada');
+      } : null
     });
     const calc = $('#calc-hours');
     if (calc) calc.addEventListener('click', () => { const grossMinutes = minutesBetween($('#f-entrada').value, $('#f-salida').value); if (grossMinutes == null) { toast('Indica entrada y salida.', 'warn'); return; } const pauseMinutes = num($('#f-pausa').value, -1); if (!Number.isInteger(pauseMinutes) || pauseMinutes < 0 || pauseMinutes > grossMinutes) { toast('La pausa debe ser un número válido y no superar el tiempo fichado.', 'warn'); return; } const worked = netHoursBetween($('#f-entrada').value, $('#f-salida').value, pauseMinutes); const b = rateOn($('#f-fecha').value, 'jornada'); $('#f-normales').value = round2(Math.min(worked, b)); $('#f-extra').value = round2(Math.max(0, worked - b)); const hintEl = $('#calc-hint'); if (hintEl) hintEl.textContent = hoursFmt.format(grossMinutes / 60) + ' h fichadas − ' + pauseMinutes + ' min = ' + fmtHours(worked); toast('Horas calculadas.', 'info'); });
@@ -991,6 +1062,8 @@
       title: 'Añadir horas extra', saveText: 'Añadir',
       body: '<div class="card" style="padding:12px;margin-bottom:14px;background:rgba(0,0,0,.2)"><p class="small muted" style="margin:0 0 2px">Jornada</p><strong>' + esc(fmtDate(j.fecha)) + '</strong><p class="small muted" style="margin:4px 0 0">Actualmente: <b style="color:var(--brand)">' + fmtHours(j.horas_extra) + '</b> (normales ' + fmtHours(j.horas_normales) + ')</p></div><label class="field"><span>Horas a añadir</span><input class="input mono" id="x-hours" type="text" inputmode="decimal" placeholder="1,5"></label><label class="field"><span>Motivo (opcional)</span><input class="input" id="x-note" maxlength="120"></label>',
       onSave: () => {
+        const j = editableRecord('jornadas', id);
+        if (!j) return false;
         const hours = num($('#x-hours').value, 0); if (hours <= 0 || hours > 12) { toast('Entre 0,25 y 12 horas.', 'error'); return false; }
         const totalDay = round2(j.horas_normales + j.horas_extra + hours);
         if (totalDay > 24) { toast('No puedes superar 24 h en un día (llevas ' + fmtHours(j.horas_normales + j.horas_extra) + ').', 'error'); return false; }
@@ -1006,6 +1079,7 @@
 
   function calendarModal(id) {
     const existing = id ? data.ausencias.find((item) => String(item.id) === String(id)) : null;
+    if (id && !existing) return;
     const item = existing || { fecha: dateKey(new Date()), tipo: 'vacaciones', concepto: '', notas: '' };
     const group = existing ? String(existing.grupo || existing.id) : uid();
     openModal({
@@ -1013,6 +1087,12 @@
       body: '<div class="form-grid"><label class="field"><span>Desde</span><input class="input" id="c-desde" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Hasta</span><input class="input" id="c-hasta" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Tipo</span><select class="input" id="c-tipo"><option value="descanso"' + (item.tipo === 'descanso' ? ' selected' : '') + '>Descanso</option><option value="vacaciones"' + (item.tipo === 'vacaciones' ? ' selected' : '') + '>Vacaciones</option><option value="baja"' + (item.tipo === 'baja' ? ' selected' : '') + '>Baja</option><option value="festivo"' + (item.tipo === 'festivo' ? ' selected' : '') + '>Festivo</option><option value="otro"' + (item.tipo === 'otro' ? ' selected' : '') + '>Otra incidencia</option></select></label></div><label class="field"><span>Nombre o motivo</span><input class="input" id="c-concepto" maxlength="80" value="' + esc(item.concepto) + '" placeholder="Opcional"></label><label class="field"><span>Notas</span><textarea class="input" id="c-notas" rows="2" maxlength="240">' + esc(item.notas) + '</textarea></label><p class="hint">La incidencia se guarda como anotación. No altera jornadas ya registradas ni calcula importes de vacaciones o bajas.</p>',
       onSave: () => {
         const from = $('#c-desde').value; const to = $('#c-hasta').value; const tipo = $('#c-tipo').value;
+        const current = existing ? editableRecord('ausencias', id) : null;
+        if (existing && !current) return false;
+        if (current && ['fecha', 'grupo', 'tipo', 'concepto', 'notas'].some((key) => current[key] !== existing[key])) {
+          toast('La incidencia cambió en otro dispositivo. Vuelve a abrirla para revisar la última versión.', 'warn');
+          return false;
+        }
         if (!isDateKey(from) || !isDateKey(to) || from > to) { toast('Elige un periodo válido.', 'error'); return false; }
         const dates = window.IVORY37Calendar.datesInRange(from, to, parseKey, dateKey, addDays, 366);
         if (!dates.length) { toast('El periodo no puede superar un año.', 'error'); return false; }
@@ -1024,7 +1104,13 @@
         dates.forEach((fecha, index) => data.ausencias.push(Object.assign({ id: existing && index === 0 ? existing.id : uid(), grupo, fecha, creado: existing && index === 0 ? existing.creado : created }, payload)));
         return persist(existing ? 'Incidencia actualizada' : dates.length === 1 ? 'Fecha añadida al calendario' : dates.length + ' fechas añadidas al calendario');
       },
-      onDelete: existing ? () => { data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== group); return persist('Incidencia eliminada'); } : null
+      onDelete: existing ? () => {
+        const current = editableRecord('ausencias', id);
+        if (!current) return false;
+        const currentGroup = String(current.grupo || current.id);
+        data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== currentGroup);
+        return persist('Incidencia eliminada');
+      } : null
     });
   }
 
@@ -1055,7 +1141,7 @@
 
   function tripModal(id) {
     const isNew = !id; const v = isNew ? null : data.viajes.find((x) => String(x.id) === String(id)); if (!isNew && !v) return;
-    const item = v || { fecha: dateKey(new Date()), concepto: '', importe: '', notas: '' };
+    const item = v ? { ...v } : { fecha: dateKey(new Date()), concepto: '', importe: '', notas: '' };
     openModal({
       title: isNew ? 'Nuevo viaje' : 'Editar viaje',
       body: '<label class="field"><span>Concepto</span><input class="input" id="t-concepto" maxlength="80" value="' + esc(item.concepto) + '"></label><div class="form-grid"><label class="field"><span>Fecha</span><input class="input" id="t-fecha" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Importe (€)</span><input class="input mono" id="t-importe" type="text" inputmode="decimal" value="' + esc(fmtInput(item.importe)) + '"></label></div><label class="field"><span>Notas</span><input class="input" id="t-notas" maxlength="140" value="' + esc(item.notas) + '"></label>',
@@ -1063,34 +1149,62 @@
         const concepto = $('#t-concepto').value.trim(); const fecha = $('#t-fecha').value; const importe = num($('#t-importe').value, -1);
         if (!concepto) { toast('Indica concepto.', 'error'); return false; } if (!isDateKey(fecha)) { toast('Fecha no válida.', 'error'); return false; } if (importe < 0) { toast('Importe no válido.', 'error'); return false; }
         const payload = { concepto, fecha, importe: round2(importe), notas: $('#t-notas').value.trim() };
-        if (v) Object.assign(v, payload); else data.viajes.push(Object.assign({ id: uid(), pagado: 0, fecha_pago: '', creado: new Date().toISOString() }, payload));
+        if (v) {
+          const current = editableRecord('viajes', id);
+          if (!current) return false;
+          const changes = changesFromForm(item, current, payload);
+          if (!changes) return false;
+          Object.assign(current, changes);
+        } else data.viajes.push(Object.assign({ id: uid(), pagado: 0, fecha_pago: '', creado: new Date().toISOString() }, payload));
         return persist(isNew ? 'Viaje añadido' : 'Viaje actualizado');
       },
-      onDelete: v ? () => { data.viajes = data.viajes.filter((x) => String(x.id) !== String(v.id)); return persist('Viaje eliminado'); } : null
+      onDelete: v ? () => {
+        const current = editableRecord('viajes', id);
+        if (!current) return false;
+        data.viajes = data.viajes.filter((row) => row !== current);
+        return persist('Viaje eliminado');
+      } : null
     });
   }
 
   function payrollModal(id) {
     const p = data.pagos.find((x) => String(x.id) === String(id)); if (!p) return;
+    const original = { ...p };
     openModal({
       title: 'Editar nómina',
       body: '<label class="field"><span>Concepto</span><input class="input" id="p-concepto" maxlength="80" value="' + esc(p.concepto) + '"></label><div class="form-grid"><label class="field"><span>Importe (€)</span><input class="input mono" id="p-importe" type="text" inputmode="decimal" value="' + fmtInput(p.importe) + '"></label><label class="field"><span>Fecha</span><input class="input" id="p-fecha" type="date" value="' + esc(p.fecha) + '"></label></div>',
       onSave: () => {
         const concepto = $('#p-concepto').value.trim(); const importe = num($('#p-importe').value, -1); const fecha = $('#p-fecha').value;
         if (!concepto) { toast('Indica concepto.', 'error'); return false; } if (importe < 0) { toast('Importe no válido.', 'error'); return false; } if (!isDateKey(fecha)) { toast('Fecha no válida.', 'error'); return false; }
-        if (importe !== p.importe) p.manual_edit = true;
-        p.concepto = concepto; p.importe = round2(importe); p.fecha = fecha;
-        if (p.tipo === 'nomina_auto') { const newMonth = fecha.slice(0, 7); if (newMonth !== p.mes_key) { p.mes_key = newMonth; p.concepto = 'Nómina ' + fmtMonth(newMonth); } }
+        const current = editableRecord('pagos', id);
+        if (!current) return false;
+        const changes = changesFromForm(original, current, { concepto, importe: round2(importe), fecha });
+        if (!changes) return false;
+        if (Object.keys(changes).length) current.manual_edit = true;
+        Object.assign(current, changes);
+        if (current.tipo === 'nomina_auto' && changes.fecha) current.mes_key = current.fecha.slice(0, 7);
         return persist('Nómina actualizada');
       },
-      onDelete: () => { data.pagos = data.pagos.filter((x) => String(x.id) !== String(p.id)); return persist('Nómina eliminada'); }
+      onDelete: () => deletePayroll(id)
     });
+  }
+
+  function deletePayroll(id) {
+    const payment = editableRecord('pagos', id);
+    if (!payment) return false;
+    if (payment.tipo === 'nomina_auto') {
+      const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean));
+      omitted.add(payment.mes_key);
+      setSetting('nomina_auto_omitidas', [...omitted].sort().join(','));
+    }
+    data.pagos = data.pagos.filter((row) => row !== payment);
+    return persist('Nómina eliminada');
   }
 
   function pendingModal() {
     const unpaidExtras = data.jornadas.filter((j) => j.estado === 'confirmado' && j.horas_extra > 0 && !j.pagado_extras); const extraHours = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra, 0)); const extraTotal = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra * rateOn(j.fecha, 'extra'), 0));
     const pendingTrips = data.viajes.filter((v) => !v.pagado); const tripTotal = round2(pendingTrips.reduce((sum, v) => sum + v.importe, 0));
-    const pendingPayrolls = data.pagos.filter((p) => p.tipo === 'nomina_auto' && !p.confirmado); const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
+    const pendingPayrolls = effectivePayments().filter((p) => p.tipo === 'nomina_auto' && !p.confirmado); const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
     const total = round2(payrollTotal + extraTotal + tripTotal);
     const rows = [
       { label: 'Nóminas sin confirmar', detail: pendingPayrolls.length === 1 ? '1 nómina' : pendingPayrolls.length + ' nóminas', value: payrollTotal },
@@ -1181,7 +1295,7 @@
     });
     data.ausencias.filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push(['Incidencia · ' + calendarLabel(item.tipo), item.fecha, '', '', '', '', '', '', '', '', '', item.concepto, '', item.notas]));
     data.viajes.filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push(['Viaje/dieta', item.fecha, '', '', '', '', '', '', '', item.pagado ? 'Cobrado' : 'Pendiente', '', item.concepto, String(item.importe).replace('.', ','), item.notas]));
-    data.pagos.filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push([item.tipo === 'nomina_auto' ? 'Nómina automática' : 'Pago manual', item.fecha, '', '', '', String(item.horas_normales_mes).replace('.', ','), String(item.horas_extra_mes).replace('.', ','), '', '', item.confirmado ? 'Confirmado' : 'Pendiente', '', item.concepto, String(item.importe).replace('.', ','), '']));
+    effectivePayments().filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push([item.tipo === 'nomina_auto' ? 'Nómina automática' : 'Pago manual', item.fecha, '', '', '', String(item.horas_normales_mes).replace('.', ','), String(item.horas_extra_mes).replace('.', ','), '', '', item.confirmado ? 'Confirmado' : 'Pendiente', '', item.concepto, String(item.importe).replace('.', ','), '']));
     const orderedRows = [rows[0]].concat(rows.slice(1).sort((a, b) => String(a[1]).localeCompare(String(b[1]))));
     const csv = window.IVORY37Reports.toCsv(orderedRows);
     download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'informe_' + from + '_' + to + '.csv', function (saved) { toast(saved ? (window.IVORY37DesktopBridge ? 'CSV guardado en la ubicación elegida.' : 'CSV guardado. Elige Descargas para encontrarlo.') : 'No se guardó el CSV.', saved ? 'info' : 'warn'); });
@@ -1228,7 +1342,7 @@
     const confirmed = records.filter((j) => j.estado === 'confirmado');
     const exceptions = data.ausencias.filter((item) => item.fecha >= from && item.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
     const trips = data.viajes.filter((item) => item.fecha >= from && item.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
-    const payments = data.pagos.filter((item) => item.fecha >= from && item.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const payments = effectivePayments().filter((item) => item.fecha >= from && item.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
     let normalHours = round2(confirmed.reduce((sum, j) => sum + j.horas_normales, 0));
     const extraHours = round2(confirmed.reduce((sum, j) => sum + j.horas_extra, 0));
     let normalValue = round2(confirmed.reduce((sum, j) => sum + j.horas_normales * rateOn(j.fecha, 'normal'), 0));
@@ -1309,7 +1423,11 @@
       case 'confirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { p.confirmado = true; persist('Nómina confirmada'); } break; }
       case 'unconfirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { p.confirmado = false; persist('Nómina a pendiente'); } break; }
       case 'edit-payroll': payrollModal(id); break;
-      case 'delete-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) confirmAction('Eliminar nómina', '¿Eliminar «' + p.concepto + '»? Si es automática, solo volverá a generarse al pulsar «Recalcular».', 'Eliminar', () => { if (p.tipo === 'nomina_auto') { const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean)); omitted.add(p.mes_key); setSetting('nomina_auto_omitidas', Array.from(omitted).sort().join(',')); } data.pagos = data.pagos.filter((x) => String(x.id) !== String(id)); persist('Nómina eliminada'); }, true); break; }
+      case 'delete-payroll': {
+        const p = data.pagos.find((row) => String(row.id) === String(id));
+        if (p) confirmAction('Eliminar nómina', '¿Eliminar «' + p.concepto + '»? Si es automática, solo volverá a generarse al pulsar «Recalcular».', 'Eliminar', () => deletePayroll(id), true);
+        break;
+      }
       case 'mark-extra-paid': { const j = data.jornadas.find((x) => String(x.id) === String(id)); if (j) { j.pagado_extras = true; j.fecha_pago_extras = dateKey(new Date()); persist('Extras pagadas'); } break; }
       case 'mark-extra-unpaid': { const j = data.jornadas.find((x) => String(x.id) === String(id)); if (j) { j.pagado_extras = false; j.fecha_pago_extras = ''; persist('Extras a pendiente'); } break; }
       case 'edit-extra-payment': extraPaymentModal(el.dataset.month); break;
@@ -1459,7 +1577,7 @@
       if (cloudStatus) { cloudStatus.textContent = 'Sincronización pausada hasta recuperar los datos.'; cloudStatus.dataset.state = 'error'; }
       ['#cloud-signup', '#cloud-login', '#cloud-now'].forEach((selector) => { const button = $(selector); if (button) button.disabled = true; });
     } else window.IVORY37CloudSync?.init(data);
-    mirrorNativeStorage();
+    if (!loadError) mirrorNativeStorage();
   }
 
   init();

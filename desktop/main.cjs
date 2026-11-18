@@ -7,15 +7,13 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const APP_ID = 'com.ivory37.controllaboral.desktop';
 const APP_NAME = 'Control Laboral';
 const APP_DATA_DIR = 'IVORY37 Control Laboral';
-const HOSTED_HOST = 'ivory37goku.github.io';
-const HOSTED_PREFIX = '/ivory37-control-laboral/';
-const HOSTED_URL = 'https://' + HOSTED_HOST + HOSTED_PREFIX;
 
 app.setName(APP_NAME);
 app.setAppUserModelId(APP_ID);
 
 // Mantiene la carpeta de datos de usuario estable entre las actualizaciones.
-app.setPath('userData', path.join(app.getPath('appData'), APP_DATA_DIR));
+const profilePath = app.commandLine.getSwitchValue('user-data-dir');
+app.setPath('userData', profilePath ? path.resolve(profilePath) : path.join(app.getPath('appData'), APP_DATA_DIR));
 
 const appRoot = app.getAppPath();
 const indexPath = path.resolve(appRoot, 'index.html');
@@ -23,13 +21,7 @@ const iconPath = path.resolve(appRoot, 'desktop', 'assets', 'icon.ico');
 const userDataPath = app.getPath('userData');
 const storageShadowPath = path.join(userDataPath, 'web-storage-shadow.json');
 const hostedBootstrapPath = path.join(userDataPath, 'hosted-app-enabled');
-
-function isHostedApp(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && url.hostname === HOSTED_HOST && url.pathname.startsWith(HOSTED_PREFIX);
-  } catch (_) { return false; }
-}
+const bundledStorageMarker = path.join(userDataPath, 'bundled-storage-restored');
 
 function isLocalApp(value) {
   try {
@@ -38,7 +30,7 @@ function isLocalApp(value) {
   } catch (_) { return false; }
 }
 
-function isTrustedAppDocument(value) { return isHostedApp(value) || isLocalApp(value); }
+function isTrustedAppDocument(value) { return isLocalApp(value); }
 
 function readStorageShadow() {
   try {
@@ -47,15 +39,15 @@ function readStorageShadow() {
   } catch (_) { return ''; }
 }
 
-async function writeStorageShadow(raw) {
+function writeStorageShadow(raw) {
   if (typeof raw !== 'string' || raw.length > 12 * 1024 * 1024) return;
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
-    await fsp.mkdir(userDataPath, { recursive: true });
+    fs.mkdirSync(userDataPath, { recursive: true });
     const tempPath = storageShadowPath + '.' + process.pid + '.' + Date.now() + '.' + Math.random().toString(36).slice(2) + '.tmp';
-    await fsp.writeFile(tempPath, raw, 'utf8');
-    await fsp.rename(tempPath, storageShadowPath);
+    fs.writeFileSync(tempPath, raw, 'utf8');
+    fs.renameSync(tempPath, storageShadowPath);
   } catch (_) {}
 }
 
@@ -64,7 +56,17 @@ ipcMain.on('ivory37:read-storage-shadow', (event) => {
 });
 
 ipcMain.on('ivory37:write-storage-shadow', (event, raw) => {
-  if (isTrustedAppDocument(event.senderFrame?.url || '')) void writeStorageShadow(raw);
+  if (isTrustedAppDocument(event.senderFrame?.url || '')) writeStorageShadow(raw);
+});
+
+ipcMain.on('ivory37:finish-storage-migration', (event) => {
+  event.returnValue = false;
+  if (!isTrustedAppDocument(event.senderFrame?.url || '')) return;
+  try {
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(bundledStorageMarker, 'enabled', 'utf8');
+    event.returnValue = true;
+  } catch (_) {}
 });
 
 ipcMain.handle('ivory37:save-file', async (event, fileName, mimeType, encoded) => {
@@ -119,47 +121,18 @@ function createWindow() {
   window.once('ready-to-show', () => window.show());
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https:\/\//i.test(url) && !isHostedApp(url)) void shell.openExternal(url);
+    if (/^https:\/\//i.test(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
 
   window.webContents.on('will-navigate', (event, destination) => {
-    if (isLocalApp(destination) || isHostedApp(destination)) return;
+    if (isLocalApp(destination)) return;
     event.preventDefault();
     if (/^https:\/\//i.test(destination)) void shell.openExternal(destination);
   });
 
-  let localStateCaptured = fs.existsSync(hostedBootstrapPath);
-  let hostedFallbackStarted = false;
-  let localCaptureStarted = false;
-
-  window.webContents.on('did-finish-load', async () => {
-    const currentUrl = window.webContents.getURL();
-    if (localStateCaptured || localCaptureStarted || !isLocalApp(currentUrl)) return;
-    localCaptureStarted = true;
-    try {
-      const raw = await window.webContents.executeJavaScript(
-        "JSON.stringify((function(){var s={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k)s[k]=localStorage.getItem(k)}return s})())"
-      );
-      await writeStorageShadow(raw);
-      await fsp.mkdir(userDataPath, { recursive: true });
-      await fsp.writeFile(hostedBootstrapPath, 'enabled', 'utf8');
-      localStateCaptured = true;
-      await window.loadURL(HOSTED_URL);
-    } catch (_) {
-      // Si la primera migración no puede terminar, conserva abierta la copia local.
-      localCaptureStarted = false;
-    }
-  });
-
-  window.webContents.on('did-fail-load', (_event, _code, _description, failedUrl, isMainFrame) => {
-    if (!isMainFrame || !isHostedApp(failedUrl) || hostedFallbackStarted) return;
-    hostedFallbackStarted = true;
-    void window.loadURL(localAppUrl(true));
-  });
-
-  if (localStateCaptured) window.loadURL(HOSTED_URL);
-  else window.loadURL(localAppUrl(false));
+  const needsStorageMigration = fs.existsSync(hostedBootstrapPath) && !fs.existsSync(bundledStorageMarker);
+  void window.loadURL(localAppUrl(needsStorageMigration));
   return window;
 }
 
