@@ -106,7 +106,7 @@ test('independent edits from two devices merge without losing either record', ()
   assert.equal(result.conflicts.length, 0);
 });
 
-test('concurrent edits retain the newer version and expose the alternate', () => {
+test('concurrent edits retain the local version and expose the cloud alternative', () => {
   const local = plain(base);
   const remote = plain(base);
   local.jornadas[0].notas = 'Cambio del móvil';
@@ -118,10 +118,42 @@ test('concurrent edits retain the newer version and expose the alternate', () =>
     base
   );
   const merged = plain(result.data);
-  assert.equal(merged.jornadas[0].notas, 'Cambio del ordenador');
+  assert.equal(merged.jornadas[0].notas, 'Cambio del móvil');
   assert.equal(result.conflicts.length, 1);
-  assert.equal(result.conflicts[0].winner, 'remote');
-  assert.equal(result.conflicts[0].alternate.notas, 'Cambio del móvil');
+  assert.equal(result.conflicts[0].winner, 'local');
+  assert.equal(result.conflicts[0].alternate.notas, 'Cambio del ordenador');
+});
+
+test('a local edit beats an unchanged cloud copy even when its revision clock is ahead', () => {
+  const local = plain(base);
+  const remote = plain(base);
+  local.jornadas[0].horas_extra = 1.5;
+  const futureRemoteClock = Date.now() + 60000;
+  const result = createSyncHarness().core.mergeData(
+    local, remote,
+    metadata({ [key('jornadas', 'j-1')]: 10 }),
+    metadata({ [key('jornadas', 'j-1')]: futureRemoteClock }),
+    base
+  );
+  assert.equal(plain(result.data).jornadas[0].horas_extra, 1.5);
+  assert.equal(result.conflicts.length, 0);
+  assert.ok(result.meta.modified[key('jornadas', 'j-1')] > futureRemoteClock);
+});
+
+test('a local edit restores a record against a stale cloud tombstone', () => {
+  const local = plain(base);
+  const remote = { jornadas: [], viajes: [], pagos: [], ausencias: [], ajustes: [] };
+  local.jornadas[0].horas_extra = 1.5;
+  const tombstone = Date.now() + 60000;
+  const result = createSyncHarness().core.mergeData(
+    local, remote,
+    metadata({ [key('jornadas', 'j-1')]: 10 }),
+    metadata({}, { [key('jornadas', 'j-1')]: tombstone }),
+    base
+  );
+  assert.equal(plain(result.data).jornadas[0].horas_extra, 1.5);
+  assert.equal(Object.hasOwn(plain(result.meta).deleted, key('jornadas', 'j-1')), false);
+  assert.ok(plain(result.meta).modified[key('jornadas', 'j-1')] > tombstone);
 });
 
 test('device timestamps and object key order do not create false conflicts', () => {
@@ -169,7 +201,8 @@ test('nonzero pause remains meaningful and concurrent changes are still reported
     { jornadas: [oldRecord], viajes: [], pagos: [], ausencias: [] }
   );
   assert.equal(result.conflicts.length, 1);
-  assert.equal(plain(result.conflicts[0].chosen).descanso_minutos, 30);
+  assert.equal(plain(result.conflicts[0].chosen).notas, 'Editada en el móvil');
+  assert.equal(plain(result.conflicts[0].alternate).descanso_minutos, 30);
 });
 
 test('historical conflicts with only creation metadata differences are removed safely', () => {
@@ -250,6 +283,83 @@ test('quiet background sync still surfaces actual cloud failures', async () => {
 
   assert.equal(harness.statusElement.dataset.state, 'error');
   assert.match(harness.statusElement.textContent, /No se pudo sincronizar/);
+});
+
+test('a jornada saved during an in-flight sync is not replaced by the earlier snapshot', async () => {
+  const harness = createSyncHarness({ online: true });
+  const localKey = '工V龱尺ㄚ㇌7_data_v1';
+  harness.localStorage.setItem(localKey, JSON.stringify(base));
+  harness.sync.init(base);
+
+  let releaseFirstFetch;
+  let markFirstFetchStarted;
+  const firstFetchStarted = new Promise(resolve => { markFirstFetchStarted = resolve; });
+  const firstFetchGate = new Promise(resolve => { releaseFirstFetch = resolve; });
+  let releaseFirstWrite;
+  let markFirstWriteStarted;
+  const firstWriteStarted = new Promise(resolve => { markFirstWriteStarted = resolve; });
+  const firstWriteGate = new Promise(resolve => { releaseFirstWrite = resolve; });
+  let fetchCount = 0;
+  let writeCount = 0;
+  let remoteRow = {
+    payload: { ...plain(base), _ivory37_sync: metadata(), _ivory37_conflicts: [] },
+    revision: 1
+  };
+  const client = {
+    auth: { getSession: async () => ({ data: { session: { user: { id: 'test-user', email: 'test@example.com' } } }, error: null }) },
+    from() {
+      let mode = 'select';
+      let writePayload = null;
+      let expectedRevision = null;
+      const query = {
+        select() { return query; },
+        update(payload) { mode = 'update'; writePayload = payload; return query; },
+        insert(payload) { mode = 'insert'; writePayload = payload; return query; },
+        eq(column, value) { if (column === 'revision') expectedRevision = value; return query; },
+        async maybeSingle() {
+          if (mode === 'select') {
+            fetchCount += 1;
+            if (fetchCount === 1) { markFirstFetchStarted(); await firstFetchGate; }
+            return { data: remoteRow, error: null };
+          }
+          if (mode === 'update') {
+            writeCount += 1;
+            if (writeCount === 1) { markFirstWriteStarted(); await firstWriteGate; }
+            if (!remoteRow || remoteRow.revision !== expectedRevision) return { data: null, error: null };
+            remoteRow = { payload: writePayload.payload, revision: remoteRow.revision + 1 };
+            return { data: { revision: remoteRow.revision }, error: null };
+          }
+          remoteRow = { payload: writePayload.payload, revision: 1 };
+          return { data: { revision: remoteRow.revision }, error: null };
+        }
+      };
+      return query;
+    }
+  };
+  harness.core.setSyncContext(client, { user: { id: 'test-user', email: 'test@example.com' } });
+
+  const syncing = harness.sync.syncNow({ quiet: true });
+  await firstFetchStarted;
+  const newlySaved = plain(base);
+  newlySaved.jornadas.push({ id: 'j-2', fecha: '2026-11-17', entrada: '08:00', salida: '16:00', horas_normales: 8, horas_extra: 0, notas: '' });
+  harness.localStorage.setItem(localKey, JSON.stringify(newlySaved));
+  harness.sync.queue(newlySaved);
+  releaseFirstFetch();
+  await firstWriteStarted;
+  const secondSaveDuringWrite = plain(newlySaved);
+  secondSaveDuringWrite.jornadas.push({ id: 'j-3', fecha: '2026-11-18', entrada: '08:00', salida: '16:00', horas_normales: 8, horas_extra: 0, notas: '' });
+  harness.localStorage.setItem(localKey, JSON.stringify(secondSaveDuringWrite));
+  harness.sync.queue(secondSaveDuringWrite);
+  releaseFirstWrite();
+  await syncing;
+
+  const retained = JSON.parse(harness.localStorage.getItem(localKey)).jornadas;
+  assert.ok(retained.some(item => item.id === 'j-2'));
+  assert.ok(retained.some(item => item.id === 'j-3'));
+  assert.ok(remoteRow.payload.jornadas.some(item => item.id === 'j-2'));
+  assert.ok(remoteRow.payload.jornadas.some(item => item.id === 'j-3'));
+  assert.equal(fetchCount, 3);
+  assert.equal(harness.events.filter(event => event.type === 'ivory37:cloud-data').length, 0);
 });
 
 test('a later tombstone wins over an older edit; a newer edit restores the record', () => {
