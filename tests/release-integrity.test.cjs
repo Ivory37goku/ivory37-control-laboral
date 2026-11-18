@@ -14,6 +14,15 @@ test('Android packaged web scripts match web release', () => {
   assert.equal(read('android-app/app/src/main/assets/overtime-tools.js'), read('overtime-tools.js'));
 });
 
+test('Android runs the installed app bundle and migrates hosted data only once', () => {
+  const activity = read('android-app/app/src/main/java/com/ivory37/controllaboral/MainActivity.java');
+  assert.match(activity, /webView\.loadUrl\(pendingShadowMigration \? LOCAL_URL \+ "\?nativeRestore=1" : LOCAL_URL\)/);
+  assert.match(activity, /LOCAL_STORAGE_MIGRATED_KEY/);
+  assert.match(activity, /completeLocalStorageMigration/);
+  assert.doesNotMatch(activity, /HOSTED_URL|HOSTED_HOST|beginHostedApp/);
+  assert.match(read('app.js'), /localStorage\.clear\(\);[\s\S]*bridge\.completeLocalStorageMigration\(\)/);
+});
+
 test('PWA precache includes application scripts', () => {
   const sw = read('sw.js');
   for (const name of ['index.html', 'app.js', 'rates.js', 'calendar.js', 'reports.js', 'work-hours.js', 'backup-tools.js', 'theme-tools.js', 'overtime-tools.js', 'supabase-sync.js']) {

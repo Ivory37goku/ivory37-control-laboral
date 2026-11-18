@@ -42,12 +42,10 @@ public final class MainActivity extends Activity {
     private static final String LOCAL_HOST = "appassets.androidplatform.net";
     private static final String LOCAL_PREFIX = "/assets/";
     private static final String LOCAL_URL = "https://" + LOCAL_HOST + LOCAL_PREFIX + "index.html";
-    private static final String HOSTED_HOST = "ivory37goku.github.io";
-    private static final String HOSTED_PREFIX = "/ivory37-control-laboral/";
-    private static final String HOSTED_URL = "https://" + HOSTED_HOST + HOSTED_PREFIX;
     private static final String CHANNEL_ID = "control_laboral_reminders";
     private static final String BRIDGE_PREFS = "android_bridge";
     private static final String STORAGE_SHADOW_KEY = "web_storage_shadow_v1";
+    private static final String LOCAL_STORAGE_MIGRATED_KEY = "local_assets_bootstrapped";
     private static final int REQUEST_PICK_FILE = 4101;
     private static final int REQUEST_SAVE_FILE = 4102;
     private static final int REQUEST_POST_NOTIFICATIONS = 4103;
@@ -60,11 +58,8 @@ public final class MainActivity extends Activity {
     private String pendingSaveName;
     private String pendingSaveMime;
     private String pendingSaveRequestId;
-    private boolean hostedBootstrapped;
-    private boolean hostedFallbackActive;
-    private boolean loadingHosted;
+    private volatile boolean pendingShadowMigration;
     private boolean showingLocalFailure;
-    private boolean capturingLegacyStorage;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -153,14 +148,11 @@ public final class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 Uri uri = Uri.parse(url);
-                if (isLocalPage(uri) && !hostedBootstrapped && !capturingLegacyStorage) {
-                    captureLocalStorageAndOpenHosted(view);
-                    return;
-                }
-                if (isHostedApp(uri)) {
-                    loadingHosted = false;
-                    view.clearHistory();
-                } else if (isLocalPage(uri) && hostedFallbackActive) {
+                if (isLocalPage(uri)) {
+                    if (!pendingShadowMigration) {
+                        getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).edit()
+                                .putBoolean(LOCAL_STORAGE_MIGRATED_KEY, true).apply();
+                    }
                     view.clearHistory();
                 }
                 if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
@@ -174,27 +166,14 @@ public final class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 if (!request.isForMainFrame()) return;
-                Uri uri = request.getUrl();
-                if (isHostedApp(uri)) {
-                    android.util.Log.w("ControlLaboral", "No se pudo cargar la app web; se abre la copia local.");
-                    fallbackToBundledApp(view);
-                } else {
-                    android.util.Log.e("ControlLaboral", "No se pudieron cargar los archivos locales: " + error.getDescription());
-                    fallbackToBundledApp(view);
-                }
-            }
-
-            @Override
-            public void onReceivedHttpError(WebView view, WebResourceRequest request, android.webkit.WebResourceResponse errorResponse) {
-                if (request.isForMainFrame() && isHostedApp(request.getUrl()) && errorResponse.getStatusCode() >= 400) {
-                    fallbackToBundledApp(view);
-                }
+                android.util.Log.e("ControlLaboral", "No se pudieron cargar los archivos locales: " + error.getDescription());
+                showLocalFailure(view);
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (isLocalAsset(uri) || isHostedApp(uri)) return false;
+                if (isLocalAsset(uri)) return false;
                 openExternal(uri);
                 return true;
             }
@@ -222,13 +201,10 @@ public final class MainActivity extends Activity {
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
         setContentView(root);
         createNotificationChannel();
-        hostedBootstrapped = getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).getBoolean("hosted_bootstrapped", false);
-        if (hostedBootstrapped) {
-            loadingHosted = true;
-            webView.loadUrl(HOSTED_URL);
-        } else {
-            webView.loadUrl(LOCAL_URL);
-        }
+        SharedPreferences prefs = getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE);
+        pendingShadowMigration = prefs.getBoolean("hosted_bootstrapped", false)
+                && !prefs.getBoolean(LOCAL_STORAGE_MIGRATED_KEY, false);
+        webView.loadUrl(pendingShadowMigration ? LOCAL_URL + "?nativeRestore=1" : LOCAL_URL);
     }
 
     private boolean isLocalAsset(Uri uri) {
@@ -244,45 +220,14 @@ public final class MainActivity extends Activity {
                 && (uri.getPath() == null || uri.getPath().equals(LOCAL_PREFIX) || uri.getPath().equals(LOCAL_PREFIX + "index.html"));
     }
 
-    private boolean isHostedApp(Uri uri) {
-        return "https".equalsIgnoreCase(uri.getScheme())
-                && HOSTED_HOST.equalsIgnoreCase(uri.getHost())
-                && uri.getPath() != null
-                && uri.getPath().startsWith(HOSTED_PREFIX);
-    }
-
-    private void beginHostedApp(WebView view) {
-        hostedBootstrapped = true;
-        hostedFallbackActive = false;
-        loadingHosted = true;
-        getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).edit().putBoolean("hosted_bootstrapped", true).apply();
-        view.loadUrl(HOSTED_URL);
-    }
-
-    private void fallbackToBundledApp(WebView view) {
-        if (!hostedFallbackActive) {
-            hostedFallbackActive = true;
-            loadingHosted = false;
-            showingLocalFailure = false;
-            view.loadUrl(LOCAL_URL + "?nativeRestore=1");
-            return;
-        }
+    private void showLocalFailure(WebView view) {
         if (showingLocalFailure) return;
         showingLocalFailure = true;
         String errorPage = "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Error de carga</title>"
                 + "<body style='margin:0;background:#0a0f0d;color:#f5f1e6;font:16px sans-serif;padding:32px'><h1>No se pudo abrir Control Laboral</h1>"
-                + "<p>No se pudo cargar la app publicada ni los archivos locales. Tus datos guardados se conservan.</p>"
+                + "<p>No se pudieron cargar los archivos instalados. Tus datos guardados se conservan.</p>"
                 + "<button onclick='location.reload()' style='padding:12px 18px;border:0;border-radius:10px;background:#a6d94a;color:#14200e;font-weight:bold'>Reintentar</button></body></html>";
         view.loadDataWithBaseURL("https://" + LOCAL_HOST + "/", errorPage, "text/html", "UTF-8", null);
-    }
-
-    private void captureLocalStorageAndOpenHosted(WebView view) {
-        capturingLegacyStorage = true;
-        String captureScript = "(function(){try{var s={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k)s[k]=localStorage.getItem(k)}AndroidBridge.saveLocalStorage(JSON.stringify(s));return true}catch(e){return false}})()";
-        view.evaluateJavascript(captureScript, result -> {
-            capturingLegacyStorage = false;
-            beginHostedApp(view);
-        });
     }
 
     private void openExternal(Uri uri) {
@@ -534,6 +479,13 @@ public final class MainActivity extends Activity {
             } catch (Exception error) {
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public void completeLocalStorageMigration() {
+            getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(LOCAL_STORAGE_MIGRATED_KEY, true).apply();
+            pendingShadowMigration = false;
         }
 
         @JavascriptInterface

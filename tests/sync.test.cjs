@@ -139,6 +139,39 @@ test('device timestamps and object key order do not create false conflicts', () 
   assert.equal(result.conflicts.length, 0);
 });
 
+test('a missing default pause and zero minutes are the same cloud record', () => {
+  const core = createSyncHarness().core;
+  const oldRecord = { id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: 'Confirmada' };
+  const newRecord = { ...oldRecord, descanso_minutos: 0 };
+  assert.equal(core.sameBusinessRecord(oldRecord, newRecord), true);
+  assert.equal(core.signature({ jornadas: [oldRecord] }), core.signature({ jornadas: [newRecord] }));
+  assert.equal(Object.hasOwn(plain(core.normalizeData({ jornadas: [newRecord] })).jornadas[0], 'descanso_minutos'), false);
+  assert.equal(core.removeNoopConflicts([{
+    id: 'jornadas|j-1:old', collection: 'jornadas', itemId: 'j-1', chosen: oldRecord, alternate: newRecord, createdAt: 1
+  }]).length, 0);
+});
+
+test('nonzero pause remains meaningful and concurrent changes are still reported', () => {
+  const core = createSyncHarness().core;
+  const oldRecord = { id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: 'Confirmada' };
+  const pauseRecord = { ...oldRecord, descanso_minutos: 30 };
+  assert.equal(core.sameBusinessRecord(oldRecord, pauseRecord), false);
+  assert.equal(core.removeNoopConflicts([{
+    id: 'jornadas|j-1:pause', collection: 'jornadas', itemId: 'j-1', chosen: oldRecord, alternate: pauseRecord, createdAt: 1
+  }]).length, 1);
+
+  const local = { jornadas: [{ ...oldRecord, notas: 'Editada en el móvil' }], viajes: [], pagos: [], ausencias: [] };
+  const remote = { jornadas: [{ ...oldRecord, notas: 'Editada en el ordenador', descanso_minutos: 30 }], viajes: [], pagos: [], ausencias: [] };
+  const result = core.mergeData(
+    local, remote,
+    metadata({ [key('jornadas', 'j-1')]: 100 }),
+    metadata({ [key('jornadas', 'j-1')]: 200 }),
+    { jornadas: [oldRecord], viajes: [], pagos: [], ausencias: [] }
+  );
+  assert.equal(result.conflicts.length, 1);
+  assert.equal(plain(result.conflicts[0].chosen).descanso_minutos, 30);
+});
+
 test('historical conflicts with only creation metadata differences are removed safely', () => {
   const core = createSyncHarness().core;
   const chosen = { id: 'j-1', fecha: '2026-06-30', horas_normales: 8, horas_extra: 0, notas: '[CONFIRMADO] Jornada estándar verificada.', creado: '2026-11-17T08:00:00.000Z' };
@@ -146,6 +179,19 @@ test('historical conflicts with only creation metadata differences are removed s
   const noOpConflict = { id: 'jornadas|j-1:1:2', collection: 'jornadas', itemId: 'j-1', chosen, alternate, createdAt: 1 };
   assert.equal(core.removeNoopConflicts([noOpConflict]).length, 0);
   assert.equal(core.removeNoopConflicts([{ ...noOpConflict, alternate: { ...alternate, horas_extra: 1 } }]).length, 1);
+});
+
+test('initialization clears old zero-pause conflicts and keeps real conflicts', () => {
+  const harness = createSyncHarness();
+  const chosen = { id: 'j-1', fecha: '2026-06-30', descanso_minutos: 0 };
+  const noOpConflict = { id: 'jornadas|j-1:zero', collection: 'jornadas', itemId: 'j-1', chosen, alternate: { id: 'j-1', fecha: '2026-06-30' }, createdAt: 1 };
+  const realConflict = { ...noOpConflict, id: 'jornadas|j-1:real', alternate: { ...chosen, descanso_minutos: 30 } };
+  harness.localStorage.setItem('ivory37_cloud_sync_conflicts_v1', JSON.stringify([noOpConflict, realConflict]));
+
+  harness.sync.init(base);
+
+  const remaining = JSON.parse(harness.localStorage.getItem('ivory37_cloud_sync_conflicts_v1'));
+  assert.deepEqual(remaining.map(item => item.id), [realConflict.id]);
 });
 
 test('cloud apply signature ignores key order and device timestamps but keeps work-hour changes', () => {
