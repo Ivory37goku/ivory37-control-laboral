@@ -2,7 +2,7 @@
   'use strict';
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.5';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.6';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -701,12 +701,25 @@
     return fmtDate(item.fecha) + ' · ' + calendarLabel(item.tipo) + (item.concepto ? ' · ' + item.concepto : '');
   }
 
+  function conflictDifferences(chosen, alternate) {
+    const technicalFields = new Set(['creado', 'created', 'actualizado']);
+    const labels = { id: 'Identificador', fecha: 'Fecha', entrada: 'Entrada', salida: 'Salida', horas_normales: 'Horas normales', horas_extra: 'Horas extra', descanso_minutos: 'Pausa', estado: 'Estado', notas: 'Notas', pagado_extras: 'Extras pagadas', fecha_pago_extras: 'Fecha de pago de extras', auto: 'Fichaje automático', backfill: 'Jornada completada', concepto: 'Concepto', importe: 'Importe', pagado: 'Pagado', fecha_pago: 'Fecha de pago', tipo: 'Tipo', mes_key: 'Mes', confirmado: 'Confirmado', horas_normales_mes: 'Horas normales del mes', horas_extra_mes: 'Horas extra del mes', dias_laborables: 'Días laborables', manual_edit: 'Edición manual', grupo: 'Grupo' };
+    const stable = (value) => {
+      if (Array.isArray(value)) return value.map(stable);
+      if (!value || typeof value !== 'object') return value;
+      return Object.keys(value).filter((key) => !technicalFields.has(key)).sort().reduce((result, key) => { result[key] = stable(value[key]); return result; }, {});
+    };
+    const keys = new Set(Object.keys(chosen || {}).concat(Object.keys(alternate || {})));
+    return Array.from(keys).filter((key) => !technicalFields.has(key) && JSON.stringify(stable(chosen && chosen[key])) !== JSON.stringify(stable(alternate && alternate[key])))
+      .map((key) => labels[key] || key.replace(/_/g, ' ').replace(/^./, (letter) => letter.toUpperCase()));
+  }
+
   function renderSyncConflicts() {
     const box = $('#sync-conflicts'); if (!box) return;
     const conflicts = window.IVORY37CloudSync?.getConflicts() || [];
     const pending = conflicts.filter((item) => !item.resolved).slice().reverse();
     if (!pending.length) { box.innerHTML = conflicts.length ? '<p class="muted small" style="margin:0">Conflictos revisados: ' + conflicts.length + '</p>' : ''; return; }
-    box.innerHTML = '<p class="eyebrow" style="margin:8px 0 0">Revisar cambios entre dispositivos</p>' + pending.map((item) => '<div class="row" style="--edge:var(--warn)"><div class="main"><p class="title">' + esc(({ jornadas: 'Jornada', viajes: 'Viaje', pagos: 'Pago', ausencias: 'Incidencia' })[item.collection] || 'Registro') + ' · dos versiones</p><p class="sub"><b>Versión aplicada:</b> ' + esc(conflictItemLabel(item.collection, item.chosen)) + '<br><b>Versión alternativa:</b> ' + esc(conflictItemLabel(item.collection, item.alternate)) + '</p></div><div class="row-actions"><button class="btn ghost sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="keep">Conservar aplicada</button><button class="btn primary sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="restore">Restaurar alternativa</button></div></div>').join('');
+    box.innerHTML = '<p class="eyebrow" style="margin:8px 0 0">Revisar cambios entre dispositivos</p>' + pending.map((item) => '<div class="row" style="--edge:var(--warn)"><div class="main"><p class="title">' + esc(({ jornadas: 'Jornada', viajes: 'Viaje', pagos: 'Pago', ausencias: 'Incidencia' })[item.collection] || 'Registro') + ' · dos versiones</p><p class="sub"><b>Campos distintos:</b> ' + esc(conflictDifferences(item.chosen, item.alternate).join(' · ') || 'Ninguno (solo metadatos)') + '<br><b>Versión aplicada:</b> ' + esc(conflictItemLabel(item.collection, item.chosen)) + '<br><b>Versión alternativa:</b> ' + esc(conflictItemLabel(item.collection, item.alternate)) + '</p></div><div class="row-actions"><button class="btn ghost sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="keep">Conservar aplicada</button><button class="btn primary sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="restore">Restaurar alternativa</button></div></div>').join('');
   }
 
   function applyBrandColor(value) {

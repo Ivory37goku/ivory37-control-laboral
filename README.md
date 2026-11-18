@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 3.3.5" src="https://img.shields.io/badge/versi%C3%B3n-3.3.5-1f392d?labelColor=0a0f0d">
+  <img alt="Versión 3.3.6" src="https://img.shields.io/badge/versi%C3%B3n-3.3.6-1f392d?labelColor=0a0f0d">
   <img alt="PWA instalable y sin conexión" src="https://img.shields.io/badge/PWA-instalable%20%7C%20offline-a6d94a?labelColor=0a0f0d">
   <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-1f392d?labelColor=0a0f0d">
 </p>

@@ -116,6 +116,28 @@
     return JSON.stringify(cleanConflicts(value).map(function (item) { return { id: item.id, resolved: item.resolved, resolution: item.resolution }; }));
   }
 
+  // Record creation/update timestamps describe when a device wrote a copy, not
+  // a change to the employee's working or payment data. Sort keys as well so
+  // JSON property order from different app versions cannot create conflicts.
+  var NON_SEMANTIC_RECORD_FIELDS = ['creado', 'created', 'actualizado'];
+
+  function semanticValue(value) {
+    if (Array.isArray(value)) return value.map(semanticValue);
+    if (!value || typeof value !== 'object') return value;
+    var result = {};
+    Object.keys(value).filter(function (key) { return NON_SEMANTIC_RECORD_FIELDS.indexOf(key) === -1; }).sort().forEach(function (key) {
+      result[key] = semanticValue(value[key]);
+    });
+    return result;
+  }
+
+  function semanticSignature(value) { return JSON.stringify(semanticValue(value)); }
+  function sameBusinessRecord(left, right) { return semanticSignature(left) === semanticSignature(right); }
+
+  function removeNoopConflicts(list) {
+    return cleanConflicts(list).filter(function (item) { return !sameBusinessRecord(item.chosen, item.alternate); });
+  }
+
   function mergeConflictLogs() {
     var merged = new Map();
     Array.prototype.slice.call(arguments).forEach(function (list) {
@@ -128,7 +150,7 @@
   }
 
   function smallHash(value) {
-    var text = JSON.stringify(value); var hash = 2166136261;
+    var text = semanticSignature(value); var hash = 2166136261;
     for (var i = 0; i < text.length; i++) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619); }
     return (hash >>> 0).toString(36);
   }
@@ -140,10 +162,10 @@
       var left = itemMap(local, collection); var right = itemMap(remote, collection); var baseRows = itemMap(base, collection);
       left.forEach(function (localItem, id) {
         var remoteItem = right.get(id);
-        if (!remoteItem || JSON.stringify(localItem) === JSON.stringify(remoteItem)) return;
+        if (!remoteItem || sameBusinessRecord(localItem, remoteItem)) return;
         var baseItem = baseRows.get(id);
-        var localChanged = !baseItem || JSON.stringify(localItem) !== JSON.stringify(baseItem);
-        var remoteChanged = !baseItem || JSON.stringify(remoteItem) !== JSON.stringify(baseItem);
+        var localChanged = !baseItem || !sameBusinessRecord(localItem, baseItem);
+        var remoteChanged = !baseItem || !sameBusinessRecord(remoteItem, baseItem);
         if (!localChanged || !remoteChanged) return;
         var key = syncKey(collection, id);
         var localRevision = Number(localMeta.modified[key] || 0);
@@ -164,8 +186,8 @@
   function conflictAlreadyKnown(candidate, list) {
     return list.some(function (item) {
       if (item.collection !== candidate.collection || item.itemId !== candidate.itemId) return false;
-      return (JSON.stringify(item.chosen) === JSON.stringify(candidate.chosen) && JSON.stringify(item.alternate) === JSON.stringify(candidate.alternate))
-        || (JSON.stringify(item.chosen) === JSON.stringify(candidate.alternate) && JSON.stringify(item.alternate) === JSON.stringify(candidate.chosen));
+      return (sameBusinessRecord(item.chosen, candidate.chosen) && sameBusinessRecord(item.alternate, candidate.alternate))
+        || (sameBusinessRecord(item.chosen, candidate.alternate) && sameBusinessRecord(item.alternate, candidate.chosen));
     });
   }
 
@@ -219,7 +241,7 @@
         var newItem = after.get(id);
         if (!newItem && oldItem) {
           meta.deleted[key] = Math.max(now, (meta.deleted[key] || 0) + 1);
-        } else if (newItem && (!oldItem || JSON.stringify(oldItem) !== JSON.stringify(newItem))) {
+        } else if (newItem && (!oldItem || !sameBusinessRecord(oldItem, newItem))) {
           meta.modified[key] = Math.max(now, (meta.modified[key] || 0) + 1);
         }
       });
@@ -370,7 +392,7 @@
       var remotePayload = row && row.payload && typeof row.payload === 'object' ? row.payload : {};
       var remoteMeta = extractMeta(remotePayload);
       var merged = mergeData(local, remotePayload, meta, remoteMeta, sharedBase);
-      var existingConflicts = mergeConflictLogs(readJson(CONFLICT_KEY, []), conflictLogFrom(remotePayload), attemptConflicts);
+      var existingConflicts = removeNoopConflicts(mergeConflictLogs(readJson(CONFLICT_KEY, []), conflictLogFrom(remotePayload), attemptConflicts));
       var newConflicts = merged.conflicts.filter(function (item) { return !conflictAlreadyKnown(item, existingConflicts); });
       attemptConflicts = mergeConflictLogs(attemptConflicts, newConflicts);
       var conflictLog = mergeConflictLogs(existingConflicts, attemptConflicts);
