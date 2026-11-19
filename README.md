@@ -1,54 +1,111 @@
 <p align="center">
-  <img src="brand-icon.svg" alt="Control Laboral" width="104">
+  <img src="brand-icon.svg" alt="Logotipo de Control Laboral" width="96">
 </p>
 
 <h1 align="center">Control Laboral</h1>
-
-<p align="center"><strong>Tu jornada, tus horas y tus cobros en un mismo lugar.</strong></p>
-<p align="center">Creado por <strong>工V龱尺ㄚ㇌7</strong></p>
+<p align="center"><strong>Registra tu trabajo. Comprueba tus horas. Revisa tus cobros.</strong></p>
+<p align="center">Una aplicación creada por <strong>工V龱尺ㄚ㇌7</strong></p>
 
 <p align="center">
-  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir la app web</strong></a>
-  · <a href="#instalación">Instalación</a>
-  · <a href="CHANGELOG.md">Novedades</a>
-  · <a href="#créditos-y-autoría">Créditos</a>
+  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir Control Laboral</strong></a>
+  &nbsp;·&nbsp; <a href="#galería-de-la-aplicación">Ver capturas</a>
+  &nbsp;·&nbsp; <a href="#instalación">Instalar</a>
+  &nbsp;·&nbsp; <a href="CHANGELOG.md">Novedades</a>
 </p>
 
 <p align="center">
   <img alt="Versión del código 3.3.13" src="https://img.shields.io/badge/versión-3.3.13-b5eed8?labelColor=152824">
   <img alt="Android APK" src="https://img.shields.io/badge/Android-APK-b5eed8?labelColor=152824">
-  <img alt="Windows Setup EXE" src="https://img.shields.io/badge/Windows-Setup_EXE-b5eed8?labelColor=152824">
+  <img alt="Windows EXE" src="https://img.shields.io/badge/Windows-EXE-b5eed8?labelColor=152824">
   <img alt="Web PWA" src="https://img.shields.io/badge/Web-PWA-b5eed8?labelColor=152824">
+  <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-b5eed8?labelColor=152824">
 </p>
 
-Control Laboral permite registrar jornadas, calcular horas extra y comparar su valor con el dinero recibido. Incluye seguimiento de nóminas, viajes, calendario, informes y copias de seguridad. Está disponible para Android, Windows y navegador, con sincronización opcional entre dispositivos.
+Control Laboral reúne el fichaje diario, las horas extra, las nóminas y los desplazamientos. Su panel **Aurora** permite revisar la jornada y los cobros de un vistazo, con una comparativa mensual para comprobar cuánto corresponde por tarifa y cuánto has recibido.
 
-## Panel Aurora
+**Disponible como APK para Android, instalador EXE para Windows y aplicación web instalable.** Los registros se guardan en el dispositivo y la sincronización entre instalaciones es opcional.
 
-La interfaz Aurora reúne la jornada de hoy, los accesos de fichaje y el resumen económico sobre tarjetas de vidrio verde menta. La tarjeta principal ofrece la entrada o la salida según el estado de la jornada.
+## Galería de la aplicación
+
+> **Datos ficticios de demostración.** Todas las capturas de esta galería se han generado con el perfil de ejemplo «Marina Soler». Las jornadas, los viajes, los pagos y las incidencias son inventados. Las imágenes proceden de la aplicación funcionando.
+
+### Panel Aurora en Windows
+
+Captura de la aplicación de escritorio ejecutada desde el paquete de Windows. La jornada de hoy comparte pantalla con los cobros acumulados y el flujo de caja de los últimos ocho meses con actividad.
 
 <p align="center">
-  <img src="docs/dashboard.jpg" alt="Panel Aurora de Control Laboral en escritorio con jornada, cobros y flujo de caja mensual" width="100%">
+  <img src="docs/windows.jpg" alt="Aplicación Windows de Control Laboral con el perfil ficticio Marina Soler, jornada de 8,50 horas y comparativa mensual" width="100%">
 </p>
 
-### En el móvil
+### El resumen en el móvil
+
+El panel adapta sus tarjetas a la pantalla del teléfono. Cada mes muestra sus euros pendientes y sus horas extra confirmadas, incluso cuando el pendiente es cero.
+
+<table>
+  <tr>
+    <th align="center">Jornada y accesos de fichaje</th>
+    <th align="center">Horas y dinero de cada mes</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/mobile.jpg" alt="Vista móvil de Aurora con datos ficticios, jornada cerrada y resumen de cobros" width="300"></td>
+    <td align="center"><img src="docs/mobile-cash.jpg" alt="Flujo mensual con datos ficticios, incluido octubre con 11,50 horas extra y 0 euros pendientes" width="300"></td>
+  </tr>
+</table>
+
+### Comparar horas extra y pago recibido
+
+El detalle mensual mantiene juntos el tiempo trabajado, el valor según las tarifas históricas, el pago real anotado y la diferencia.
 
 <p align="center">
-  <img src="docs/mobile.jpg" alt="Panel Aurora en móvil con la jornada de hoy y los accesos de fichaje" width="300">
-  <img src="docs/mobile-cash.jpg" alt="Flujo de caja en móvil con euros pendientes y horas extra de cada mes" width="300">
+  <img src="docs/extras-mensuales.jpg" alt="Comparativa de ocho meses ficticios de horas extra con importes según tarifa y pagos recibidos" width="100%">
 </p>
 
-Las horas extra permanecen visibles en los meses liquidados, aunque el importe pendiente sea 0 €. El flujo de caja muestra los últimos ocho meses con actividad.
+**Ejemplo de noviembre en las capturas**
 
-### Horas extra y pago real
+| Dato de demostración | Resultado |
+| --- | ---: |
+| Horas extra confirmadas | 9,00 h |
+| Tarifa aplicada | 19,69 €/h |
+| Valor esperado | 177,21 € |
+| Pago real anotado | 120,00 € |
+| Importe recibido por hora extra | 13,33 €/h |
+| Diferencia con el valor esperado | 57,21 € |
+
+El importe recibido por hora se obtiene dividiendo el pago anotado entre todas las horas extra confirmadas del mes. Anotar el pago permite comparar y no modifica las marcas de cobro de las jornadas.
+
+### Jornadas y calendario
+
+Consulta las fechas, la entrada y la salida, las horas normales, las extras y el estado de cada registro. El calendario permite anotar vacaciones, descansos, bajas y festivos.
 
 <p align="center">
-  <img src="docs/extras-mensuales.jpg" alt="Comparativa mensual de horas extra con importe según tarifa, pago recibido, precio por hora y diferencia" width="100%">
+  <img src="docs/jornadas.jpg" alt="Registro de jornadas ficticias con horarios, horas extra y calendario de incidencias de demostración" width="100%">
 </p>
 
-Cada mes muestra las horas extra confirmadas, su valor según las tarifas históricas, el pago real anotado y la diferencia. El promedio recibido por hora se calcula sobre todas las horas extra confirmadas del mes. Anotar ese importe sirve para comparar y no cambia el estado de cobro de las jornadas.
+### Nóminas y horas extra
 
-> Las imágenes muestran esta aplicación con datos ficticios de demostración. La vista de escritorio corresponde al panel que también incluye el EXE de Windows.
+La pantalla de pagos muestra los importes pendientes y cobrados, las nóminas del mes y las horas extra que quedan por pagar.
+
+<p align="center">
+  <img src="docs/pagos.jpg" alt="Pantalla de pagos con nóminas ficticias confirmadas y pendientes y desglose de horas extra" width="100%">
+</p>
+
+### Viajes y dietas
+
+Cada desplazamiento conserva su fecha, concepto, importe y estado de cobro.
+
+<p align="center">
+  <img src="docs/viajes.jpg" alt="Viajes de demostración con importes ficticios pendientes y cobrados" width="100%">
+</p>
+
+<details>
+  <summary><strong>Ver la pantalla de ajustes</strong></summary>
+
+  <p>Configura el perfil, el horario, las tarifas, las copias y la cuenta de sincronización.</p>
+  <p align="center">
+    <img src="docs/ajustes.jpg" alt="Ajustes de Control Laboral con el perfil ficticio de demostración" width="100%">
+  </p>
+</details>
+
 
 ## Funciones
 
