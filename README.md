@@ -1,227 +1,270 @@
-<p align="center">
+<div align="center">
   <img src="brand-icon.svg" alt="Logotipo de Control Laboral" width="96">
-</p>
-
-<h1 align="center">Control Laboral</h1>
-<p align="center"><strong>Registra tu trabajo. Comprueba tus horas. Revisa tus cobros.</strong></p>
-<p align="center">Una aplicación creada por <strong>工V龱尺ㄚ㇌7</strong></p>
-
-<p align="center">
-  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><strong>Abrir Control Laboral</strong></a>
-  &nbsp;·&nbsp; <a href="#galería-de-la-aplicación">Ver capturas</a>
-  &nbsp;·&nbsp; <a href="#instalación">Instalar</a>
-  &nbsp;·&nbsp; <a href="CHANGELOG.md">Novedades</a>
-</p>
-
-<p align="center">
-  <img alt="Versión del código 3.3.13" src="https://img.shields.io/badge/versión-3.3.13-b5eed8?labelColor=152824">
-  <img alt="Android APK" src="https://img.shields.io/badge/Android-APK-b5eed8?labelColor=152824">
-  <img alt="Windows EXE" src="https://img.shields.io/badge/Windows-EXE-b5eed8?labelColor=152824">
-  <img alt="Web PWA" src="https://img.shields.io/badge/Web-PWA-b5eed8?labelColor=152824">
-  <img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-b5eed8?labelColor=152824">
-</p>
-
-Control Laboral reúne el fichaje diario, las horas extra, las nóminas y los desplazamientos. Su panel **Aurora** permite revisar la jornada y los cobros de un vistazo, con una comparativa mensual para comprobar cuánto corresponde por tarifa y cuánto has recibido.
-
-**Disponible como APK para Android, instalador EXE para Windows y aplicación web instalable.** Los registros se guardan en el dispositivo y la sincronización entre instalaciones es opcional.
-
-## Galería de la aplicación
-
-> **Datos ficticios de demostración.** Todas las capturas de esta galería se han generado con el perfil de ejemplo «Marina Soler». Las jornadas, los viajes, los pagos y las incidencias son inventados. Las imágenes proceden de la aplicación funcionando.
-
-### Panel Aurora en Windows
-
-Captura de la aplicación de escritorio ejecutada desde el paquete de Windows. La jornada de hoy comparte pantalla con los cobros acumulados y el flujo de caja de los últimos ocho meses con actividad.
+  <h1>Control Laboral</h1>
+  <p><strong>El registro de tu jornada y el seguimiento de tus cobros, en una sola aplicación.</strong></p>
+  <p>Creado por <strong>工V龱尺ㄚ㇌7</strong></p>
+  <p>
+    <a href="https://ivory37goku.github.io/ivory37-control-laboral/">Abrir la aplicación</a>
+    · <a href="#instalacion">Instalación</a>
+    · <a href="#capturas">Capturas</a>
+    · <a href="CHANGELOG.md">Historial de cambios</a>
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/Android-APK-b5eed8?labelColor=152824" alt="Android APK">
+    <img src="https://img.shields.io/badge/Windows-Setup_EXE-b5eed8?labelColor=152824" alt="Windows Setup EXE">
+    <img src="https://img.shields.io/badge/Web-PWA-b5eed8?labelColor=152824" alt="Aplicación web instalable">
+    <img src="https://img.shields.io/badge/Licencia-MIT-b5eed8?labelColor=152824" alt="Licencia MIT">
+  </p>
+</div>
 
 <p align="center">
-  <img src="docs/windows.jpg" alt="Aplicación Windows de Control Laboral con el perfil ficticio Marina Soler, jornada de 8,50 horas y comparativa mensual" width="100%">
+  <img src="docs/windows.jpg" alt="Control Laboral ejecutándose en Windows con el panel Aurora y datos ficticios" width="100%">
 </p>
 
-### El resumen en el móvil
+Control Laboral permite registrar entradas y salidas, revisar horas normales y extra, organizar nóminas y anotar dietas y desplazamientos. Su panel **Aurora** presenta la actividad y los importes de cada mes para comparar el trabajo registrado con el dinero recibido.
 
-El panel adapta sus tarjetas a la pantalla del teléfono. Cada mes muestra sus euros pendientes y sus horas extra confirmadas, incluso cuando el pendiente es cero.
+La aplicación guarda los datos en el dispositivo. La sincronización opcional permite compartirlos entre Android, Windows y la web al iniciar sesión con la misma cuenta.
+
+**Código documentado · 3.3.13** &nbsp; | &nbsp; **Autor · 工V龱尺ㄚ㇌7** &nbsp; | &nbsp; **Cuenta del proyecto · Ivory37goku**
+
+## Contenido
+
+- [Funciones](#funciones)
+- [Capturas y demostración](#capturas)
+- [Instalación y actualizaciones](#instalacion)
+- [Primeros pasos](#primeros-pasos)
+- [Cómo interpretar las horas y los importes](#horas-e-importes)
+- [Datos, copias y sincronización](#datos)
+- [Desarrollo y compilación](#desarrollo)
+- [Documentación y soporte](#documentacion)
+- [Créditos y licencia](#creditos)
+
+<a id="funciones"></a>
+## Funciones
+
+| Área | Herramientas disponibles |
+| --- | --- |
+| **Panel Aurora** | Jornada de hoy, fichaje desde la cabecera, indicadores de cobro, actividad semanal y flujo de caja mensual. |
+| **Jornadas** | Entrada y salida, registro manual, turnos nocturnos, pausas no computables, filtros y confirmación de jornadas provisionales. |
+| **Horas extra** | Horas confirmadas por mes, valor según tarifa histórica, pago real anotado, importe medio recibido por hora y diferencia. |
+| **Nóminas** | Propuestas mensuales calculadas a partir de las jornadas, edición de importes y confirmación de cobros. |
+| **Viajes y dietas** | Concepto, fecha, importe y seguimiento de los desplazamientos pendientes o cobrados. |
+| **Calendario** | Anotaciones de descansos, vacaciones, bajas, festivos y otras incidencias. |
+| **Informes** | Consulta por período, exportación CSV e impresión o guardado en PDF. |
+| **Copias y recuperación** | Exportación e importación JSON y recuperación de la copia interna disponible. |
+| **Sincronización** | Cuenta opcional para compartir registros entre instalaciones y revisar cambios incompatibles. |
+| **Personalización** | Perfil, imagen, logotipo, color, horario habitual y tarifas. |
+
+<a id="capturas"></a>
+## Capturas y demostración
+
+Todas las imágenes muestran **la aplicación con datos ficticios** del perfil «Marina Soler». Incluyen jornadas, nóminas, viajes e incidencias de ejemplo. La captura de Windows se tomó dentro de la aplicación de escritorio; las vistas móviles muestran la interfaz adaptada al tamaño de un teléfono.
+
+### Aurora en móvil
 
 <table>
   <tr>
-    <th align="center">Jornada y accesos de fichaje</th>
-    <th align="center">Horas y dinero de cada mes</th>
+    <th align="center">Jornada de hoy y accesos</th>
+    <th align="center">Flujo de caja por mes</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/mobile.jpg" alt="Vista móvil de Aurora con datos ficticios, jornada cerrada y resumen de cobros" width="300"></td>
-    <td align="center"><img src="docs/mobile-cash.jpg" alt="Flujo mensual con datos ficticios, incluido octubre con 11,50 horas extra y 0 euros pendientes" width="300"></td>
+    <td align="center"><img src="docs/mobile.jpg" alt="Panel móvil Aurora con jornada cerrada e indicadores económicos ficticios" width="300"></td>
+    <td align="center"><img src="docs/mobile-cash.jpg" alt="Flujo mensual con horas extra y euros pendientes del perfil de demostración" width="300"></td>
   </tr>
 </table>
 
-### Comparar horas extra y pago recibido
+El flujo de caja presenta los últimos ocho meses con actividad. Las horas extra de un mes siguen visibles cuando su pendiente de cobro llega a cero.
 
-El detalle mensual mantiene juntos el tiempo trabajado, el valor según las tarifas históricas, el pago real anotado y la diferencia.
-
-<p align="center">
-  <img src="docs/extras-mensuales.jpg" alt="Comparativa de ocho meses ficticios de horas extra con importes según tarifa y pagos recibidos" width="100%">
-</p>
-
-**Ejemplo de noviembre en las capturas**
-
-| Dato de demostración | Resultado |
-| --- | ---: |
-| Horas extra confirmadas | 9,00 h |
-| Tarifa aplicada | 19,69 €/h |
-| Valor esperado | 177,21 € |
-| Pago real anotado | 120,00 € |
-| Importe recibido por hora extra | 13,33 €/h |
-| Diferencia con el valor esperado | 57,21 € |
-
-El importe recibido por hora se obtiene dividiendo el pago anotado entre todas las horas extra confirmadas del mes. Anotar el pago permite comparar y no modifica las marcas de cobro de las jornadas.
-
-### Jornadas y calendario
-
-Consulta las fechas, la entrada y la salida, las horas normales, las extras y el estado de cada registro. El calendario permite anotar vacaciones, descansos, bajas y festivos.
+### Comparativa mensual de horas extra
 
 <p align="center">
-  <img src="docs/jornadas.jpg" alt="Registro de jornadas ficticias con horarios, horas extra y calendario de incidencias de demostración" width="100%">
+  <img src="docs/extras-mensuales.jpg" alt="Horas extra de ocho meses ficticios con tarifa, pago recibido e importe por hora" width="100%">
 </p>
 
-### Nóminas y horas extra
-
-La pantalla de pagos muestra los importes pendientes y cobrados, las nóminas del mes y las horas extra que quedan por pagar.
-
-<p align="center">
-  <img src="docs/pagos.jpg" alt="Pantalla de pagos con nóminas ficticias confirmadas y pendientes y desglose de horas extra" width="100%">
-</p>
-
-### Viajes y dietas
-
-Cada desplazamiento conserva su fecha, concepto, importe y estado de cobro.
-
-<p align="center">
-  <img src="docs/viajes.jpg" alt="Viajes de demostración con importes ficticios pendientes y cobrados" width="100%">
-</p>
+En el ejemplo de noviembre, **9,00 h** a **19,69 €/h** tienen un valor de **177,21 €**. Al anotar **120,00 €** recibidos, la comparación muestra **13,33 €/h** de media y **57,21 €** de diferencia con el valor esperado.
 
 <details>
-  <summary><strong>Ver la pantalla de ajustes</strong></summary>
-
-  <p>Configura el perfil, el horario, las tarifas, las copias y la cuenta de sincronización.</p>
-  <p align="center">
-    <img src="docs/ajustes.jpg" alt="Ajustes de Control Laboral con el perfil ficticio de demostración" width="100%">
-  </p>
+  <summary><strong>Jornadas y calendario</strong></summary>
+  <p>Registro con fechas, horarios, horas normales, extras y estado de confirmación. El calendario incluye incidencias ficticias.</p>
+  <img src="docs/jornadas.jpg" alt="Jornadas con horarios y horas extra y calendario con incidencias de demostración" width="100%">
 </details>
 
+<details>
+  <summary><strong>Nóminas y pagos de horas extra</strong></summary>
+  <p>Nóminas confirmadas y pendientes, junto con el desglose de extras del perfil ficticio.</p>
+  <img src="docs/pagos.jpg" alt="Pantalla de pagos con nóminas y horas extra de demostración" width="100%">
+</details>
 
-## Funciones
+<details>
+  <summary><strong>Viajes y dietas</strong></summary>
+  <p>Desplazamientos de ejemplo con sus importes y estados de cobro.</p>
+  <img src="docs/viajes.jpg" alt="Dietas y desplazamientos ficticios pendientes y cobrados" width="100%">
+</details>
 
-| Área | Qué puedes hacer |
-| --- | --- |
-| Jornada de hoy | Fichar entrada y salida desde el panel y consultar el tiempo registrado. |
-| Registro de jornadas | Añadir y editar turnos, incluir pausas no computables, registrar turnos nocturnos y confirmar jornadas provisionales. |
-| Horas extra | Consultar horas por mes, tarifas históricas, importe recibido y diferencia con el valor esperado. |
-| Nóminas | Consultar propuestas mensuales, editar importes y confirmar cobros. |
-| Viajes | Registrar dietas y desplazamientos y marcar su estado de cobro. |
-| Calendario | Anotar descansos, vacaciones, bajas, festivos y otras incidencias. |
-| Informes | Consultar un período, exportar CSV e imprimir o guardar como PDF. |
-| Copias | Exportar y restaurar JSON y recuperar la copia interna disponible. |
-| Sincronización | Compartir datos entre instalaciones al iniciar sesión con la misma cuenta. |
-| Personalización | Configurar nombre, foto, logotipo, horario y tarifas. |
+<details>
+  <summary><strong>Perfil y ajustes</strong></summary>
+  <p>Configuración del perfil y acceso a las opciones de la aplicación.</p>
+  <img src="docs/ajustes.jpg" alt="Ajustes de Control Laboral con un perfil ficticio" width="100%">
+</details>
 
-## Instalación
+<a id="instalacion"></a>
+## Instalación y actualizaciones
 
-| Plataforma | Instalación y actualización |
-| --- | --- |
-| **Android · APK** | Instala la APK correspondiente a la versión. Para conservar los datos, instala la actualización sobre la app existente con la misma firma. La APK incluye la interfaz y abre sin conexión. |
-| **Windows · EXE** | Ejecuta el instalador **Control Laboral Setup** y sigue el asistente. Para actualizar, ejecuta el Setup nuevo sobre la instalación existente. La app incluye sus archivos y abre sin conexión. |
-| **Web · PWA** | Abre la aplicación web. Usa **Instalar app** en un navegador compatible o **Compartir → Añadir a pantalla de inicio** en iPhone/iPad. Tras la primera carga, dispone de caché para abrir sin conexión. |
+### Android
 
-Los instaladores se generan desde este repositorio. Consulta las instrucciones para [Android](android-app/README.md) y [Windows](desktop/README.md). La versión del código y la disponible en la web dependen de la publicación de cada entrega.
+Instala la **APK** de la entrega que vayas a utilizar. Android puede solicitar autorización para instalarla desde el navegador o el gestor de archivos.
 
-La PWA ofrece un aviso cuando detecta una versión posterior. En Android y Windows, las nuevas versiones incluidas en el paquete requieren instalar su APK o Setup actualizado.
+Para actualizar, instala la APK nueva sobre la aplicación existente **con la misma firma**. La interfaz está incluida en el paquete y puede abrirse sin conexión. La actualización del diseño y de las funciones requiere una APK nueva.
 
+Requisitos y compilación en la [guía de Android](android-app/README.md).
+
+### Windows
+
+Ejecuta **Control Laboral Setup … .exe** y sigue el asistente. El instalador permite elegir la ubicación y crear accesos directos.
+
+Para actualizar, ejecuta el Setup nuevo sobre la instalación existente. Windows conserva el perfil en `%APPDATA%\IVORY37 Control Laboral`. La aplicación incluye sus archivos y puede arrancar sin conexión.
+
+Instrucciones en la [guía de Windows](desktop/README.md).
+
+### Web y PWA
+
+Abre [Control Laboral en el navegador](https://ivory37goku.github.io/ivory37-control-laboral/). En un navegador compatible, usa **Instalar app**. En iPhone o iPad, utiliza **Compartir → Añadir a pantalla de inicio**.
+
+Después de la primera carga, la PWA dispone de caché para abrir sin conexión. Si detecta una versión posterior, ofrece un aviso para aplicarla.
+
+> La versión de la web depende de la entrega publicada. Las instrucciones para generar APK y EXE están en [Desarrollo](#desarrollo).
+
+<a id="primeros-pasos"></a>
 ## Primeros pasos
 
-1. Entra en **Ajustes → Mi perfil** y configura tu nombre y tu imagen.
-2. Revisa las tarifas, las horas normales diarias, el horario habitual y la pausa.
-3. Registra una jornada desde el panel o utiliza el formulario manual.
-4. Revisa las horas extra del mes y anota el pago recibido para compararlo con tu tarifa.
-5. Descarga una copia JSON desde **Ajustes → Datos y copias**.
-6. Si quieres compartir datos entre dispositivos, inicia sesión con la misma cuenta en cada instalación.
+1. **Configura tu perfil.** Indica tu nombre y, si quieres, una imagen o un logotipo desde Ajustes.
+2. **Revisa el horario y las tarifas.** Establece las horas normales diarias, el precio de cada hora y la pausa no computable.
+3. **Registra tu jornada.** Ficha desde el panel o añade el turno manualmente. En el formulario puedes calcular las horas a partir de la entrada, la salida y la pausa.
+4. **Revisa los cobros.** Confirma las nóminas recibidas y marca las extras y los viajes cobrados.
+5. **Compara el pago de extras.** Anota el total recibido por mes para contrastarlo con las horas y las tarifas registradas.
+6. **Guarda una copia.** Exporta un JSON desde **Ajustes → Datos y copias**. Si deseas sincronizar dispositivos, inicia sesión con la misma cuenta en cada instalación.
 
-## Datos y sincronización
+<a id="horas-e-importes"></a>
+## Cómo interpretar las horas y los importes
 
-Los registros se guardan en el dispositivo. La sincronización opcional usa Supabase y requiere conexión para iniciar sesión y enviar o recibir cambios.
+| Concepto | Qué representa |
+| --- | --- |
+| **Jornada confirmada** | Registro incluido en los cálculos de horas e importes correspondientes. |
+| **Jornada provisional** | Registro pendiente de confirmar, excluido de los cálculos que requieren confirmación. |
+| **Pausa no computable** | Minutos descontados al calcular las horas desde el fichaje. |
+| **Valor de extras** | Horas extra confirmadas valoradas con la tarifa aplicable a la fecha de cada jornada. |
+| **Recibido real** | Importe que anotas para comparar el pago de las extras del mes. |
+| **Recibido por hora** | Pago real anotado dividido entre todas las horas extra confirmadas del mes. |
+| **Pendiente de cobro** | Importe calculado según los estados de nóminas, extras y viajes. |
 
-Las ediciones incompatibles pueden requerir revisión. Si un registro cambia mientras está abierto su formulario, la aplicación comprueba los campos al guardar y avisa cuando hay un conflicto. Los pagos confirmados o editados a mano se conservan, por lo que conviene revisar los registros históricos si existen varios pagos del mismo mes.
+Anotar el pago real en la comparativa mensual sirve para revisar la diferencia con la tarifa. Para actualizar el pendiente, utiliza también las marcas de cobro de las jornadas y los pagos.
 
-Exporta copias JSON periódicamente. Borrar el almacenamiento del navegador o desinstalar la aplicación puede eliminar sus datos locales.
+Las incidencias del calendario se guardan como anotaciones. Las nóminas propuestas se calculan a partir de las jornadas y tarifas de la aplicación. Los registros confirmados o editados a mano conservan sus importes.
 
-## Desarrollo
+<a id="datos"></a>
+## Datos, copias y sincronización
 
-### Ejecutar la web
+**Guardado local.** Cada instalación mantiene sus registros en el dispositivo. El inicio de sesión activa la sincronización opcional mediante Supabase.
 
-Desde la raíz del proyecto, inicia un servidor local y abre `http://localhost:8080`.
+**Trabajo sin conexión.** Puedes trabajar con los archivos instalados o la caché disponible. La autenticación y el intercambio de datos entre dispositivos requieren conexión.
 
-```bash
-python -m http.server 8080
-```
+**Cambios entre dispositivos.** Las versiones incompatibles pueden requerir revisión. Si un registro cambia mientras editas su formulario, la aplicación comprueba los campos al guardar y avisa cuando necesita que revises la última versión.
 
-### Comprobar el proyecto
+**Copias de seguridad.** Exporta JSON periódicamente y antes de cambiar de dispositivo. La copia interna disponible permite recuperar un estado anterior. Borrar el almacenamiento del navegador o desinstalar la aplicación puede eliminar los datos locales.
 
-Con Node.js y npm instalados, utiliza el archivo de dependencias fijadas.
+**Pagos históricos.** Cuando existen varios pagos confirmados o editados manualmente para un mismo mes, se conservan para que puedas revisar su contenido.
+
+<a id="desarrollo"></a>
+## Desarrollo y compilación
+
+La interfaz está escrita en HTML, CSS y JavaScript. Android utiliza WebView y Windows utiliza Electron. La sincronización opcional se apoya en Supabase.
+
+### Preparar el proyecto
+
+Desde la raíz del repositorio, con Node.js y npm instalados, ejecuta lo siguiente. La comprobación de GitHub Actions utiliza Node.js 22.
 
 ```bash
 npm ci
 npm run check
 ```
 
-Las comprobaciones cubren sintaxis, cálculos de horas, tarifas, copias, exportación, sincronización simulada y regresiones de guardado y nóminas. El alcance de la revisión se documenta en la [guía de calidad](docs/QUALITY-CHECKLIST.md).
+### Ejecutar la web local
 
-### Generar el EXE de Windows
+Con Python instalado, inicia el servidor y abre `http://localhost:8080`.
+
+```bash
+python -m http.server 8080
+```
+
+### Ejecutar y empaquetar Windows
+
+Ejecuta la aplicación en desarrollo con este comando.
+
+```bash
+npm start
+```
+
+Genera el instalador desde Windows.
 
 ```powershell
 npm run dist:win:setup
 ```
 
-El instalador queda en `desktop-dist/`. Para abrir la app durante el desarrollo, ejecuta `npm start`.
+El Setup queda en `desktop-dist/`.
 
-### Generar la APK de Android
+### Compilar Android
 
-El proyecto utiliza JDK 17 y Android SDK Platform 36. Desde la raíz, en Windows, ejecuta lo siguiente.
+El proyecto utiliza JDK 17 y Android SDK Platform 36. En PowerShell, desde la raíz, ejecuta lo siguiente.
 
 ```powershell
 cd android-app
 .\gradlew.bat assembleDebug
 ```
 
-La APK de depuración queda en `android-app/app/build/outputs/apk/debug/app-debug.apk`. Conserva la clave de firma al preparar actualizaciones. Más detalles en la [guía Android](android-app/README.md).
+El resultado queda en `android-app/app/build/outputs/apk/debug/app-debug.apk`. Conserva la clave de firma para preparar actualizaciones compatibles con la instalación anterior.
 
-## Estructura
+### Comprobaciones
 
-```text
-index.html          Interfaz y estilos
-app.js              Jornadas, panel, pagos y ajustes
-work-hours.js       Duración de turnos y pausas
-overtime-tools.js   Resumen de horas extra
-rates.js            Tarifas históricas
-calendar.js         Calendario e incidencias
-reports.js          Exportación de informes
-backup-tools.js     Validación y preparación de copias
-theme-tools.js      Personalización de color
-supabase-sync.js    Sincronización entre dispositivos
-pwa.js / sw.js      Instalación y caché de la PWA
-android-app/        Aplicación Android
-desktop/            Aplicación Windows
-supabase/           Esquema y configuración de la nube
-tests/              Pruebas de regresión
-docs/               Capturas y documentación
-```
+`npm run check` valida la sintaxis y ejecuta las pruebas de horas, tarifas, calendario, copias, exportación, sincronización simulada y regresiones de guardado y nóminas.
 
-## Créditos y autoría
+La revisión visual y las pruebas de instalación se describen en la [guía de calidad](docs/QUALITY-CHECKLIST.md). Las capturas ilustran el uso de la aplicación con datos ficticios.
 
-**Creador de Control Laboral — 工V龱尺ㄚ㇌7**
+### Organización del código
 
-Proyecto publicado desde la cuenta [Ivory37goku](https://github.com/Ivory37goku). La identidad del creador se conserva en esta documentación y en los créditos del proyecto.
+| Ruta | Responsabilidad |
+| --- | --- |
+| `index.html` | Interfaz, componentes y estilos. |
+| `app.js` | Jornadas, panel, pagos y ajustes. |
+| `work-hours.js`, `rates.js`, `overtime-tools.js` | Duración de turnos, tarifas y resumen de extras. |
+| `calendar.js`, `reports.js`, `backup-tools.js` | Calendario, informes y copias. |
+| `theme-tools.js` | Personalización de color. |
+| `supabase-sync.js`, `supabase/` | Sincronización y configuración de la base de datos. |
+| `pwa.js`, `sw.js` | Instalación, caché y actualización de la PWA. |
+| `android-app/`, `desktop/` | Aplicaciones Android y Windows. |
+| `tests/`, `docs/` | Pruebas, documentación y capturas. |
 
-Control Laboral utiliza HTML, CSS y JavaScript, Android WebView, Electron y Supabase. Los componentes de terceros mantienen sus propias licencias.
+<a id="documentacion"></a>
+## Documentación y soporte
 
-## Licencia
+- [Historial de versiones y cambios](CHANGELOG.md)
+- [Compilación y uso en Android](android-app/README.md)
+- [Compilación y uso en Windows](desktop/README.md)
+- [Configuración de Supabase](supabase/README.md)
+- [Auditoría y comprobaciones de calidad](docs/QUALITY-CHECKLIST.md)
+- [Comunicar un fallo en GitHub](https://github.com/Ivory37goku/ivory37-control-laboral/issues)
 
-Distribuido bajo [licencia MIT](LICENSE). El archivo de licencia conserva la atribución de copyright de Ivory37goku.
+Para comunicar un fallo, indica la versión de Control Laboral, la plataforma y los pasos necesarios para reproducirlo. Utiliza ejemplos ficticios u oculta los datos personales de las capturas.
 
-<p align="center"><strong>Control Laboral · Creado por 工V龱尺ㄚ㇌7</strong></p>
+<a id="creditos"></a>
+## Créditos y licencia
+
+**Creador de Control Laboral · 工V龱尺ㄚ㇌7**
+
+Cuenta del proyecto en GitHub · [Ivory37goku](https://github.com/Ivory37goku).
+
+Distribuido bajo la [licencia MIT](LICENSE), con la atribución de copyright de Ivory37goku. Electron, Supabase y los demás componentes de terceros conservan sus licencias correspondientes.
+
+<p align="center">
+  <strong>Control Laboral</strong><br>
+  Creado por <strong>工V龱尺ㄚ㇌7</strong>
+</p>
