@@ -143,3 +143,4 @@ La APK lista para instalar se generará en `app/build/outputs/apk/debug/app-debu
 ## 📄 Licencia
 
 Este proyecto está bajo la licencia [MIT](LICENSE).
+工V龱尺ㄚ㇌7
