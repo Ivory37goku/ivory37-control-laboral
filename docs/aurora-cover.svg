@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="390" viewBox="0 0 1280 390" role="img" aria-labelledby="cover-title cover-desc">
+<title id="cover-title">Control Laboral · Aurora</title>
+<desc id="cover-desc">Jornadas, horas extra y cobros. Una aplicación creada por 工V龱尺ㄚ㇌7, disponible para Android, Windows y web.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0b1916"/><stop offset=".6" stop-color="#193b30"/><stop offset="1" stop-color="#407c68"/></linearGradient>
+  <radialGradient id="glow"><stop stop-color="#b7f4db" stop-opacity=".23"/><stop offset="1" stop-color="#b7f4db" stop-opacity="0"/></radialGradient>
+  <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e3fff0"/><stop offset=".65" stop-color="#9bd3bc"/><stop offset="1" stop-color="#5c9e88"/></linearGradient>
+</defs>
+<rect width="1280" height="390" rx="24" fill="url(#bg)"/>
+<ellipse cx="1010" cy="8" rx="450" ry="420" fill="url(#glow)"/>
+<path d="M840 390C917 267 1035 156 1280 137M943 390C1002 280 1100 208 1280 195" fill="none" stroke="#d8ffee" stroke-opacity=".08"/>
+<rect x="1" y="1" width="1278" height="388" rx="23" fill="none" stroke="#d8ffed" stroke-opacity=".17"/>
+<g font-family="'Segoe UI',Arial,sans-serif">
+  <text x="62" y="74" font-size="14" letter-spacing="4" fill="#c0e9d6">AURORA</text>
+  <text x="58" y="161" font-size="70" font-weight="700" letter-spacing="-3" fill="#f0fff7">Control Laboral</text>
+  <text x="62" y="213" font-size="23" fill="#c1ddd1">Tu jornada. Tus horas. Tus cobros.</text>
+  <path d="M62 250H670" stroke="#c2ead5" stroke-opacity=".19"/>
+  <text x="62" y="291" font-size="14" letter-spacing="1.6" fill="#b9e0cd">ANDROID · WINDOWS · WEB</text>
+  <text x="62" y="337" font-size="19" fill="#ebfff3">Creado por 工V龱尺ㄚ㇌7</text>
+</g>
+<g transform="translate(1001 195)">
+  <circle r="128" fill="#b3eed3" fill-opacity=".035" stroke="#d5ffea" stroke-opacity=".12"/>
+  <circle r="106" fill="#112e25" fill-opacity=".38" stroke="#d5ffea" stroke-opacity=".15"/>
+  <circle r="85" fill="none" stroke="#cbffe6" stroke-opacity=".12" stroke-width="9"/>
+  <circle r="85" fill="none" stroke="url(#ring)" stroke-width="9" stroke-linecap="round" stroke-dasharray="423 535" transform="rotate(-90)"/>
+  <path d="M0-43V0L32 21" fill="none" stroke="#d9ffeb" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle r="7" fill="#deffec"/>
+</g>
+</svg>

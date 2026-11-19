@@ -1,43 +1,117 @@
-<div align="center">
-  <img src="brand-icon.svg" alt="Logotipo de Control Laboral" width="96">
-  <h1>Control Laboral</h1>
-  <p><strong>El registro de tu jornada y el seguimiento de tus cobros, en una sola aplicación.</strong></p>
-  <p>Creado por <strong>工V龱尺ㄚ㇌7</strong></p>
-  <p>
-    <a href="https://ivory37goku.github.io/ivory37-control-laboral/">Abrir la aplicación</a>
-    · <a href="#instalacion">Instalación</a>
-    · <a href="#capturas">Capturas</a>
-    · <a href="CHANGELOG.md">Historial de cambios</a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/badge/Android-APK-b5eed8?labelColor=152824" alt="Android APK">
-    <img src="https://img.shields.io/badge/Windows-Setup_EXE-b5eed8?labelColor=152824" alt="Windows Setup EXE">
-    <img src="https://img.shields.io/badge/Web-PWA-b5eed8?labelColor=152824" alt="Aplicación web instalable">
-    <img src="https://img.shields.io/badge/Licencia-MIT-b5eed8?labelColor=152824" alt="Licencia MIT">
-  </p>
-</div>
-
 <p align="center">
-  <img src="docs/windows.jpg" alt="Control Laboral ejecutándose en Windows con el panel Aurora y datos ficticios" width="100%">
+  <img src="docs/aurora-cover.svg" alt="Control Laboral Aurora, creado por 工V龱尺ㄚ㇌7" width="100%">
 </p>
 
-Control Laboral permite registrar entradas y salidas, revisar horas normales y extra, organizar nóminas y anotar dietas y desplazamientos. Su panel **Aurora** presenta la actividad y los importes de cada mes para comparar el trabajo registrado con el dinero recibido.
+<h1 align="center">Control Laboral</h1>
 
-La aplicación guarda los datos en el dispositivo. La sincronización opcional permite compartirlos entre Android, Windows y la web al iniciar sesión con la misma cuenta.
+<p align="center">
+  Registro de jornadas, horas extra y seguimiento de cobros.<br>
+  <strong>Android · Windows · Web instalable</strong>
+</p>
 
-**Código documentado · 3.3.13** &nbsp; | &nbsp; **Autor · 工V龱尺ㄚ㇌7** &nbsp; | &nbsp; **Cuenta del proyecto · Ivory37goku**
+<p align="center">
+  <a href="https://ivory37goku.github.io/ivory37-control-laboral/"><img src="https://img.shields.io/badge/ABRIR_LA_APP-152824?style=for-the-badge&amp;logo=googlechrome&amp;logoColor=b5eed8" alt="Abrir la aplicación web"></a>
+  <a href="#instalacion"><img src="https://img.shields.io/badge/INSTALACI%C3%93N-152824?style=for-the-badge&amp;logo=files&amp;logoColor=b5eed8" alt="Instalación de Android y Windows"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/NOVEDADES-152824?style=for-the-badge&amp;logo=github&amp;logoColor=b5eed8" alt="Ver el historial de cambios"></a>
+</p>
 
-## Contenido
+<p align="center">
+  Código documentado <strong>3.3.13</strong>
+  &nbsp;·&nbsp; <a href="LICENSE">Licencia MIT</a>
+  &nbsp;·&nbsp; Creado por <strong>工V龱尺ㄚ㇌7</strong>
+</p>
 
-- [Funciones](#funciones)
-- [Capturas y demostración](#capturas)
-- [Instalación y actualizaciones](#instalacion)
-- [Primeros pasos](#primeros-pasos)
-- [Cómo interpretar las horas y los importes](#horas-e-importes)
-- [Datos, copias y sincronización](#datos)
-- [Desarrollo y compilación](#desarrollo)
-- [Documentación y soporte](#documentacion)
-- [Créditos y licencia](#creditos)
+---
+
+Control Laboral reúne el tiempo trabajado y el seguimiento económico en un panel personal. Ficha tu jornada, consulta las horas extra de cada mes y contrasta su valor con el pago recibido. El diseño **Aurora** combina tarjetas de vidrio verde menta con una vista adaptada a móvil y escritorio.
+
+<table>
+  <tr>
+    <th align="left" width="33%">Jornada al día</th>
+    <th align="left" width="33%">Cobros a la vista</th>
+    <th align="left" width="33%">Datos contigo</th>
+  </tr>
+  <tr>
+    <td>Entrada, salida, pausas y turnos nocturnos desde un mismo registro.</td>
+    <td>Horas extra, tarifas y pagos organizados por mes.</td>
+    <td>Guardado local, copias JSON y sincronización opcional entre dispositivos.</td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="#capturas">Capturas</a> ·
+  <a href="#funciones">Funciones</a> ·
+  <a href="#instalacion">Instalación</a> ·
+  <a href="#primeros-pasos">Primeros pasos</a> ·
+  <a href="#datos">Tus datos</a> ·
+  <a href="#desarrollo">Desarrollo</a> ·
+  <a href="#creditos">Créditos</a>
+</p>
+
+<a id="capturas"></a>
+## Así se ve Control Laboral
+
+**Aplicación de Windows · Panel Aurora**
+
+<img src="docs/windows.jpg" alt="Aplicación Windows con el panel Aurora y datos ficticios de jornadas, extras y cobros" width="100%">
+
+<sub>Demostración con el perfil ficticio Marina Soler. Las capturas muestran la aplicación en ejecución.</sub>
+
+### Del escritorio al móvil
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/mobile.jpg" alt="Jornada de hoy, fichaje e indicadores de cobros en móvil" width="290"><br>
+      <strong>Tu jornada de hoy</strong><br>
+      <sub>Fichaje y resumen personal.</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/mobile-cash.jpg" alt="Vista móvil de las horas extra y el dinero pendiente de cada mes" width="290"><br>
+      <strong>Cada mes, en detalle</strong><br>
+      <sub>Horas extra visibles, también cuando quedan 0 € pendientes.</sub>
+    </td>
+  </tr>
+</table>
+
+### Lo trabajado y lo recibido
+
+<img src="docs/extras-mensuales.jpg" alt="Comparativa mensual de horas extra, valor por tarifa, pago recibido y diferencia" width="100%">
+
+En noviembre, el ejemplo muestra **9,00 h extra**, un valor de **177,21 €** a **19,69 €/h** y **120,00 €** recibidos. La comparativa devuelve **13,33 €/h** de media y **57,21 €** de diferencia.
+
+### Un recorrido por la aplicación
+
+<table>
+  <tr>
+    <td width="50%">
+      <a href="docs/jornadas.jpg"><img src="docs/jornadas.jpg" alt="Abrir captura del registro de jornadas y calendario" width="100%"></a>
+      <strong>Jornadas y calendario</strong><br>
+      <sub>Horarios, extras, confirmaciones e incidencias.</sub>
+    </td>
+    <td width="50%">
+      <a href="docs/pagos.jpg"><img src="docs/pagos.jpg" alt="Abrir captura de nóminas y pagos de horas extra" width="100%"></a>
+      <strong>Nóminas y pagos</strong><br>
+      <sub>Importes cobrados y pendientes de revisar.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <a href="docs/viajes.jpg"><img src="docs/viajes.jpg" alt="Abrir captura de viajes y dietas" width="100%"></a>
+      <strong>Viajes y dietas</strong><br>
+      <sub>Desplazamientos con fecha, concepto e importe.</sub>
+    </td>
+    <td width="50%">
+      <a href="docs/ajustes.jpg"><img src="docs/ajustes.jpg" alt="Abrir captura de ajustes y perfil" width="100%"></a>
+      <strong>Perfil y ajustes</strong><br>
+      <sub>Tu imagen, horario, tarifas y copias.</sub>
+    </td>
+  </tr>
+</table>
+
+> Todas las jornadas, incidencias, nóminas y viajes de las imágenes son ficticios. Pulsa una captura de la galería para verla a tamaño completo.
+
+---
 
 <a id="funciones"></a>
 ## Funciones
@@ -55,57 +129,8 @@ La aplicación guarda los datos en el dispositivo. La sincronización opcional p
 | **Sincronización** | Cuenta opcional para compartir registros entre instalaciones y revisar cambios incompatibles. |
 | **Personalización** | Perfil, imagen, logotipo, color, horario habitual y tarifas. |
 
-<a id="capturas"></a>
-## Capturas y demostración
 
-Todas las imágenes muestran **la aplicación con datos ficticios** del perfil «Marina Soler». Incluyen jornadas, nóminas, viajes e incidencias de ejemplo. La captura de Windows se tomó dentro de la aplicación de escritorio; las vistas móviles muestran la interfaz adaptada al tamaño de un teléfono.
-
-### Aurora en móvil
-
-<table>
-  <tr>
-    <th align="center">Jornada de hoy y accesos</th>
-    <th align="center">Flujo de caja por mes</th>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/mobile.jpg" alt="Panel móvil Aurora con jornada cerrada e indicadores económicos ficticios" width="300"></td>
-    <td align="center"><img src="docs/mobile-cash.jpg" alt="Flujo mensual con horas extra y euros pendientes del perfil de demostración" width="300"></td>
-  </tr>
-</table>
-
-El flujo de caja presenta los últimos ocho meses con actividad. Las horas extra de un mes siguen visibles cuando su pendiente de cobro llega a cero.
-
-### Comparativa mensual de horas extra
-
-<p align="center">
-  <img src="docs/extras-mensuales.jpg" alt="Horas extra de ocho meses ficticios con tarifa, pago recibido e importe por hora" width="100%">
-</p>
-
-En el ejemplo de noviembre, **9,00 h** a **19,69 €/h** tienen un valor de **177,21 €**. Al anotar **120,00 €** recibidos, la comparación muestra **13,33 €/h** de media y **57,21 €** de diferencia con el valor esperado.
-
-<details>
-  <summary><strong>Jornadas y calendario</strong></summary>
-  <p>Registro con fechas, horarios, horas normales, extras y estado de confirmación. El calendario incluye incidencias ficticias.</p>
-  <img src="docs/jornadas.jpg" alt="Jornadas con horarios y horas extra y calendario con incidencias de demostración" width="100%">
-</details>
-
-<details>
-  <summary><strong>Nóminas y pagos de horas extra</strong></summary>
-  <p>Nóminas confirmadas y pendientes, junto con el desglose de extras del perfil ficticio.</p>
-  <img src="docs/pagos.jpg" alt="Pantalla de pagos con nóminas y horas extra de demostración" width="100%">
-</details>
-
-<details>
-  <summary><strong>Viajes y dietas</strong></summary>
-  <p>Desplazamientos de ejemplo con sus importes y estados de cobro.</p>
-  <img src="docs/viajes.jpg" alt="Dietas y desplazamientos ficticios pendientes y cobrados" width="100%">
-</details>
-
-<details>
-  <summary><strong>Perfil y ajustes</strong></summary>
-  <p>Configuración del perfil y acceso a las opciones de la aplicación.</p>
-  <img src="docs/ajustes.jpg" alt="Ajustes de Control Laboral con un perfil ficticio" width="100%">
-</details>
+---
 
 <a id="instalacion"></a>
 ## Instalación y actualizaciones
