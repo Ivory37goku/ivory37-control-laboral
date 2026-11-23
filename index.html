@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://vpdpketyattbmzghujmv.supabase.co wss://vpdpketyattbmzghujmv.supabase.co https://api.github.com; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-  <meta name="app-version" content="3.3.13">
+  <meta name="app-version" content="3.3.21">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -345,6 +347,20 @@ textarea.input{resize:vertical;min-height:78px}
 @media(min-width:1024px){
   #pwa-install-btn{right:24px;bottom:24px}
   #pwa-update-banner{bottom:24px}
+}
+.aurora-clock-state { width:fit-content; padding:5px 9px; border-radius:999px; background:rgb(181 238 216 / .08); }
+.aurora-clock-state[data-state="working"]::before { box-shadow:0 0 0 4px rgb(181 238 216 / .12); }
+.aurora-clock-state[data-state="closed"] { color:var(--aurora-ink); }
+.today-clock-actions .btn { min-height:44px; }
+/* El fichaje vive únicamente en la tarjeta de hoy. */
+.aurora-dashboard .today-clock-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.aurora-dashboard .today-clock-actions .btn { flex:1 1 145px; margin-top:0; justify-content:center; }
+.aurora-dashboard .qa-grid, .aurora-dashboard .dash-activity { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.aurora-dashboard .dash-hero-actions { display:flex; }
+@media (max-width:640px) {
+  .aurora-dashboard .dash-activity { grid-template-columns:minmax(0,1fr); }
+  .panel.aurora-dashboard .dash-hero-today { grid-template-columns:minmax(0,1fr); }
+  .aurora-dashboard .today-clock-actions { grid-column:1 / -1; }
 }
 </style>
 
@@ -1461,8 +1477,182 @@ body::before {
   .aurora-dashboard .aurora-clock-button .i { width: 14px; }
 }
 </style>
+<style id="aurora-refinement">
+/* Evolución de Aurora: se conservan los componentes, identificadores y acciones. */
+.panel.aurora-refined {
+  --dashboard-gap: 18px;
+  --aurora-accent: #b8f2d9;
+  --aurora-ink: #effbf6;
+  --aurora-muted: #b0cbc2;
+  --aurora-line: rgb(181 232 211 / .16);
+  --aurora-surface: linear-gradient(145deg, #1b302b, #13241f);
+  --aurora-shadow: 0 14px 35px rgb(0 12 8 / .17), inset 0 1px rgb(222 255 241 / .04);
+}
+.panel.aurora-refined .dash-hero {
+  grid-template-columns: minmax(0,1.1fr) minmax(290px,1fr);
+  padding: clamp(20px,3vw,34px);
+  gap: 26px;
+  border-radius: 28px;
+  border-color: rgb(184 242 217 / .28);
+  background: radial-gradient(ellipse at 0% 0%,rgb(112 204 166 / .19),transparent 60%),
+    linear-gradient(125deg,#1b3b30,#172e27 60%,#12271f);
+  box-shadow: 0 24px 52px rgb(0 12 9 / .24),inset 0 1px rgb(233 255 246 / .13);
+}
+.aurora-refined .dash-hero-top { gap: 20px; }
+.aurora-refined .dash-hero-greeting { margin:0 0 15px; font-size:11px; letter-spacing:.13em; color:#a8c8ba; }
+.panel.aurora-refined .dash-hero-title { margin:0 0 13px; font-size:clamp(34px,4.4vw,56px); letter-spacing:-.055em; line-height:1.03; font-weight:750; }
+.aurora-refined .aurora-title-accent { display:block; color:var(--aurora-accent); }
+.aurora-refined .aurora-greeting { font-size:14px; color:var(--aurora-muted); }
+.aurora-refined .aurora-greeting #hero-name { color:var(--aurora-ink); font-weight:600; }
+.aurora-refined .dash-hero-actions { margin:0; }
+.aurora-refined .dash-hero-actions .btn { padding:8px 13px; min-height:38px; border-color:rgb(184 242 217 / .18); color:var(--aurora-ink); background:rgb(213 255 236 / .035); }
+.panel.aurora-refined .dash-hero-today {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-content:center;
+  padding:23px;
+  border-radius:22px;
+  border:1px solid rgb(184 242 217 / .22);
+  background:radial-gradient(ellipse at 100% 0%,rgb(137 232 187 / .11),transparent 75%),#142b22;
+  box-shadow:inset 0 1px rgb(226 255 239 / .07),0 10px 22px rgb(0 12 7 / .12);
+}
+.aurora-refined .aurora-section-label { grid-column:1; grid-row:1; font-size:11px; letter-spacing:.12em; color:#9fc1b1; font-weight:600; align-self:center; }
+.aurora-refined #hero-clock-state { grid-column:2; grid-row:1; justify-self:end; padding:5px 8px; margin:0; font-size:11px; border:1px solid rgb(184 242 217 / .11); background:rgb(184 242 217 / .055); white-space:normal; }
+.aurora-refined #hero-clock-state[data-state="working"] { color:#c5ffe3; }
+.aurora-refined #hero-clock-state[data-state="closed"] { color:#c7d7cf; }
+.panel.aurora-refined #hero-today-hours { grid-column:1/-1; grid-row:2; font:600 clamp(40px,4.8vw,62px)/1.1 var(--sans); letter-spacing:-.055em; font-variant-numeric:tabular-nums; margin:5px 0 0; }
+.panel.aurora-refined #hero-today-meta { grid-column:1/-1; grid-row:3; font-size:12px; color:#a9c5b8; }
+.aurora-refined .today-clock-actions { grid-column:1/-1; grid-row:4; display:flex; gap:9px; margin-top:9px; }
+.aurora-refined .today-clock-actions .btn { min-height:44px; padding:11px 10px; font-size:12px; border-radius:12px; flex:1 1 120px; margin:0; }
+.aurora-refined .today-clock-actions .aurora-clock-button { background:var(--aurora-accent); color:#123625; font-weight:750; box-shadow:0 5px 16px rgb(135 238 188 / .09); }
+.aurora-refined .today-clock-actions .aurora-clock-button:hover { background:#d4fbe8; }
+.aurora-refined #hero-manual-action { border:1px solid rgb(184 242 217 / .19); background:rgb(184 242 217 / .04); color:var(--aurora-ink); }
+.panel.aurora-refined .qa-grid { gap:12px; margin-bottom:18px; }
+.panel.aurora-refined .qa-btn { padding:12px 15px; min-height:59px; border-radius:16px; background:linear-gradient(120deg,#1a3028,#172820); box-shadow:inset 0 1px rgb(222 255 241 / .035); }
+.aurora-refined .qa-btn .qa-icon { width:34px; height:34px; border-radius:11px; }
+.aurora-refined .qa-btn .qa-title { font-size:13px; font-weight:650; }
+.aurora-refined .qa-btn .qa-sub { font-size:11px; }
+.panel.aurora-refined .dash-metric {
+  display:flex;
+  flex-direction:column;
+  padding:19px;
+  min-height:142px;
+  border-radius:19px;
+  background:linear-gradient(150deg,#1c322b,#14271f);
+}
+.panel.aurora-refined .dash-metric:first-child { background:radial-gradient(ellipse at 100% 0%,rgb(117 200 159 / .12),transparent 75%),linear-gradient(150deg,#234735,#193525); border-color:rgb(174 234 195 / .26); }
+.aurora-refined .dash-metric-head { margin-bottom:13px; gap:9px; }
+.aurora-refined .dash-metric-head .kpi-mini-icon { width:28px; height:28px; border-radius:9px; background:rgb(184 242 217 / .055); border:0; }
+.aurora-refined .dash-metric-head h2 { font-size:12px; font-weight:500; color:#b6cfc4; }
+.aurora-refined .dash-metric > strong { font-family:var(--sans); font-size:clamp(22px,2.5vw,34px); font-weight:650; letter-spacing:-.045em; line-height:1.15; font-variant-numeric:tabular-nums; color:#f0fcf6; }
+.aurora-refined .dash-metric > small { margin-top:10px; color:#a6c2b5; font-size:11px; }
+.aurora-refined .dash-metric .kpi-link { margin-top:8px; color:#b8f2d9; font-weight:550; min-height:25px; }
+.aurora-refined .dash-metric .kpi-hero-spark { margin:12px 0 0; height:14px; }
+.panel.aurora-refined .card { border-radius:22px; }
+.panel.aurora-refined .dash-cash,.panel.aurora-refined .dash-overtime { padding:23px; }
+.aurora-refined .dash-cash .chart-head,.aurora-refined .dash-overtime .chart-head { margin-bottom:20px; gap:12px; }
+.aurora-refined .dash-cash h2,.aurora-refined .dash-overtime h2 { font-size:19px; letter-spacing:-.035em; color:var(--aurora-ink); }
+.aurora-refined .dash-caption { margin-top:6px; font-size:11px; }
+.aurora-refined .cash-total { gap:5px; }
+.aurora-refined .cash-total span { font-size:11px; }
+.aurora-refined .cash-total strong { font-family:var(--sans); font-size:22px; letter-spacing:-.035em; font-weight:650; }
+.aurora-refined .cash-chart { gap:10px; }
+.aurora-refined .cash-row { padding:13px 14px; gap:10px 9px; border-radius:14px; border-color:rgb(184 242 217 / .075); background:rgb(9 28 18 / .27); }
+.aurora-refined .cash-row .chart-month-name { font-size:13px; color:#e6f5ec; font-weight:600; }
+.aurora-refined .cash-amount { font-family:var(--sans); font-size:15px; font-weight:650; letter-spacing:-.02em; }
+.aurora-refined .chart-month-hours { font:500 11px/1.3 var(--sans); padding:4px 7px; border-radius:99px; background:rgb(184 242 217 / .06); color:#b8f2d9; }
+.aurora-refined .cash-track { height:8px; border-radius:99px; background:rgb(201 238 214 / .07); margin-top:0; }
+.aurora-refined .cash-payroll { background:#a1bfdc; }
+.aurora-refined .cash-extras { background:#a7e3c4; }
+.aurora-refined .cash-trips { background:#dbb988; }
+.aurora-refined .chart-legend { margin-top:15px; gap:16px; color:#a7c4b6; font-size:11px; }
+.panel.aurora-refined .chart-extra-grid { gap:13px; }
+.panel.aurora-refined .chart-extra-month { padding:17px; gap:13px; border-radius:17px; background:rgb(9 28 18 / .25); border-color:rgb(184 242 217 / .1); }
+.panel.aurora-refined .chart-extra-month:first-child { border-color:rgb(184 242 217 / .26); background:linear-gradient(155deg,rgb(131 207 163 / .08),rgb(9 28 18 / .26)); }
+.aurora-refined .chart-extra-top { align-items:center; gap:8px; }
+.aurora-refined .chart-extra-top h3 { font-size:13px; font-weight:600; }
+.panel.aurora-refined .chart-extra-top strong { font-family:var(--sans); font-size:24px; letter-spacing:-.045em; font-weight:650; }
+.aurora-refined .chart-extra-values { gap:10px; }
+.aurora-refined .chart-extra-values dt { color:#abc6b9; font-size:11px; }
+.aurora-refined .chart-extra-values dd { font-family:var(--sans); font-size:17px; letter-spacing:-.025em; }
+.panel.aurora-refined .chart-extra-values small { font:11px/1.4 var(--sans); margin-top:3px; color:#9fb9ad; }
+.aurora-refined .chart-extra-difference { margin:0; padding:10px 11px; border-radius:10px; background:rgb(179 126 97 / .09); font-size:12px; font-weight:550; }
+.aurora-refined .chart-extra-difference.bad { color:#f2b5a1; }
+.aurora-refined .chart-extra-difference.ok { background:rgb(124 196 151 / .07); color:#b7e8c9; }
+.panel.aurora-refined .chart-extra-month .chart-extra-paid { font-size:11px; color:#a5beb2; }
+.aurora-refined .chart-extra-edit { width:100%; min-height:38px; border-color:rgb(184 242 217 / .14); background:rgb(184 242 217 / .025); font-size:11px; }
+.aurora-refined .chart-extra-note { margin-top:17px; line-height:1.6; color:#a4bcaf; font-size:11px; }
+.aurora-refined .dash-finance-aside { gap:18px; }
+.aurora-refined .dash-finance-aside h2 { font-size:16px; letter-spacing:-.025em; }
+.aurora-refined .donut-v3-label strong { font-family:var(--sans); color:#d8f4e5; }
+.aurora-refined .donut-v3-foot { gap:12px; font-size:11px; }
+.aurora-refined .next-pay-value { font-family:var(--sans); font-weight:650; color:#d7d9fa; letter-spacing:-.04em; }
+.aurora-refined .dash-activity { margin-top:4px; }
+.aurora-refined .dash-activity .chart-head h2 { font-size:16px; letter-spacing:-.025em; }
+@media(max-width:1050px) {
+  .panel.aurora-refined .dash-hero { grid-template-columns:minmax(0,1fr) minmax(270px,1fr); padding:24px; gap:20px; }
+  .aurora-refined .dash-metric > strong { font-size:26px; }
+  .panel.aurora-refined .dash-cash,.panel.aurora-refined .dash-overtime { padding:20px; }
+}
+@media(max-width:700px) {
+  .panel.aurora-refined { --dashboard-gap:14px; }
+  .panel.aurora-refined .dash-hero { grid-template-columns:minmax(0,1fr); padding:20px; gap:19px; border-radius:25px; }
+  .panel.aurora-refined .dash-hero-top { grid-column:1; grid-row:1; display:flex; align-items:center; justify-content:space-between; gap:9px; }
+  .aurora-refined .dash-hero-greeting { margin-bottom:10px; font-size:11px; letter-spacing:.09em; }
+  .panel.aurora-refined .dash-hero-title { font-size:34px; margin-bottom:10px; letter-spacing:-.045em; }
+  .aurora-refined .aurora-greeting { font-size:12px; }
+  .aurora-refined .dash-hero-actions { width:auto; flex:none; align-self:flex-end; }
+  .aurora-refined .dash-hero-actions .btn { min-height:36px; padding:8px 10px; font-size:11px; border-radius:11px; }
+  .panel.aurora-refined .dash-hero-today { grid-column:1; grid-row:2; padding:18px; gap:8px; border-radius:18px; }
+  .panel.aurora-refined #hero-today-hours { font-size:48px; }
+  .aurora-refined #hero-clock-state { font-size:11px; padding:5px 7px; }
+  .aurora-refined .aurora-section-label { font-size:11px; letter-spacing:.08em; }
+  .panel.aurora-refined #hero-today-meta { font-size:11px; }
+  .aurora-refined .today-clock-actions { margin-top:8px; gap:8px; }
+  .aurora-refined .today-clock-actions .btn { font-size:11px; min-height:43px; padding:10px 8px; flex-basis:110px; }
+  .panel.aurora-refined .qa-grid { gap:10px; margin-bottom:14px; }
+  .panel.aurora-refined .qa-btn { padding:11px 12px; min-height:56px; border-radius:15px; gap:8px; }
+  .aurora-refined .qa-btn .qa-icon { width:29px; height:29px; border-radius:9px; }
+  .aurora-refined .qa-btn .qa-title { font-size:12px; }
+  .aurora-refined .qa-btn .qa-sub { font-size:11px; }
+  .panel.aurora-refined .dash-metric { padding:15px 13px; min-height:119px; border-radius:17px; }
+  .aurora-refined .dash-metric-head { gap:7px; margin-bottom:11px; }
+  .aurora-refined .dash-metric-head h2 { font-size:11px; }
+  .aurora-refined .dash-metric-head .kpi-mini-icon { width:23px; height:23px; border-radius:7px; }
+  .aurora-refined .dash-metric-head .i { width:13px; height:13px; }
+  .aurora-refined .dash-metric > strong { font-size:clamp(19px,5.5vw,25px); }
+  .aurora-refined .dash-metric > small { font-size:11px; margin-top:8px; }
+  .aurora-refined .dash-metric .kpi-link { font-size:11px; margin-top:6px; }
+  .panel.aurora-refined .dash-cash,.panel.aurora-refined .dash-overtime { padding:18px; border-radius:21px; }
+  .aurora-refined .dash-cash h2,.aurora-refined .dash-overtime h2 { font-size:18px; }
+  .aurora-refined .dash-cash .chart-head,.aurora-refined .dash-overtime .chart-head { margin-bottom:16px; }
+  .aurora-refined .cash-total strong { font-size:21px; }
+  .aurora-refined .cash-row { padding:13px 11px; gap:7px 8px; }
+  .aurora-refined .cash-row .chart-month-name { font-size:12px; }
+  .aurora-refined .cash-amount { font-size:14px; }
+  .aurora-refined .chart-month-hours { font-size:11px; padding:3px 6px; }
+  .panel.aurora-refined .chart-extra-month { padding:16px; }
+  .aurora-refined .chart-extra-values dd { font-size:18px; }
+}
+@media(max-width:360px) {
+  .panel.aurora-refined .dash-hero { padding:16px; }
+  .panel.aurora-refined .dash-hero-title { font-size:30px; }
+  .panel.aurora-refined .dash-hero-today { padding:15px; }
+  .panel.aurora-refined #hero-today-hours { font-size:43px; }
+  .aurora-refined #hero-clock-state { max-width:125px; }
+  .aurora-refined .today-clock-actions .btn { flex-basis:95px; font-size:11px; padding-inline:6px; }
+  .aurora-refined .qa-btn .qa-sub { font-size:11px; }
+  .aurora-refined .dash-metric-head h2 { font-size:11px; }
+  .aurora-refined .dash-metric > strong { font-size:20px; }
+}
+
+@media(max-width:360px){.aurora-refined #hero-manual-action .i{display:none}.aurora-refined .today-clock-actions .btn{white-space:normal;font-size:11px}}
+
+</style>
+<link rel="stylesheet" href="./aurora-ui.css">
 </head>
-<body>
+<body class="aurora-polished">
 <a class="skip" href="#main">Saltar al contenido</a>
 
 <div class="layout">
@@ -1525,13 +1715,13 @@ body::before {
     <main id="main">
 
       <!-- ============ DASHBOARD 3.0 ============ -->
-      <section class="panel aurora-dashboard" data-tab-panel="dashboard">
+      <section class="panel aurora-dashboard aurora-refined" data-tab-panel="dashboard">
 
         <div class="dash-hero">
           <div class="dash-hero-top">
             <div>
               <p class="dash-hero-greeting" id="today-label">—</p>
-              <h1 class="dash-hero-title">Tu jornada de hoy</h1>
+              <h1 class="dash-hero-title">Tu jornada <span class="aurora-title-accent">de hoy.</span></h1>
               <p class="aurora-greeting"><span id="hero-greeting">Buenos días</span>, <span id="hero-name">Control Laboral</span>.</p>
               <div id="hero-badges" class="hero-badges"></div>
             </div>
@@ -1539,31 +1729,26 @@ body::before {
               <button class="btn ghost" type="button" data-action="print">
                 <svg class="i"><use href="#i-print"></use></svg> PDF
               </button>
-              <button class="btn primary" type="button" data-action="new-jornada">
-                <svg class="i"><use href="#i-plus"></use></svg> Nueva jornada
-              </button>
             </div>
           </div>
-          <div class="dash-hero-today">
+          <div class="dash-hero-today" role="group" aria-label="Fichaje de hoy">
+            <span class="aurora-section-label">Fichaje de hoy</span>
             <span class="aurora-clock-state" id="hero-clock-state" aria-live="polite">Sin fichar</span>
             <span class="big" id="hero-today-hours">0,00 h</span>
             <span class="meta" id="hero-today-meta">Sin fichar</span>
+            <div class="today-clock-actions">
             <button class="btn primary aurora-clock-button" type="button" data-action="clock-in" id="hero-clock-action">
               <svg class="i" aria-hidden="true"><use href="#i-login"></use></svg>
               <span>Fichar entrada</span>
             </button>
+            <button class="btn ghost" id="hero-manual-action" type="button" data-action="new-jornada">
+              <svg class="i" aria-hidden="true"><use href="#i-pen"></use></svg> <span>Registrar jornada</span>
+            </button>
+            </div>
           </div>
         </div>
 
         <div class="qa-grid">
-          <button class="qa-btn" type="button" data-action="clock-in" style="--tone:#34d399">
-            <span class="qa-icon"><svg class="i"><use href="#i-login"></use></svg></span>
-            <span><span class="qa-title">Fichar entrada</span><br><span class="qa-sub" id="qa-clock-in">Fichar ahora</span></span>
-          </button>
-          <button class="qa-btn" type="button" data-action="clock-out" style="--tone:#f87171">
-            <span class="qa-icon"><svg class="i"><use href="#i-logout"></use></svg></span>
-            <span><span class="qa-title">Fichar salida</span><br><span class="qa-sub" id="qa-clock-out">Cerrar jornada</span></span>
-          </button>
           <button class="qa-btn" type="button" data-action="add-extra-quick" style="--tone:#fbbf24">
             <span class="qa-icon"><svg class="i"><use href="#i-bolt"></use></svg></span>
             <span><span class="qa-title">Hora extra</span><br><span class="qa-sub">Añadir rápido</span></span>
@@ -1689,32 +1874,6 @@ body::before {
             </div>
           </article>
 
-          <article class="card clock-radial">
-            <div class="radial-wrap">
-              <svg class="radial-svg" viewBox="0 0 200 200" aria-hidden="true">
-                <circle class="radial-track" cx="100" cy="100" r="88"></circle>
-                <circle class="radial-progress" id="radial-progress" cx="100" cy="100" r="88"
-                        transform="rotate(-90 100 100)" stroke-dasharray="0 552.92"></circle>
-              </svg>
-              <div class="radial-center">
-                <span class="radial-eyebrow" id="radial-eyebrow">Sin fichar</span>
-                <strong class="radial-hours" id="radial-hours">0,00 h</strong>
-                <span class="radial-sub" id="radial-sub">Hoy</span>
-              </div>
-            </div>
-            <div class="radial-actions">
-              <button class="btn primary" type="button" data-action="clock-in">
-                <svg class="i"><use href="#i-login"></use></svg> Entrada
-              </button>
-              <button class="btn danger-ghost" type="button" data-action="clock-out">
-                <svg class="i"><use href="#i-logout"></use></svg> Salida
-              </button>
-            </div>
-            <p style="margin-top:14px;font-size:11.5px;color:var(--muted);text-align:center;display:flex;align-items:center;justify-content:center;gap:8px">
-              <span class="dot" id="ring-dot"></span>
-              <span id="today-status-inline">Sin actividad registrada</span>
-            </p>
-          </article>
         </div>
 
         <article class="card setup" id="setup-card" hidden>
@@ -1937,12 +2096,14 @@ body::before {
         <article class="card" id="sync-card" style="margin-top:16px">
           <div class="setup-head">
             <div><p class="eyebrow" style="margin-bottom:5px">Tus dispositivos</p><h2>Sincronización en la nube</h2></div>
+            <span class="cloud-status" id="local-save-state" role="status">Preparando guardado…</span>
             <span class="cloud-status" id="cloud-status" role="status" aria-live="polite" data-state="neutral">Preparando…</span>
           </div>
           <p class="hint" style="margin:10px 0 14px">Usa la misma cuenta en la PWA, el APK y el EXE. Los cambios se guardan en el dispositivo y se sincronizan al volver a tener internet.</p>
           <div class="grid-2" style="align-items:end">
             <label class="field"><span>Correo</span><input class="input" id="cloud-email" type="email" maxlength="254" autocomplete="email" placeholder="tu@correo.com"></label>
-            <label class="field"><span>Contraseña de la cuenta IVORY37</span><input class="input" id="cloud-password" type="password" minlength="6" autocomplete="current-password" placeholder="Mínimo 6 caracteres"></label>
+            <label class="field"><span>Contraseña de la cuenta IVORY37</span><input class="input" id="cloud-password" type="password" autocomplete="current-password" aria-describedby="cloud-password-help" placeholder="Tu contraseña"></label>
+            <p class="hint" id="cloud-password-help">Cuentas nuevas: mínimo 12 caracteres con mayúsculas, minúsculas, números y símbolos. Para entrar en una cuenta existente, usa tu contraseña actual.</p>
           </div>
           <div class="hint-row" style="margin-top:4px">
             <button class="btn primary sm" type="button" id="cloud-signup">Crear cuenta</button>
@@ -1951,12 +2112,13 @@ body::before {
             <button class="btn ghost sm" type="button" id="cloud-logout" hidden>Cerrar sesión</button>
             <span class="muted small" id="cloud-user">No has iniciado sesión.</span>
           </div>
-          <p class="hint small" style="margin:12px 0 0">La contraseña se usa solo para iniciar sesión; no se guarda en la app. Descarga copias JSON periódicamente como respaldo adicional.</p>
-          <div id="sync-conflicts" class="list" style="margin-top:12px" aria-live="polite"></div>
+          <p class="hint small" style="margin:12px 0 0">La contraseña se envía a Supabase para autenticarte o cambiarla; no se guarda en tus jornadas ni copias. Descarga copias JSON periódicamente como respaldo adicional.</p>
+          <details style="margin-top:16px"><summary>Recuperar contraseña</summary><p class="hint">Solicita el correo de recuperación. Abre su enlace y pega aquí la dirección final de la página, o el código si tu correo lo incluye. Nunca compartas ese enlace.</p><button class="btn ghost sm" id="cloud-reset" type="button">Enviar recuperación</button><label class="field"><span>Código o dirección final de recuperación</span><input class="input" id="cloud-recovery-token" type="password" autocomplete="off"></label><label class="field"><span>Nueva contraseña</span><input class="input" id="cloud-new-password" type="password" autocomplete="new-password"></label><button class="btn primary sm" id="cloud-update-password" type="button">Cambiar contraseña</button></details><div id="sync-conflicts" class="list" style="margin-top:12px" aria-live="polite"></div>
         </article>
 
+        <article class="card" style="margin-top:16px"><h2>Privacidad y recordatorios</h2><p class="hint">Activa los avisos desde el botón de notificaciones. En Android funcionan con la app cerrada; el ahorro de batería puede retrasarlos. Se usa tu horario habitual y se comprueba el último fichaje conocido en este dispositivo.</p><button class="btn ghost sm" id="disable-reminders" type="button">Desactivar recordatorios</button><div id="local-lock-settings"></div><h3>Versión y actualizaciones</h3><button class="btn ghost sm" id="check-release" type="button">Comprobar actualización</button><p id="release-status" role="status">Las actualizaciones se instalan conservando el perfil de datos.</p><a class="btn primary sm" id="release-download" hidden rel="noopener noreferrer">Abrir descarga oficial</a></article>
         <article class="card" id="data-card" style="margin-top:16px">
-          <h2 style="margin-bottom:14px">Datos y copias</h2>
+          <h2 style="margin-bottom:14px">Datos y copias</h2><button class="btn ghost sm" type="button" data-action="restore-previous">Restaurar copia previa</button><button class="btn ghost sm" id="undo-delete" type="button" hidden>Deshacer último borrado</button>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
             <button class="btn ghost" type="button" data-action="export-json"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> Backup JSON</button>
             <label class="btn ghost" style="cursor:pointer"><svg class="i" aria-hidden="true"><use href="#i-upload"></use></svg> Restaurar<input type="file" id="import-file" accept="application/json,.json" hidden></label>
@@ -2050,6 +2212,9 @@ body::before {
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v6M12 18h.01"/></symbol>
 </svg>
 
+<script src="./storage.js"></script>
+<script src="./privacy.js"></script>
+<script src="./updates.js"></script>
 <script src="./vendor/supabase.js"></script>
 <script src="./supabase-config.js"></script>
 <script src="./supabase-sync.js"></script>

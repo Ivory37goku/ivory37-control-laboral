@@ -81,3 +81,40 @@ test('Supabase sync tables are owner-scoped and the event helper is not an RPC',
   }
   assert.match(sql, /revoke execute on function public\.rls_auto_enable\(\) from public, anon, authenticated/i);
 });
+
+
+test('the document blocks injected scripts, remote frames and form exfiltration', () => {
+  const html = read('index.html');
+  const policy = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+  assert.match(policy, /script-src 'self';/);
+  assert.doesNotMatch(policy, /unsafe-eval/);
+  for (const directive of ['object-src', 'frame-src', 'base-uri', 'form-action']) {
+    assert.ok(policy.includes(directive + " 'none'"));
+  }
+  assert.match(policy, /https:\/\/vpdpketyattbmzghujmv\.supabase\.co/);
+});
+
+
+test('desktop permissions deny media and foreign documents while retaining local notifications', () => {
+  const context = {
+    URL,
+    require(name) {
+      if (name === 'electron') return {
+        app: { setName() {}, setAppUserModelId() {}, setPath() {}, getPath: () => root,
+          getAppPath: () => root, commandLine: { getSwitchValue: () => '' },
+          whenReady: () => ({ then() {} }), on() {} },
+        ipcMain: { on() {}, handle() {} }
+      };
+      return require(name);
+    }
+  };
+  vm.runInNewContext(read('desktop/main.cjs') + '\nglobalThis.permissionTest = canUsePermission;', context);
+  const contents = { getURL: () => pathToFileURL(path.join(root, 'index.html')).href };
+  assert.equal(context.permissionTest(contents, 'notifications', { isMainFrame: true }, contents), true);
+  for (const permission of ['media', 'geolocation', 'clipboard-read', 'display-capture', 'unknown']) {
+    assert.equal(context.permissionTest(contents, permission, {}, contents), false);
+  }
+  assert.equal(context.permissionTest(contents, 'notifications', { requestingUrl: 'https://example.invalid/' }, contents), false);
+  assert.equal(context.permissionTest(contents, 'notifications', { isMainFrame: false }, contents), false);
+  assert.equal(context.permissionTest(null, 'notifications', {}, contents), false);
+});

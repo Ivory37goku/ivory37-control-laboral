@@ -1,8 +1,10 @@
 (function () {
   'use strict';
+  const localStorage = window.IVORY37Storage || globalThis.localStorage;
+  window.IVORY37AppReady = false;
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.13';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.21';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -24,6 +26,7 @@
   let lastFocus = null;
   let lastAutoCheck = 0;
   let ratesDirty = false;
+  let undoRecords = null;
 
   const ui = { tab: 'dashboard', filter: 'all', query: '', limit: 30, today: '', hour: -1 };
 
@@ -53,22 +56,27 @@
       if (parts[0].indexOf(group) !== -1 && !grouped.test(parts[0])) return fail;
       normalized = parts[0].split(group).join('') + '.' + parts[1];
     } else if (commas > 1) {
-      if (!/^\d{1,3}(?:,\d{3})+$/.test(body)) return fail;
-      normalized = body.replace(/,/g, '');
+      return fail;
     } else if (dots > 1) {
       if (!/^\d{1,3}(?:\.\d{3})+$/.test(body)) return fail;
       normalized = body.replace(/\./g, '');
     } else if (commas === 1) {
       const parts = body.split(',');
       if (!/^\d+$/.test(parts[0]) || !/^\d+$/.test(parts[1])) return fail;
-      normalized = parts[1].length === 3 && parts[0].length <= 3 ? parts[0] + parts[1] : parts[0] + '.' + parts[1];
+      normalized = parts[0] + '.' + parts[1];
     }
     if (!/^\d+(?:\.\d+)?$/.test(normalized)) return fail;
     const n = Number(sign + normalized);
     return Number.isFinite(n) ? n : fail;
   };
 
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function uid() {
+    if (typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+  }
   function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function parseKey(key) { const parts = String(key).split('-').map(Number); const d = new Date(0); d.setHours(0, 0, 0, 0); d.setFullYear(parts[0], (parts[1] || 1) - 1, parts[2] || 1); return d; }
   function monthKey(date) { return dateKey(date).slice(0, 7); }
@@ -145,13 +153,26 @@
   }
 
   function nativeStorageBridge() { return window.AndroidBridge || window.IVORY37DesktopBridge || null; }
-  function storageSnapshot() {
+  // Copia solo datos de la app: los tokens de Auth no son una copia de seguridad.
+  function isAppStorageKey(key) {
+    return [KEY, KEY + '_backup', KEY + '_backup_date', KEY + '_recovery', NOTIF_KEY,
+      'ivory37_cloud_sync_meta_v1', 'ivory37_cloud_sync_snapshot_v1',
+      'ivory37_cloud_sync_base_v1', 'ivory37_cloud_sync_conflicts_v1',
+      'ivory37_cloud_sync_owner_v1'].includes(key);
+  }
+  function storageSnapshot(includeAll = false) {
     const snapshot = {};
-    try { for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key) snapshot[key] = localStorage.getItem(key); } }
+    try { for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key && (includeAll || isAppStorageKey(key))) snapshot[key] = localStorage.getItem(key); } }
     catch (err) { console.warn('No se pudo preparar la copia local del almacenamiento.'); }
     return snapshot;
   }
   function mirrorNativeStorage() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.configureReminders === 'function' && data) {
+      const schedule = scheduleWindow() || { startMin: 480, endMin: 960 }; const today = dateKey(new Date());
+      const shift = data.jornadas.find(row => row.fecha === today && !row.salida) || data.jornadas.find(row => row.fecha === today);
+      window.AndroidBridge.configureReminders(JSON.stringify({ enabled: setting('reminders_enabled', '0') === '1',
+        start: schedule.startMin, end: schedule.endMin, date: today, entered: Boolean(shift && shift.entrada), exited: Boolean(shift && shift.salida) }));
+    }
     const bridge = nativeStorageBridge();
     if (!bridge || typeof bridge.saveLocalStorage !== 'function') return;
     try { bridge.saveLocalStorage(JSON.stringify(storageSnapshot())); }
@@ -175,11 +196,11 @@
         if (typeof saved[KEY] !== 'string' || typeof bridge.completeLocalStorageMigration !== 'function') throw new Error('Faltan los datos para completar la migración.');
         const savedData = JSON.parse(saved[KEY]);
         if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData) || hasInvalidDates(savedData)) throw new Error('Los datos guardados no son válidos.');
-        const previous = storageSnapshot();
+        const previous = storageSnapshot(true);
         try {
           localStorage.clear();
           Object.keys(saved).forEach((key) => {
-            if (typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
+            if (isAppStorageKey(key) && typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
           });
         } catch (restoreError) {
           try {
@@ -193,7 +214,7 @@
         return true;
       }
       Object.keys(saved).forEach((key) => {
-        if (typeof saved[key] === 'string' && key.length < 512 && localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
+        if (isAppStorageKey(key) && typeof saved[key] === 'string' && key.length < 512 && localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
       });
       return true;
     } catch (err) {
@@ -222,12 +243,28 @@
   const rateExtra = () => num(setting('hora_extra_euros'), 19.69);
   const legacyDayHours = () => num(setting('horas_normales_dia'), 8);
   const dayHours = () => rateOn(dateKey(new Date()), 'jornada');
+  let cachedRateSource;
+  let cachedRateHistory = [];
+  const cachedRateDates = new Map();
   function rateHistory() {
-    return window.IVORY37Rates.normalize(setting('tarifa_historial', '[]'), isDateKey);
+    const source = setting('tarifa_historial', '[]');
+    if (source !== cachedRateSource) {
+      cachedRateSource = source;
+      cachedRateHistory = window.IVORY37Rates.normalize(source, isDateKey);
+      cachedRateDates.clear();
+    }
+    return cachedRateHistory.slice();
   }
   function rateOn(date, kind) {
     const key = kind === 'extra' ? 'extra' : kind === 'jornada' ? 'jornada' : 'normal';
-    return window.IVORY37Rates.atDate(rateHistory(), date, key, { normal: rateNormal(), extra: rateExtra(), jornada: legacyDayHours() });
+    rateHistory();
+    if (!cachedRateDates.has(date)) {
+      let selected = null;
+      for (const version of cachedRateHistory) { if (version.desde > date) break; selected = version; }
+      cachedRateDates.set(date, selected);
+    }
+    const selected = cachedRateDates.get(date);
+    return selected ? selected[key] : key === 'normal' ? rateNormal() : key === 'extra' ? rateExtra() : legacyDayHours();
   }
   function saveRateVersion(version) {
     const history = window.IVORY37Rates.upsert(rateHistory(), version, { normal: rateNormal(), extra: rateExtra(), jornada: legacyDayHours() });
@@ -279,12 +316,23 @@
     };
     try { syncPayrolls(); }
     catch (err) { console.error('syncPayrolls:', err); restorePrevious(); toast('Error al recalcular las nóminas.', 'error'); return false; }
-    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    try {
+      if (previous) localStorage.setItem(KEY + '_recovery', previous);
+      localStorage.setItem(KEY, JSON.stringify(data));
+    }
     catch (err) { console.error(err); restorePrevious(); toast('No se pudo guardar. Libera espacio o exporta un backup.', 'error'); return false; }
-    window.IVORY37CloudSync?.queue(data);
-    mirrorNativeStorage();
-    renderAll(); updateStorageUsage(); if (message) toast(message);
-    return true;
+    const finish = () => {
+      window.IVORY37CloudSync?.queue(data);
+      mirrorNativeStorage();
+      renderAll(); updateStorageUsage(); if (message) toast(message);
+      return true;
+    };
+    if (localStorage.flush) return localStorage.flush().then(finish).catch((err) => {
+      localStorage.rollback(); restorePrevious();
+      toast('No se ha guardado: ' + err.message + ' Conserva una copia antes de cerrar.', 'error');
+      return false;
+    });
+    return finish();
   }
 
   function estimatedDates(month, records) {
@@ -341,7 +389,10 @@
 
   function syncPayrolls() {
     const manuallyCompletedDates = new Set(data.jornadas.filter((item) => !item.auto && item.entrada && item.salida).map((item) => item.fecha));
-    if (manuallyCompletedDates.size) data.jornadas = data.jornadas.filter((item) => !item.auto || !manuallyCompletedDates.has(item.fecha));
+    // Retain overlapping automatic records for review, without counting their hours twice.
+    data.jornadas.forEach((item) => {
+      if (item.auto && manuallyCompletedDates.has(item.fecha)) item.estado = 'provisional';
+    });
     const months = new Set(data.jornadas.filter((j) => j.estado === 'confirmado').map((j) => j.fecha.slice(0, 7)));
     const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean));
     const generated = generatedPayrollsByMonth(data.pagos);
@@ -386,8 +437,21 @@
     const setupBtn = $('#setup-show-btn'); if (setupBtn) setupBtn.hidden = setting('setup_dismissed') !== '1';
   }
 
-  function renderNotifState() { const el = $('#notif-state'); if (!el) return; if (!('Notification' in window)) el.textContent = 'No compatible'; else el.textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar'; }
-  function renderAll() { renderDashboard(); renderJornadas(); renderCalendar(); renderTrips(); renderPagos(); renderSetup(); renderDataTools(); updateStorageUsage(); }
+  function notificationState() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.getNotificationState === 'function') return window.AndroidBridge.getNotificationState();
+    if (!('Notification' in window)) return 'No compatible';
+    return Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar';
+  }
+  function renderNotifState() { const el = $('#notif-state'); if (el) el.textContent = notificationState(); }
+  window.__ivoryAndroidRefreshNotifications = renderNotifState;
+  function renderAll() {
+    if (ui.tab === 'dashboard') { renderDashboard(); renderSetup(); }
+    else if (ui.tab === 'jornadas') { renderJornadas(); renderCalendar(); }
+    else if (ui.tab === 'viajes') renderTrips();
+    else if (ui.tab === 'pagos') renderPagos();
+    else if (ui.tab === 'ajustes') renderAjustes();
+    renderDataTools(); updateStorageUsage();
+  }
   function updateFillLabel() { const fill = $('#fill-month-btn'); if (!fill) return; const missing = missingMonthDays().length; const label = fill.querySelector('span'); if (label) label.textContent = missing ? 'Completar mes (' + missing + ')' : 'Completar mes'; }
 
   /* ---------- DASHBOARD 3.0 ---------- */
@@ -422,39 +486,27 @@
     }
   }
 
-  function renderRadial() {
+  function renderTodayClock() {
     const now = new Date();
     const today = dateKey(now);
     const yesterday = dateKey(addDays(now, -1));
-    const base = dayHours();
-    let j = jornadaForDate(today);
-    if (!j) j = openJornadaForDate(yesterday);
-    const ring = $('#radial-progress');
-    const eyebrow = $('#radial-eyebrow');
-    const hoursEl = $('#radial-hours');
-    const subEl = $('#radial-sub');
-    const dot = $('#ring-dot');
-    const inline = $('#today-status-inline');
-    const qaIn = $('#qa-clock-in');
-    const qaOut = $('#qa-clock-out');
-    if (!ring || !eyebrow) return;
-    const circumference = 2 * Math.PI * 88;
-    let worked = 0; let label = 'Sin fichar'; let subLabel = 'Hoy'; let dotClass = 'dot'; let inlineText = 'Sin actividad registrada';
+    const j = openJornadaForDate(today) || openJornadaForDate(yesterday) || jornadaForDate(today);
+    let worked = 0; let label = 'Sin fichar'; let subLabel = 'Hoy';
     if (!j) { worked = 0; }
-    else if (j.entrada && j.salida) { worked = round2(j.horas_normales + j.horas_extra); label = 'Jornada cerrada'; subLabel = j.entrada + ' – ' + j.salida; inlineText = 'Cerrada · ' + j.entrada + '–' + j.salida; }
-    else if (j.entrada) { const mins = toMinutes(j.entrada); const nowMins = now.getHours() * 60 + now.getMinutes(); const dayOffset = j.fecha === yesterday ? 1440 : 0; worked = round2((((nowMins - mins + dayOffset) % 1440) + 1440) % 1440 / 60); label = 'Trabajando'; subLabel = 'Desde ' + j.entrada; dotClass = 'dot live'; inlineText = 'Trabajando desde ' + j.entrada; }
-    else { worked = round2(j.horas_normales + j.horas_extra); label = 'Sin fichaje'; subLabel = fmtHours(worked) + ' manuales'; inlineText = 'Registro sin fichaje'; }
-    const pct = clamp(worked / base, 0, 1);
-    ring.setAttribute('stroke-dasharray', (pct * circumference).toFixed(2) + ' ' + circumference.toFixed(2));
-    eyebrow.textContent = label;
-    hoursEl.textContent = fmtHours(worked);
-    subEl.textContent = subLabel;
-    if (dot) dot.className = dotClass;
-    if (inline) inline.textContent = inlineText;
-    if (qaIn) qaIn.textContent = j && j.entrada ? 'A las ' + j.entrada : 'Fichar ahora';
-    if (qaOut) qaOut.textContent = j && j.salida ? 'A las ' + j.salida : 'Cerrar jornada';
+    else if (j.entrada && j.salida) { worked = round2(j.horas_normales + j.horas_extra); label = 'Jornada cerrada'; subLabel = j.entrada + ' – ' + j.salida; }
+    else if (j.entrada) { const mins = toMinutes(j.entrada); const nowMins = now.getHours() * 60 + now.getMinutes(); const dayOffset = j.fecha === yesterday ? 1440 : 0; worked = round2((((nowMins - mins + dayOffset) % 1440) + 1440) % 1440 / 60); label = 'Trabajando'; subLabel = 'Desde ' + (j.fecha === yesterday ? 'ayer a las ' : '') + j.entrada; }
+    else { worked = round2(j.horas_normales + j.horas_extra); label = 'Registro manual'; subLabel = 'Horas registradas sin horario'; }
+    const manual = $('#hero-manual-action');
+    if (manual) {
+      manual.dataset.action = j ? 'edit-jornada' : 'new-jornada';
+      if (j) manual.dataset.id = String(j.id); else delete manual.dataset.id;
+      manual.querySelector('span').textContent = j ? 'Revisar jornada' : 'Registrar jornada';
+    }
     const state = $('#hero-clock-state');
-    if (state && state.textContent !== label) state.textContent = label;
+    if (state) {
+      if (state.textContent !== label) state.textContent = label;
+      state.dataset.state = j && j.entrada && !j.salida ? 'working' : (j && j.salida ? 'closed' : 'idle');
+    }
     const action = $('#hero-clock-action');
     if (action) {
       const open = Boolean(j && j.entrada && !j.salida);
@@ -465,12 +517,10 @@
         action.querySelector('span').textContent = open ? 'Fichar salida' : 'Fichar entrada';
         action.querySelector('use').setAttribute('href', open ? '#i-logout' : '#i-login');
       }
-      if (open) {
-        const heroHours = $('#hero-today-hours');
-        const heroMeta = $('#hero-today-meta');
-        if (heroHours) heroHours.textContent = fmtHours(worked);
-        if (heroMeta) heroMeta.textContent = subLabel;
-      }
+      const heroHours = $('#hero-today-hours');
+      const heroMeta = $('#hero-today-meta');
+      if (heroHours) heroHours.textContent = fmtHours(worked);
+      if (heroMeta) heroMeta.textContent = subLabel;
     }
   }
 
@@ -559,7 +609,7 @@
       status.textContent = !hasIncome ? 'Sin movimientos' : pct >= 1 ? 'Al día' : pct >= 0.9 ? 'Casi al día' : pct >= 0.5 ? 'Parcial' : 'Pendiente';
       status.className = 'badge ' + (!hasIncome ? 'muted' : pct >= 1 ? 'ok' : pct >= 0.5 ? 'warn' : 'bad');
     }
-    renderBars(); renderRecentPayrolls(); renderHero(); renderRadial(); renderSparklines(); renderWeek(); renderNextPayroll(); renderHeatmap();
+    renderBars(); renderRecentPayrolls(); renderHero(); renderTodayClock(); renderSparklines(); renderWeek(); renderNextPayroll(); renderHeatmap();
   }
 
   function renderBars() {
@@ -902,7 +952,7 @@
     ui.tab = tab; ui.limit = 30;
     $$('[data-tab-panel]').forEach((section) => { section.hidden = section.dataset.tabPanel !== tab; });
     $$('[data-action="tab"]').forEach((btn) => { const active = btn.dataset.tab === tab; btn.classList.toggle('active', active); if (active) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current'); });
-    if (tab === 'ajustes') renderAjustes();
+    renderAll();
     if (location.hash.slice(1) !== tab) { try { history.replaceState(null, '', '#' + tab); } catch (err) {} }
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -926,7 +976,23 @@
   function closeModal() { $('#modal').hidden = true; document.body.style.overflow = ''; modalSave = null; modalDelete = null; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
 
   function confirmAction(title, message, confirmText, onConfirm, danger) {
-    openModal({ title, body: '<p class="muted" style="white-space:pre-line">' + esc(message) + '</p>', saveText: confirmText || 'Confirmar', danger: Boolean(danger), onSave: () => onConfirm() });
+    openModal({ title, body: '<p class="muted" style="white-space:pre-line">' + esc(message) + '</p>', saveText: confirmText || 'Confirmar', danger: Boolean(danger), onSave: async () => {
+      const previous = JSON.parse(JSON.stringify(data));
+      const result = await onConfirm();
+      if (result === false) return false;
+      if (localStorage.flush) await localStorage.flush();
+      if (danger && title !== 'Borrar todos los datos') rememberDeleted(previous);
+      return true;
+    } });
+  }
+  function rememberDeleted(previous) {
+    const removed = {};
+    for (const collection of ['jornadas', 'viajes', 'pagos', 'ausencias']) {
+      removed[collection] = previous[collection].filter(row => !data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha)));
+    }
+    if (!Object.values(removed).some(rows => rows.length)) return;
+    undoRecords = removed;
+    const button = $('#undo-delete'); if (button) button.hidden = false;
   }
 
   function editableRecord(collection, id) {
@@ -1058,7 +1124,6 @@
           const extrasChanged = round2(j.horas_extra) !== result.horas_extra;
           Object.assign(j, changes, { auto: false, backfill: false });
           if (extrasChanged) { j.pagado_extras = false; j.fecha_pago_extras = ''; }
-          data.jornadas = data.jornadas.filter((row) => row.fecha !== result.fecha || !row.auto || String(row.id) === String(j.id));
         } else data.jornadas.push({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString(), ...payload, auto: false, backfill: false });
         return persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
       },
@@ -1320,16 +1385,18 @@
   }
 
   function importJSON(file) {
-    if (!file) return; if (file.size > 5 * 1024 * 1024) { toast('Backup demasiado grande.', 'error'); return; }
+    if (!file) return; if (file.size > 12 * 1024 * 1024) { toast('Backup demasiado grande.', 'error'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = backupTools.parse(reader.result, isDateKey);
-        confirmAction('Restaurar copia', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
+        confirmAction('Restaurar copia', 'Se sustituirán los datos actuales. Se conservará una copia previa en este dispositivo.', 'Restaurar', async () => {
           const previous = data; const previousLoadError = loadError;
           try { try { localStorage.setItem(KEY + '_backup', JSON.stringify(previous)); } catch (err) {} data = normalize(parsed); syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); }
-          catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo guardar la copia. Tus datos actuales siguen intactos.', 'error'); return; }
-          loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data); toast('Datos restaurados.');
+          catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo guardar la copia. Tus datos actuales siguen intactos.', 'error'); return false; }
+          try { if (localStorage.flush) await localStorage.flush(); }
+          catch (err) { localStorage.rollback(); data = previous; loadError = previousLoadError; toast('No se pudo guardar la copia. Tus datos actuales siguen intactos.', 'error'); return false; }
+          loadError = false; mirrorNativeStorage(); applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data); toast('Datos restaurados.');
         });
       } catch (err) { toast(err && err.message === 'Fecha' ? 'El backup contiene fechas imposibles; no se cambiaron tus datos.' : 'Backup no válido.', 'error'); }
     };
@@ -1337,21 +1404,24 @@
     reader.readAsText(file);
   }
 
-  function restoreInternalBackup() {
+  function restoreInternalBackup(sourceKey = KEY + '_backup') {
     let raw;
-    try { raw = localStorage.getItem(KEY + '_backup'); } catch (err) { toast('No se pudo leer la copia interna.', 'error'); return; }
+    try { raw = localStorage.getItem(sourceKey); } catch (err) { toast('No se pudo leer la copia interna.', 'error'); return; }
     if (!raw) { toast('No hay copia interna.', 'warn'); return; }
-    confirmAction('Restaurar copia interna', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
+    confirmAction('Restaurar copia interna', 'Se sustituirán los datos actuales y se conservará una copia previa.', 'Restaurar', async () => {
       const previous = data; const previousLoadError = loadError;
       try {
-        const parsed = JSON.parse(raw);
+        const parsed = backupTools.parse(raw, isDateKey);
         if (hasInvalidDates(parsed)) throw new Error('Fecha');
         data = normalize(parsed); syncPayrolls();
+        localStorage.setItem(KEY + '_recovery', JSON.stringify(previous));
         localStorage.setItem(KEY, JSON.stringify(data));
+        if (localStorage.flush) await localStorage.flush();
+        mirrorNativeStorage();
         window.IVORY37CloudSync?.queue(data);
         loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data);
         toast('Copia restaurada.');
-      } catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo restaurar; los datos actuales siguen intactos.', 'error'); }
+      } catch (err) { if (localStorage.rollback) localStorage.rollback(); data = previous; loadError = previousLoadError; toast('No se pudo restaurar; los datos actuales siguen intactos.', 'error'); return false; }
     });
   }
 
@@ -1388,14 +1458,30 @@
     const name = 'Control Laboral'; const logo = setting('custom_logo') || './assets/ivory37-logo.jpg'; const person = String(setting('user_name') || '').trim();
     const total = round2(normalValue + extraValue + tripTotal);
     $('#print').innerHTML = '<div class="print-head">' + (logo && isSafeImage(logo) ? '<img src="' + esc(logo) + '" alt="">' : '') + '<h1>' + esc(name) + '</h1></div>' + '<p class="sub">' + (person ? esc(person) + ' · ' : '') + 'Informe · ' + esc(fmtDate(from)) + ' – ' + esc(fmtDate(to)) + '</p>' + '<div class="totals"><div>Horas normales<b>' + fmtHours(normalHours) + '</b></div><div>Horas extra<b>' + fmtHours(extraHours) + '</b></div><div>Valor normales<b>' + fmtMoney(normalValue) + '</b></div><div>Valor extras<b>' + fmtMoney(extraValue) + '</b></div><div>Viajes y dietas<b>' + fmtMoney(tripTotal) + '</b></div><div>Total estimado<b>' + fmtMoney(total) + '</b></div></div>' + (isEstimation() ? '<p class="sub">El cálculo incluye estimaciones de días laborables sin jornada ni incidencia registrada.</p>' : '') + (provisionalCount ? '<p class="sub">' + provisionalCount + ' jornada(s) provisional(es) aparecen para revisión y no se incluyen en los importes.</p>' : '') + '<h2>Jornadas</h2>' + (jornadaRows ? '<table><thead><tr><th>Fecha</th><th>Horario</th><th class="num">Pausa</th><th class="num">Norm.</th><th class="num">Extra</th><th class="num">€/h norm.</th><th class="num">€/h extra</th><th>Estado</th></tr></thead><tbody>' + jornadaRows + '</tbody></table>' : '<p>Sin jornadas en el periodo.</p>') + (exceptions.length ? '<h2>Calendario e incidencias</h2><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Notas</th></tr></thead><tbody>' + exceptionRows + '</tbody></table>' : '') + (trips.length ? '<h2>Viajes y dietas</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + tripRows + '</tbody></table>' : '') + (payments.length ? '<h2>Pagos registrados</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + paymentRows + '</tbody></table>' : '') + '<footer>Las incidencias son anotaciones de calendario. El total estimado no sustituye una nómina oficial. Generado por ' + esc(name) + '</footer>';
-    setTimeout(() => window.print(), 60);
+    setTimeout(printPreparedReport, 60);
   }
 
-  function notify(title, body) { try { if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); } } catch (err) {} }
-  function requestNotifications() { if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
+  function printPreparedReport() {
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.printReport === 'function') window.AndroidBridge.printReport();
+      else window.print();
+    } catch (err) { toast('No se pudo abrir la impresión. Vuelve a intentarlo.', 'error'); }
+  }
+  function notify(title, body) { try {
+    if (window.AndroidBridge && typeof window.AndroidBridge.showNotification === 'function') {
+      if (notificationState() === 'Activados') window.AndroidBridge.showNotification(title, body);
+      return;
+    }
+    if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); }
+  } catch (err) {} }
+  function requestNotifications() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.requestNotifications === 'function') { window.AndroidBridge.requestNotifications(); renderNotifState(); return; }
+    if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
 
   function reminderTick() {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (window.AndroidBridge && typeof window.AndroidBridge.configureReminders === 'function') return;
+    if (setting('reminders_enabled', '0') !== '1') return;
+    if (notificationState() !== 'Activados') return;
     const now = new Date(); const hour = now.getHours(); const minute = now.getMinutes();
     if (minute !== 0 || (hour !== 8 && hour !== 16)) return;
     const key = dateKey(now) + '-' + hour;
@@ -1451,7 +1537,8 @@
       case 'edit-extra-payment': extraPaymentModal(el.dataset.month); break;
       case 'cleanup-auto': { const auto = data.jornadas.filter(isAutoGenerated); if (!auto.length) { toast('No hay jornadas de «Completar mes».', 'info'); break; } confirmAction('Quitar jornadas de «Completar mes»', 'Se eliminarán ' + auto.length + ' registros creados con «Completar mes». No se tocan las jornadas creadas con «Según horario».', 'Eliminar ' + auto.length, () => { data.jornadas = data.jornadas.filter((j) => !isAutoGenerated(j)); persist('Jornadas de «Completar mes» eliminadas'); renderDataTools(); }, true); break; }
       case 'pending-detail': pendingModal(); break;
-      case 'request-notif': requestNotifications(); break;
+      case 'restore-previous': restoreInternalBackup(KEY + '_recovery'); break;
+      case 'request-notif': setSetting('reminders_enabled', '1'); Promise.resolve(persist()).then(saved => { if (saved) { requestNotifications(); mirrorNativeStorage(); } }); break;
       case 'settings-jump': { const target = el.dataset.target ? document.querySelector(el.dataset.target) : null; if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
       case 'open-profile': { showTab('ajustes'); setTimeout(() => { const field = $('#cfg-user-name'); if (field) { field.focus(); if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 120); break; }
       case 'open-schedule': { showTab('ajustes'); setTimeout(() => { const field = $('#cfg-schedule'); if (field) { field.focus(); if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 120); break; }
@@ -1511,9 +1598,42 @@
   }
 
   const modalSaveBtn = $('#modal-save');
-  if (modalSaveBtn) modalSaveBtn.addEventListener('click', () => { if (!modalSave) return; const result = modalSave(); if (result !== false) closeModal(); });
+  if (modalSaveBtn) modalSaveBtn.addEventListener('click', async () => {
+    if (!modalSave || modalSaveBtn.disabled) return;
+    const save = modalSave; modalSaveBtn.disabled = true;
+    try { const result = await save(); if (result !== false && modalSave === save) closeModal(); }
+    catch (error) { toast('No se pudo guardar: ' + error.message, 'error'); }
+    finally { modalSaveBtn.disabled = false; }
+  });
   const modalDelBtn = $('#modal-delete');
-  if (modalDelBtn) modalDelBtn.addEventListener('click', () => { if (!modalDelete) return; const result = modalDelete(); if (result !== false) closeModal(); });
+  if (modalDelBtn) modalDelBtn.addEventListener('click', async () => {
+    if (!modalDelete || modalDelBtn.disabled) return;
+    const previous = JSON.parse(JSON.stringify(data)); modalDelBtn.disabled = true;
+    try {
+      const result = await modalDelete();
+      if (result !== false) {
+        undoRecords = {};
+        for (const collection of ['jornadas', 'viajes', 'pagos', 'ausencias']) {
+          undoRecords[collection] = previous[collection].filter(row => !data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha)));
+        }
+        const button = $('#undo-delete'); if (button) button.hidden = false;
+        closeModal();
+      }
+    } finally { modalDelBtn.disabled = false; }
+  });
+  $('#undo-delete')?.addEventListener('click', async () => {
+    if (!undoRecords) return;
+    for (const collection of Object.keys(undoRecords)) {
+      for (const row of undoRecords[collection]) if (!data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha))) data[collection].push(row);
+    }
+    if (await persist('Borrado deshecho.')) { undoRecords = null; $('#undo-delete').hidden = true; }
+  });
+  window.addEventListener('ivory37:storage-state', event => {
+    const element = $('#local-save-state'); if (!element) return;
+    element.textContent = event.detail.state === 'saved' ? 'Guardado en este dispositivo' : event.detail.state === 'pending' ? 'Guardando en este dispositivo…' : 'Error de guardado · ' + event.detail.error;
+    element.dataset.state = event.detail.state === 'saved' ? 'ok' : event.detail.state === 'pending' ? 'busy' : 'error';
+  });
+  $('#disable-reminders')?.addEventListener('click', () => { setSetting('reminders_enabled', '0'); persist('Recordatorios desactivados.'); });
 
   document.addEventListener('keydown', (event) => {
     const modal = $('#modal'); if (!modal || modal.hidden) return;
@@ -1561,7 +1681,7 @@
         if (ui.tab === 'ajustes' && !ratesDirty) { const normal = $('#cfg-normal'); const extra = $('#cfg-extra'); const day = $('#cfg-day'); if (normal) normal.value = fmtInput(rateOn(today, 'normal')); if (extra) extra.value = fmtInput(rateOn(today, 'extra')); if (day) day.value = fmtInput(rateOn(today, 'jornada')); renderRateHistory(); }
       } else renderDashboard();
     }
-    else if (ui.tab === 'dashboard') { renderRadial(); }
+    else if (ui.tab === 'dashboard') { renderTodayClock(); }
     if (now.getTime() - lastAutoCheck >= 60000) { lastAutoCheck = now.getTime(); autoFichaje(); }
   }
 
@@ -1578,6 +1698,15 @@
   });
 
   function init() {
+    if (window.IVORY37Storage && !window.IVORY37Storage.isReady) {
+      window.IVORY37Storage.ready.then(init).catch(error => {
+        loadError = true;
+        const state = $('#local-save-state'); if (state) { state.textContent = 'No se pudo abrir el almacenamiento: ' + error.message; state.dataset.state = 'error'; }
+        toast('No se pudieron abrir los datos. No borres la aplicación ni sus datos.', 'error');
+        $$('button').forEach(button => { button.disabled = true; });
+      });
+      return;
+    }
     const hash = location.hash.slice(1); if (['dashboard', 'jornadas', 'viajes', 'pagos', 'ajustes'].includes(hash)) ui.tab = hash;
     ui.today = dateKey(new Date());
     restoreNativeStorage();
@@ -1596,6 +1725,7 @@
       ['#cloud-signup', '#cloud-login', '#cloud-now'].forEach((selector) => { const button = $(selector); if (button) button.disabled = true; });
     } else window.IVORY37CloudSync?.init(data);
     if (!loadError) mirrorNativeStorage();
+    window.IVORY37AppReady = !loadError;
   }
 
   init();

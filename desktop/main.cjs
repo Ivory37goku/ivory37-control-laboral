@@ -102,6 +102,12 @@ function localAppUrl(forceRestore) {
   return pathToFileURL(indexPath).href + (forceRestore ? '?nativeRestore=1' : '');
 }
 
+function canUsePermission(contents, permission, details, expectedContents) {
+  return contents === expectedContents && permission === 'notifications'
+    && details?.isMainFrame !== false
+    && isTrustedAppDocument(details?.requestingUrl || contents?.getURL() || '');
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     title: APP_NAME,
@@ -121,6 +127,14 @@ function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false
     }
+  });
+
+  // La app solo necesita avisos; denegar cámara, micrófono, ubicación y otros permisos.
+  window.webContents.session.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(canUsePermission(contents, permission, details, window.webContents));
+  });
+  window.webContents.session.setPermissionCheckHandler((contents, permission, _origin, details) => {
+    return canUsePermission(contents, permission, details, window.webContents);
   });
 
   window.once('ready-to-show', () => window.show());

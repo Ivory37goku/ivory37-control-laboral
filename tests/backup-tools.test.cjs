@@ -36,3 +36,17 @@ test('backup import rejects an oversized shift list before any restore can start
   const oversized = { jornadas: Array.from({ length: 50001 }, () => ({ fecha: '2026-11-17' })) };
   assert.throws(() => backupTools.parse(JSON.stringify(oversized), isDateKey), /Demasiados/);
 });
+
+
+test('backup limits apply to every collection and their combined size', () => {
+  for (const collection of ['viajes', 'pagos', 'ausencias', 'ajustes']) {
+    assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: [], [collection]: Array(50001).fill({}) }), isDateKey), /Demasiados/);
+  }
+  assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: Array(25001).fill({ fecha: '2026-11-19' }), viajes: Array(25000).fill({ fecha: '2026-11-19' }) }), isDateKey), /Demasiados/);
+});
+
+test('malformed optional collections and records cannot silently erase imported data', () => {
+  for (const value of [{ viajes: {} }, { pagos: [null] }, { ausencias: ['text'] }, { ajustes: [{ valor: '1' }] }]) {
+    assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: [], ...value }), isDateKey), /Formato/);
+  }
+});

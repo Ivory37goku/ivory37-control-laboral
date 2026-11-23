@@ -24,7 +24,19 @@
   function parse(raw, isDateKey) {
     const parsed = JSON.parse(String(raw));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !Array.isArray(parsed.jornadas)) throw new Error('Formato');
-    if (parsed.jornadas.length > 50000) throw new Error('Demasiados');
+    const collections = ['jornadas', 'viajes', 'pagos', 'ausencias', 'ajustes'];
+    let count = 0;
+    collections.forEach((key) => {
+      if (parsed[key] === undefined) return; // Copias antiguas sin colecciones opcionales.
+      if (!Array.isArray(parsed[key])) throw new Error('Formato');
+      count += parsed[key].length;
+      if (count > 50000) throw new Error('Demasiados');
+    });
+    collections.forEach((key) => {
+      if (!parsed[key]) return;
+      if (parsed[key].some((row) => !row || typeof row !== 'object' || Array.isArray(row)
+        || (key === 'ajustes' && typeof row.clave !== 'string'))) throw new Error('Formato');
+    });
     if (hasInvalidDates(parsed, isDateKey)) throw new Error('Fecha');
     return parsed;
   }

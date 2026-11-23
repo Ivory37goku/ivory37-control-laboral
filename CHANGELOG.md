@@ -1,5 +1,73 @@
 # Cambios
 
+## 3.3.21 — Aurora en toda la aplicación
+
+- Acabado visual común para Resumen, Jornadas, Viajes, Pagos y Ajustes.
+- Cabecera de fichaje más compacta en móvil, botón PDF junto al título y cifras de horas extra más visibles.
+- Formularios, tablas, tarjetas, ventanas, navegación y estados con superficies y tipografía coherentes.
+- Foco de teclado visible, zonas de interacción más amplias y respeto por movimiento reducido. La hoja visual no se aplica a impresión.
+- Prueba autorizada de recuperación mediante el botón real de la app: una solicitud aceptada y entrega en Proton confirmada por el propietario. No se cambió la contraseña.
+
+## 3.3.20 — Guardado duradero y fiabilidad
+
+- Migración verificada de datos y seguimiento de nube a IndexedDB; las sesiones del SDK conservan su almacenamiento separado.
+- Guardado confirmado al terminar la transacción; control de ediciones desde otra ventana y restauraciones con copia previa.
+- Estado local separado del estado de nube, sondeo de respaldo para Realtime y contador de revisiones monotónico.
+- Recuperación de contraseña por correo con código o enlace final, comprobación de identidad y limpieza de secretos.
+- PIN local opcional de 6–12 cifras con derivación PBKDF2; no cifra los datos del dispositivo.
+- Recordatorios nativos Android mediante AlarmManager y receptor sin actividad; reprogramación tras reinicio, actualización y cambio de hora/zona. Son inexactos y pueden retrasarse por ahorro de batería.
+- Consulta de versiones publicadas en GitHub, sin instalar automáticamente ni anunciar una versión igual o anterior.
+- Deshacer borrados, copia previa recuperable y renderizado de la pestaña visible.
+- Pruebas contables, transacciones abortadas, migración, ventanas concurrentes, 7 MB y reinicio, bloqueo PIN y recorridos de nómina y deshacer.
+
+## 3.3.19 — Importes, PDF y conservación de jornadas
+
+- La coma sola siempre es decimal, incluso con tres cifras; las comas repetidas sin decimal explícito se rechazan.
+- Android usa el puente nativo para impresión PDF, permisos y avisos con la aplicación abierta. Los recordatorios con la app cerrada siguen pendientes.
+- Las jornadas automáticas coincidentes con una manual se conservan como provisionales para revisión, con sus horas, notas y evidencia de pago.
+- Nuevos identificadores UUID criptográficos sin modificar los existentes. Caché de tarifas con invalidación al cambiar ajustes.
+- Copia de recursos web a Android automatizada en preBuild y disponible con npm run sync:android.
+- Nuevas pruebas de comportamiento para importes, puente Android, conservación, tarifas e identidad de registros.
+
+## 3.3.18 — Evolución del resumen Aurora
+
+- Cabecera con jerarquía más clara y fichaje destacado en un solo bloque.
+- Indicadores de cobro con cifras más legibles y mejor adaptación a móvil.
+- Filas mensuales y comparativa de extras con más contraste y espacio.
+- Se conservan los controles, registros, cálculos, navegación y protecciones de la versión anterior.
+
+## 3.3.17 — Seguridad sin servicios de pago
+
+- Política de alta alineada con el servidor: 12 caracteres, mayúsculas, minúsculas, números y símbolos. El acceso con contraseñas existentes mantiene su validación anterior.
+- Cambio seguro de contraseña activado y confirmación de correo verificada en Supabase.
+- Corregida la dependencia minimatch de la herramienta de compilación; auditoría npm completa sin avisos.
+- APK de uso personal con depuración desactivada y la firma anterior conservada para permitir actualizar.
+- El proyecto permanece en el plan gratuito; sin contratación de Pro ni certificados de pago.
+
+## 3.3.16 — Auditoría y continuidad de jornada
+
+- Windows deniega permisos no utilizados por la app y mantiene los avisos locales.
+- Una respuesta de sesión antigua no puede reactivar la sincronización tras cerrar sesión.
+- Validación de estructura y límite conjunto de 50.000 registros en las copias importadas.
+- El turno nocturno abierto conserva la salida disponible aunque exista otro registro cerrado hoy.
+- El bloque de hoy ofrece revisar la jornada existente y distingue mejor sus estados.
+- Las restauraciones actualizan también la copia nativa de recuperación.
+- Prueba RLS transaccional en Supabase y recorrido de interfaz reproducible en Electron y APK de auditoría aislada.
+
+## 3.3.15 — Un único bloque de fichaje
+
+- Entrada, salida y registro manual reunidos en la tarjeta superior «Tu jornada de hoy».
+- Eliminados los accesos repetidos de entrada y salida y el segundo contador circular del Resumen.
+- El botón cambia de entrada a salida y se oculta al cerrar la jornada.
+
+## 3.3.14 — Protección de sesiones y cuentas
+
+- Las copias nativas y su restauración excluyen los tokens de inicio de sesión.
+- Los datos locales quedan vinculados a una cuenta para impedir su envío accidental a otra.
+- Se restringen scripts, conexiones, formularios y contenido incrustado mediante CSP.
+- El campo de contraseña se vacía al enviar tanto un acceso válido como uno fallido.
+- Auditoría del servidor y retirada de permisos de ejecución innecesarios.
+
 ## 3.3.13 — Panel Aurora
 
 - Nuevo acabado de vidrio verde menta para el resumen, con la jornada de hoy y su estado en la cabecera.

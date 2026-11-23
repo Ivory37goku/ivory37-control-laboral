@@ -413,6 +413,11 @@ public final class MainActivity extends Activity {
 
     public final class AndroidBridge {
         @JavascriptInterface
+        public boolean configureReminders(String config) {
+            try { ReminderReceiver.configure(MainActivity.this, config); return true; }
+            catch (Exception error) { return false; }
+        }
+        @JavascriptInterface
         public String getNotificationState() {
             return notificationState();
         }

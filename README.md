@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  Código documentado <strong>3.3.13</strong>
+  Código documentado <strong>3.3.21</strong>
   &nbsp;·&nbsp; <a href="LICENSE">Licencia MIT</a>
   &nbsp;·&nbsp; Creado por <strong>工V龱尺ㄚ㇌7</strong>
 </p>
@@ -39,19 +39,48 @@ Control Laboral reúne el tiempo trabajado y el seguimiento económico en un pan
 </table>
 
 <p align="center">
+  <a href="#novedades">Novedades</a> ·
   <a href="#capturas">Capturas</a> ·
   <a href="#funciones">Funciones</a> ·
   <a href="#instalacion">Instalación</a> ·
   <a href="#primeros-pasos">Primeros pasos</a> ·
   <a href="#datos">Tus datos</a> ·
+  <a href="#seguridad">Seguridad y pruebas</a> ·
   <a href="#desarrollo">Desarrollo</a> ·
   <a href="#creditos">Créditos</a>
+</p>
+
+<a id="novedades"></a>
+## Una jornada más clara. Una base más cuidada.
+
+La **3.3.21** extiende Aurora a toda la aplicación: panel más ordenado en móvil, horas extra protagonistas y formularios, listados y ajustes con el mismo acabado. Conserva el guardado duradero y las protecciones de la 3.3.20. [Ver la revisión visual y la prueba de recuperación gratuita](docs/AURORA-3.3.21.md).
+
+<table>
+  <tr>
+    <th align="left" width="33%">01 · Fichaje único</th>
+    <th align="left" width="33%">02 · Guardado consistente</th>
+    <th align="left" width="33%">03 · Seguridad revisada</th>
+  </tr>
+  <tr>
+    <td><strong>Entrada, salida y revisión.</strong><br>El botón cambia según el estado del turno. Cuando ya existe una jornada, puedes revisarla directamente desde el mismo bloque.</td>
+    <td><strong>El trabajo que registras permanece.</strong><br>Comprobaciones frente a cambios simultáneos, turnos nocturnos abiertos y respuestas de sesiones antiguas.</td>
+    <td><strong>Mejoras sin servicios de pago.</strong><br>Altas con contraseñas más fuertes, sesiones excluidas de las copias nativas y permisos de Windows limitados.</td>
+  </tr>
+</table>
+
+**También en esta entrega:** migración verificada a IndexedDB, copia previa recuperable, deshacer borrados, PIN local opcional, recuperación de contraseña, recordatorios nativos Android y consulta de versiones publicadas. Consulta el [informe de fiabilidad y sus límites](docs/RELIABILITY-3.3.20.md). Se conserva la validación de copias con un límite conjunto de 50.000 registros, actualización de la copia nativa tras restaurar y APK con depuración desactivada, conservando su firma anterior.
+
+<p align="center">
+  <strong>85 pruebas de regresión</strong> &nbsp;·&nbsp;
+  <strong>26 comprobaciones RLS en Supabase</strong> &nbsp;·&nbsp;
+  <strong>0 avisos en la auditoría npm</strong><br>
+  <sub>Resultados del alcance documentado. Las pruebas RLS se realizaron en la revisión 3.3.16. La suite y los recorridos de fiabilidad corresponden a la 3.3.20; los detalles y límites están documentados en su informe.</sub>
 </p>
 
 <a id="capturas"></a>
 ## Así se ve Control Laboral
 
-**Aplicación de Windows · Panel Aurora**
+**Vista de escritorio · Panel Aurora · 3.3.21**
 
 <img src="docs/windows.jpg" alt="Aplicación Windows con el panel Aurora y datos ficticios de jornadas, extras y cobros" width="100%">
 
@@ -64,7 +93,7 @@ Control Laboral reúne el tiempo trabajado y el seguimiento económico en un pan
     <td align="center" width="50%">
       <img src="docs/mobile.jpg" alt="Jornada de hoy, fichaje e indicadores de cobros en móvil" width="290"><br>
       <strong>Tu jornada de hoy</strong><br>
-      <sub>Fichaje y resumen personal.</sub>
+      <sub>Un único bloque para fichar y revisar el turno.</sub>
     </td>
     <td align="center" width="50%">
       <img src="docs/mobile-cash.jpg" alt="Vista móvil de las horas extra y el dinero pendiente de cada mes" width="290"><br>
@@ -118,7 +147,7 @@ En noviembre, el ejemplo muestra **9,00 h extra**, un valor de **177,21 €** a 
 
 | Área | Herramientas disponibles |
 | --- | --- |
-| **Panel Aurora** | Jornada de hoy, fichaje desde la cabecera, indicadores de cobro, actividad semanal y flujo de caja mensual. |
+| **Panel Aurora** | Jornada de hoy, un único bloque de entrada/salida y revisión, indicadores de cobro, actividad semanal y flujo de caja mensual. |
 | **Jornadas** | Entrada y salida, registro manual, turnos nocturnos, pausas no computables, filtros y confirmación de jornadas provisionales. |
 | **Horas extra** | Horas confirmadas por mes, valor según tarifa histórica, pago real anotado, importe medio recibido por hora y diferencia. |
 | **Nóminas** | Propuestas mensuales calculadas a partir de las jornadas, edición de importes y confirmación de cobros. |
@@ -195,9 +224,49 @@ Las incidencias del calendario se guardan como anotaciones. Las nóminas propues
 
 **Cambios entre dispositivos.** Las versiones incompatibles pueden requerir revisión. Si un registro cambia mientras editas su formulario, la aplicación comprueba los campos al guardar y avisa cuando necesita que revises la última versión.
 
-**Copias de seguridad.** Exporta JSON periódicamente y antes de cambiar de dispositivo. La copia interna disponible permite recuperar un estado anterior. Borrar el almacenamiento del navegador o desinstalar la aplicación puede eliminar los datos locales.
+**Copias de seguridad.** Las importaciones validan las colecciones y limitan el conjunto a 50.000 registros. Una restauración guardada actualiza también la copia de recuperación nativa. Exporta JSON periódicamente y antes de cambiar de dispositivo. La copia interna disponible permite recuperar un estado anterior. Borrar el almacenamiento del navegador o desinstalar la aplicación puede eliminar los datos locales.
 
 **Pagos históricos.** Cuando existen varios pagos confirmados o editados manualmente para un mismo mes, se conservan para que puedas revisar su contenido.
+
+<a id="seguridad"></a>
+## Seguridad, con resultados verificables
+
+La cuenta de sincronización es opcional. La aplicación también puede usarse en local. La configuración actual del proyecto se mantiene en **Supabase Free**, sin contratar servicios de pago para esta entrega.
+
+<img src="docs/nube.jpg" alt="Pantalla real de Ajustes de la 3.3.21: sincronización opcional, requisitos de contraseña para nuevas cuentas y herramientas de copia y recuperación; sin credenciales ni sesión real" width="100%">
+
+<sub>Captura de demostración sin iniciar sesión. No se muestran correos, contraseñas ni tokens de personas.</sub>
+
+| Protección | Estado comprobado |
+| --- | --- |
+| **Nuevas contraseñas** | Mínimo de 12 caracteres, con mayúsculas, minúsculas, números y símbolos; aplicado en el servidor y reflejado en el formulario. Las cuentas existentes usan su contraseña actual para entrar. |
+| **Cuenta y correo** | Confirmación de correo y cambio seguro de correo activos. Cambio seguro de contraseña activado en Supabase. |
+| **Acceso a los datos** | RLS por propietario; 26 comprobaciones transaccionales de aislamiento con identidades ficticias, sin conservar los datos de prueba. |
+| **Sesiones y recuperación** | Las copias nativas excluyen tokens; se comprueba la cuenta antes y después de las peticiones y se descartan respuestas de sesión antiguas. |
+| **Interfaz y permisos** | CSP restrictiva. Windows deniega cámara, micrófono, ubicación y otros permisos no utilizados; conserva avisos locales. |
+| **Dependencias npm** | Cero avisos conocidos en la auditoría completa de la 3.3.17, incluidas las dependencias de compilación. |
+| **APK para uso personal** | Depuración desactivada y certificado verificado como compatible con la 3.3.16. Se mantiene la clave heredada; no es una nueva firma de producción. |
+
+**Qué se ha probado.** Además de las pruebas automáticas, se recorrieron fichaje, edición, viajes, las cinco pantallas, notas HTML y restauración en Electron y una APK aislada de auditoría. En el emulador se comprobó la actualización 3.3.15 → 3.3.16 y el reinicio sin red conservando datos ficticios. Esto no sustituye la verificación en un teléfono físico ni pruebas completas con cuentas reales del servicio Auth.
+
+<details>
+<summary><strong>Límites y configuración adicional</strong></summary>
+
+- La comprobación de contraseñas filtradas de Supabase requiere Pro y **está desactivada** por la decisión de mantener el plan gratuito.
+- CAPTCHA y MFA de la cuenta administradora **no están activados**. Requieren integración o configuración adicional; no se presentan como protecciones ya disponibles.
+- El instalador Windows no tiene certificado de editor. La APK conserva la clave heredada para actualizar las instalaciones existentes; distribuir a terceros o publicar en Play Store requiere preparar la firma correspondiente.
+- Las sesiones persistentes y los backups de datos personales necesitan un dispositivo protegido. Las copias JSON no están cifradas.
+- La auditoría npm no incluye por sí sola el SDK Supabase distribuido como archivo, AndroidX ni el WebView del sistema. Cero avisos conocidos no significa ausencia garantizada de vulnerabilidades.
+
+</details>
+
+Consulta el [informe de seguridad gratuita de la 3.3.17](docs/SECURITY-FREE-3.3.17.md), la [auditoría funcional y de seguridad](docs/AUDIT-3.3.16.md) y la [guía de comprobaciones](docs/QUALITY-CHECKLIST.md).
+
+### Formularios con el mismo acabado
+
+Campos más legibles y acciones de guardar o cancelar visibles al desplazarse. Ejemplo real con una jornada ficticia.
+
+<img src="docs/formulario-jornada.jpg" alt="Formulario Aurora 3.3.21 con jornada ficticia de ocho horas normales y tres horas extra" width="100%">
 
 <a id="desarrollo"></a>
 ## Desarrollo y compilación
@@ -243,14 +312,18 @@ El proyecto utiliza JDK 17 y Android SDK Platform 36. En PowerShell, desde la ra
 
 ```powershell
 cd android-app
-.\gradlew.bat assembleDebug
+.\gradlew.bat assembleRelease
 ```
 
-El resultado queda en `android-app/app/build/outputs/apk/debug/app-debug.apk`. Conserva la clave de firma para preparar actualizaciones compatibles con la instalación anterior.
+El resultado queda en `android-app/app/build/outputs/apk/release/app-release.apk`. Esta configuración desactiva la depuración y conserva la firma heredada para actualizar las instalaciones anteriores. Los requisitos para una firma de producción se explican en la [guía de Android](android-app/README.md).
 
 ### Comprobaciones
 
-`npm run check` valida la sintaxis y ejecuta las pruebas de horas, tarifas, calendario, copias, exportación, sincronización simulada y regresiones de guardado y nóminas.
+`npm run check` valida la sintaxis y ejecuta las **85 pruebas** de horas, tarifas, calendario, copias, exportación, sincronización simulada, sesiones y regresiones de guardado y nóminas. La [auditoría de seguimiento 3.3.19](docs/AUDIT-3.3.19.md) detalla las correcciones de importes, PDF y avisos nativos, conservación de jornadas, UUID y caché de tarifas, además de los pendientes.
+
+`npm run test:reliability` prueba migración, aborto de transacciones, concurrencia entre ventanas, almacenamiento de 7 MB con reinicio y PIN. El recorrido de interfaz está en `scripts/qa-ui.cjs` y se ejecuta con `npm run test:ui`; la prueba RLS transaccional, en `supabase/tests/rls-isolation.sql`. El paquete Android de auditoría usa un identificador separado para mantener aislados los datos de prueba. `npm run sync:android` copia los recursos web; Gradle también lo ejecuta antes de compilar.
+
+Las capturas se regeneran con `electron scripts/capture-readme.cjs`: el script usa un perfil temporal y un conjunto ficticio de jornadas, viajes y pagos.
 
 La revisión visual y las pruebas de instalación se describen en la [guía de calidad](docs/QUALITY-CHECKLIST.md). Las capturas ilustran el uso de la aplicación con datos ficticios.
 
@@ -275,6 +348,8 @@ La revisión visual y las pruebas de instalación se describen en la [guía de c
 - [Compilación y uso en Android](android-app/README.md)
 - [Compilación y uso en Windows](desktop/README.md)
 - [Configuración de Supabase](supabase/README.md)
+- [Seguridad 3.3.17 y configuración gratuita](docs/SECURITY-FREE-3.3.17.md)
+- [Auditoría 3.3.16: funcionamiento, seguridad y pruebas reales](docs/AUDIT-3.3.16.md)
 - [Auditoría y comprobaciones de calidad](docs/QUALITY-CHECKLIST.md)
 - [Comunicar un fallo en GitHub](https://github.com/Ivory37goku/ivory37-control-laboral/issues)
 
