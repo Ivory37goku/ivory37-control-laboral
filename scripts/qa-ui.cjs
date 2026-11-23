@@ -2,6 +2,7 @@
 // Datos ficticios; ejecutar solo con el perfil temporal de Electron o la APK .audit.
 const assert = require('node:assert/strict');
 const path = require('node:path');
+require('node:fs').mkdirSync(path.resolve(__dirname, '../.codex-attachments'), { recursive: true });
 const KEY = '工V龱尺ㄚ㇌7_data_v1';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function scenarios(evaluate, reload) {

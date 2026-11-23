@@ -36,5 +36,6 @@ Esto verifica solicitud y entrega. **No se cambió la contraseña ni se declara 
 - Compilaciones Android release/audit y Windows. La APK conserva la identidad y firma de actualización anteriores; versión 3.3.21, código 30.
 - Recorrido Android 3.3.21 aprobado, incluido reinicio sin conexión. Recursos finales del APK y del ASAR de Windows comparados con los archivos fuente: coinciden.
 - APK e instalador EXE entregados en Descargas. No se genera portable.
+- Al integrar los cambios remotos de `main`, se conserva la configuración nativa de seguridad de red y se amplía la comprobación de CSP. La suite integrada queda en **86 pruebas aprobadas**; los recorridos de Electron y fiabilidad también se repiten con éxito.
 
 La seguridad no se presenta como absoluta. Los límites del almacenamiento, PIN, avisos de Android y servicios externos están documentados en [Fiabilidad 3.3.20](RELIABILITY-3.3.20.md). Esta entrega no publica cambios en GitHub ni modifica la configuración productiva de Supabase.
