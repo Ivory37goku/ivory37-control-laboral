@@ -3,6 +3,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { summarize } = require('../overtime-tools.js');
 
+test('rest compensation preserves worked hours and reduces the payable balance', () => {
+  const totals = summarize([{ fecha: '2026-10-01', estado: 'confirmado', horas_extra: 3, horas_compensadas: 2 }], '2026-10', () => 20);
+  assert.equal(totals.extraHours, 3);
+  assert.equal(totals.pendingExtraHours, 1);
+  assert.equal(totals.extraValue, 20);
+});
+
 const records = [
   { fecha: '2026-10-02', estado: 'confirmado', horas_extra: 1.25, pagado_extras: false },
   { fecha: '2026-10-18', estado: 'confirmado', horas_extra: 2, pagado_extras: true },

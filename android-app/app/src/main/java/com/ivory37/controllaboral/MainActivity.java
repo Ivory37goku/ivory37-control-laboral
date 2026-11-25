@@ -3,6 +3,7 @@ package com.ivory37.controllaboral;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -204,7 +205,35 @@ public final class MainActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE);
         pendingShadowMigration = prefs.getBoolean("hosted_bootstrapped", false)
                 && !prefs.getBoolean(LOCAL_STORAGE_MIGRATED_KEY, false);
-        webView.loadUrl(pendingShadowMigration ? LOCAL_URL + "?nativeRestore=1" : LOCAL_URL);
+        registerShortcuts();
+        webView.loadUrl(pendingShadowMigration ? LOCAL_URL + "?nativeRestore=1" : localStartUrl());
+    }
+
+    private String localStartUrl() {
+        String action = getIntent().getAction();
+        if ("com.ivory37.controllaboral.SHORTCUT_EXTRAS".equals(action)) return LOCAL_URL + "?shortcut=extras#dashboard";
+        if ("com.ivory37.controllaboral.SHORTCUT_CLOCK".equals(action)) return LOCAL_URL + "?shortcut=clock#dashboard";
+        return LOCAL_URL;
+    }
+
+    private void registerShortcuts() {
+        if (Build.VERSION.SDK_INT < 25) return;
+        android.content.pm.ShortcutManager manager = getSystemService(android.content.pm.ShortcutManager.class);
+        if (manager == null || manager.isRateLimitingActive()) return;
+        android.content.pm.ShortcutInfo clock = shortcut("clock", "Fichar", "com.ivory37.controllaboral.SHORTCUT_CLOCK");
+        android.content.pm.ShortcutInfo extras = shortcut("extras", "Añadir extra", "com.ivory37.controllaboral.SHORTCUT_EXTRAS");
+        try { manager.setDynamicShortcuts(java.util.Arrays.asList(clock, extras)); }
+        catch (IllegalStateException | IllegalArgumentException error) {
+            android.util.Log.w("ControlLaboral", "No se pudieron registrar los accesos directos.", error);
+        }
+    }
+
+    private android.content.pm.ShortcutInfo shortcut(String id, String label, String action) {
+        return new android.content.pm.ShortcutInfo.Builder(this, id)
+            .setShortLabel(label)
+            .setIcon(android.graphics.drawable.Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIntent(new Intent(this, MainActivity.class).setAction(action))
+            .build();
     }
 
     private boolean isLocalAsset(Uri uri) {
@@ -263,6 +292,32 @@ public final class MainActivity extends Activity {
         if (notificationsEnabled()) return "Activados";
         SharedPreferences prefs = getSharedPreferences("android_bridge", MODE_PRIVATE);
         return prefs.getBoolean("notification_requested", false) ? "Bloqueados" : "Sin activar";
+    }
+
+    private boolean exactRemindersEnabled() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true;
+        AlarmManager manager = getSystemService(AlarmManager.class);
+        return manager != null && manager.canScheduleExactAlarms();
+    }
+
+    private String reminderTimingState() {
+        return exactRemindersEnabled() ? "Puntuales" : "Aproximados";
+    }
+
+    private void requestExactReminderAccess() {
+        if (exactRemindersEnabled()) {
+            ReminderReceiver.schedule(this);
+            Toast.makeText(this, "Los recordatorios se programarán a la hora configurada.", Toast.LENGTH_SHORT).show();
+            refreshNotificationLabel();
+            return;
+        }
+        try {
+            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (ActivityNotFoundException error) {
+            Toast.makeText(this, "Android no permite abrir este ajuste. Se usarán recordatorios aproximados.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void refreshNotificationLabel() {
@@ -387,6 +442,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        ReminderReceiver.schedule(this);
         if (webView != null) {
             webView.onResume();
             refreshNotificationLabel();
@@ -413,8 +469,23 @@ public final class MainActivity extends Activity {
 
     public final class AndroidBridge {
         @JavascriptInterface
+        public boolean configureReminders(String config) {
+            try { ReminderReceiver.configure(MainActivity.this, config); return true; }
+            catch (Exception error) { return false; }
+        }
+        @JavascriptInterface
         public String getNotificationState() {
             return notificationState();
+        }
+
+        @JavascriptInterface
+        public String getReminderTimingState() {
+            return reminderTimingState();
+        }
+
+        @JavascriptInterface
+        public void requestExactReminderAccess() {
+            runOnUiThread(MainActivity.this::requestExactReminderAccess);
         }
 
         @JavascriptInterface

@@ -10,7 +10,11 @@ La APK abre la versión incluida en el instalador en Android System WebView. El 
 4. Espera a que termine la sincronización y pulsa **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 5. Android Studio mostrará la ubicación de `app-debug.apk`. También puedes ejecutar en Windows `gradlew.bat assembleDebug`; el resultado queda en `app/build/outputs/apk/debug/app-debug.apk`.
 
-El APK de depuración se puede instalar directamente para uso personal. Para publicar en Play Store hay que crear y guardar tu propia clave de firma de versión.
+Para el APK de uso personal distribuido desde 3.3.17, ejecuta `gradlew.bat assembleRelease`: queda en `app/build/outputs/apk/release/app-release.apk`, con depuración de Java y código nativo desactivada.
+
+Esta compilación conserva deliberadamente **la clave de firma heredada de las APK anteriores** (`signingConfigs.debug`) para permitir actualizar sin desinstalar ni perder datos. No equivale a una clave de producción nueva ni sirve como preparación para Play Store. Android no requiere comprar un certificado para firmar APK; antes de distribuir a terceros hay que custodiar una clave de producción y planificar la migración de identidad. No sustituir la clave sin probar la actualización.
+
+`assembleAudit` genera un paquete de pruebas separado con sufijo `.audit`; nunca debe entregarse como actualización de la app habitual.
 
 ## Uso y datos
 
@@ -27,3 +31,6 @@ El APK de depuración se puede instalar directamente para uso personal. Para pub
 WebView sirve los archivos incluidos en la APK con `WebViewAssetLoader`. La sincronización opcional utiliza Supabase por HTTPS. Los cambios del panel llegan a Android al reconstruir la APK.
 
 El proyecto necesita internet la primera vez para descargar Gradle y las dependencias de compilación. La APK final no lo necesita para abrir la app.
+## APK de prueba 3.3.23
+
+`gradlew.bat assemblePreview` genera una APK con depuración desactivada y el identificador `com.ivory37.controllaboral.preview`. Aparece como **Control Laboral · Prueba** y puede convivir con la instalación anterior. Empieza con su propio almacenamiento. Para actualizar la instalación habitual hace falta firmar con el certificado de esa instalación.

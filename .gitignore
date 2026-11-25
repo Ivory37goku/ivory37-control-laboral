@@ -1,6 +1,7 @@
 .DS_Store
 Thumbs.db
 *.log
+.codex-attachments/
 
 # Android project local files and build outputs
 **/.gradle/

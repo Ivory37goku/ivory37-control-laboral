@@ -1,8 +1,10 @@
 /* Sincronización privada entre PWA, APK y EXE. Requiere auth y RLS en Supabase. */
 (function () {
   'use strict';
+  const localStorage = window.IVORY37Storage || globalThis.localStorage;
 
   var LOCAL_KEY = '工V龱尺ㄚ㇌7_data_v1';
+  var OWNER_KEY = 'ivory37_cloud_sync_owner_v1';
   var META_KEY = 'ivory37_cloud_sync_meta_v1';
   var SNAPSHOT_KEY = 'ivory37_cloud_sync_snapshot_v1';
   var SHARED_BASE_KEY = 'ivory37_cloud_sync_base_v1';
@@ -11,6 +13,7 @@
   var client = null;
   var initialized = false;
   var session = null;
+  var authGeneration = 0;
   var snapshot = null;
   var sharedBaseSnapshot = null;
   var meta = { modified: {}, deleted: {} };
@@ -20,7 +23,9 @@
   var rerun = false;
   var rerunQuiet = true;
   var channel = null;
+  var realtimeHealthy = false;
   var lastSuccess = 0;
+  var recoveringPassword = false;
 
   var $ = function (selector) { return document.querySelector(selector); };
   var clone = function (value) { return JSON.parse(JSON.stringify(value)); };
@@ -170,6 +175,39 @@
     return (hash >>> 0).toString(36);
   }
 
+  function mergeInstallments(left, right, base) {
+    if (!base || left.confirmado || right.confirmado || base.confirmado) return null;
+    if (![left, right, base].some(row => Array.isArray(row.abonos))) return null;
+    const header = row => {
+      const copy = { ...row };
+      delete copy.abonos;
+      delete copy.historial_abonos;
+      delete copy.manual_edit;
+      return copy;
+    };
+    if (!sameBusinessRecord(header(left), header(right))) return null;
+    const asMap = rows => new Map((rows || []).map(row => [String(row.id), row]));
+    const a = asMap(left.abonos), b = asMap(right.abonos), original = asMap(base.abonos);
+    const chosen = [], alternate = [];
+    for (const id of [...new Set([...a.keys(), ...b.keys(), ...original.keys()])].sort()) {
+      const l = a.get(id) || null, r = b.get(id) || null, old = original.get(id) || null;
+      const leftChanged = !sameBusinessRecord(l, old);
+      const rightChanged = !sameBusinessRecord(r, old);
+      const first = leftChanged ? l : r;
+      const second = rightChanged ? r : l;
+      if (first) chosen.push(first);
+      if (second) alternate.push(second);
+    }
+    const cents = rows => rows.reduce((sum, row) => sum + Math.round(Number(row.importe) * 100), 0);
+    const limit = Math.round(Number(left.importe) * 100);
+    if (cents(chosen) > limit || cents(alternate) > limit) return null;
+    const history = [...asMap([...(left.historial_abonos || []), ...(right.historial_abonos || [])]).values()]
+      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id))).slice(-50);
+    const payment = { ...left, manual_edit: Boolean(left.manual_edit || right.manual_edit) };
+    if (history.length) payment.historial_abonos = history;
+    return { chosen: { ...payment, abonos: chosen }, alternate: { ...payment, abonos: alternate } };
+  }
+
   function collectConflicts(local, remote, localMeta, remoteMeta, baseInput) {
     var base = normalizeData(baseInput || {});
     var found = [];
@@ -189,8 +227,10 @@
         // device's working copy and expose the cloud edit as the alternative;
         // device clocks must not silently decide which jornada disappears.
         var winner = 'local';
-        var chosen = localItem;
-        var alternate = remoteItem;
+        var installments = collection === 'pagos' && mergeInstallments(localItem, remoteItem, baseItem);
+        var chosen = installments ? installments.chosen : localItem;
+        var alternate = installments ? installments.alternate : remoteItem;
+        if (sameBusinessRecord(chosen, alternate)) return;
         found.push({
           id: key + ':' + localRevision + ':' + remoteRevision + ':' + smallHash(localItem) + ':' + smallHash(remoteItem),
           collection: collection, itemId: id, createdAt: Date.now(), winner: winner,
@@ -248,7 +288,7 @@
       persistTracking();
       return;
     }
-    var now = Date.now();
+    var now = Object.values(meta.modified).concat(Object.values(meta.deleted)).reduce(function (max, value) { return Math.max(max, value); }, Date.now()) + 1;
     ['jornadas', 'viajes', 'pagos', 'ausencias', 'ajustes'].forEach(function (collection) {
       var before = itemMap(snapshot, collection);
       var after = itemMap(current, collection);
@@ -322,7 +362,10 @@
           else { selected = remoteItem; selectedAt = remoteRevision; }
         } else if (localItem) { selected = localItem; selectedAt = localRevision; }
         else if (remoteItem) { selected = remoteItem; selectedAt = remoteRevision; }
-        if (selected && deletedAt <= selectedAt) merged[collection].push(selected);
+        if (selected && deletedAt <= selectedAt) {
+          const installments = collection === 'pagos' && localItem && remoteItem && mergeInstallments(localItem, remoteItem, baseItem);
+          merged[collection].push(installments ? installments.chosen : selected);
+        }
       });
     });
     return { data: normalizeData(merged), meta: combinedMeta, conflicts: collectConflicts(local, remote, localMeta, remoteMeta, baseInput) };
@@ -355,6 +398,7 @@
   }
 
   function closeChannel() {
+    realtimeHealthy = false;
     if (channel && client) {
       try { client.removeChannel(channel); } catch (_) {}
     }
@@ -369,6 +413,7 @@
         event: '*', schema: 'public', table: 'ivory37_sync', filter: 'user_id=eq.' + userId
       }, function () { scheduleSync(100, true, true); })
       .subscribe(function (status) {
+        realtimeHealthy = status === 'SUBSCRIBED';
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('Realtime no disponible; se mantiene la comprobación periódica.');
       });
   }
@@ -410,10 +455,22 @@
     return signature(latest) !== signature(value);
   }
 
+  function assertSyncOwner(userId) {
+    if (!session || !session.user || session.user.id !== userId) throw new Error('La cuenta ha cambiado durante la sincronización. Vuelve a intentarlo.');
+    var owner = localStorage.getItem(OWNER_KEY);
+    if (owner && owner !== userId) throw new Error('Estos datos locales pertenecen a otra cuenta. Vuelve a esa cuenta o usa un perfil separado para evitar mezclar datos.');
+    // Fallar antes de enviar nada si no puede persistirse la vinculación.
+    if (!owner) localStorage.setItem(OWNER_KEY, userId);
+  }
+
   async function performSync(options) {
+    if (localStorage.flush) await localStorage.flush();
     var quiet = Boolean(options && options.quiet);
     if (!client) return;
+    var startingGeneration = authGeneration;
+    var startingSession = session;
     var authResult = await client.auth.getSession();
+    if (startingGeneration !== authGeneration || session !== startingSession) throw new Error('La sesión ha cambiado. Vuelve a iniciar la sincronización.');
     if (authResult.error) throw authResult.error;
     session = authResult.data && authResult.data.session;
     var user = session && session.user;
@@ -423,12 +480,15 @@
       return;
     }
 
+    assertSyncOwner(user.id);
     var sharedBase = sharedBaseSnapshot ? normalizeData(sharedBaseSnapshot) : normalizeData(snapshot || readJson(LOCAL_KEY, {}));
     var attemptConflicts = [];
     for (var attempt = 0; attempt < 5; attempt++) {
       var local = normalizeData(readJson(LOCAL_KEY, {}));
       trackLocalChanges(local);
+      assertSyncOwner(user.id);
       var row = await fetchRemote(user.id);
+      assertSyncOwner(user.id);
       // The user can save while the network request is in flight. Never apply
       // or upload the stale snapshot if local data changed during that wait.
       if (localChangedSince(local)) continue;
@@ -445,17 +505,21 @@
       if (row && remoteSignature === mergedSignature) {
         saveConflicts(conflictLog);
         applyMerged(merged);
+        if (localStorage.flush) await localStorage.flush();
         lastSuccess = Date.now();
         showSyncResult(conflictLog, quiet, false);
         return;
       }
+      assertSyncOwner(user.id);
       var saved = await writeRemote(user.id, row, mergedPayload);
+      assertSyncOwner(user.id);
       if (!saved) continue;
       // A save can also happen during the conditional cloud write. Retry the
       // merge with the newest local data before applying anything to the UI.
       if (localChangedSince(local)) continue;
       saveConflicts(conflictLog);
       applyMerged(merged);
+      if (localStorage.flush) await localStorage.flush();
       lastSuccess = Date.now();
       showSyncResult(conflictLog, quiet, true);
       return;
@@ -466,7 +530,8 @@
   function showSyncResult(conflictLog, quiet, changed) {
     var pending = conflictLog.filter(function (item) { return !item.resolved; }).length;
     if (pending) showStatus('Sincronizado · ' + pending + ' conflicto(s) por revisar', 'error');
-    else if (!quiet || changed) showStatus('Sincronizado · ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), 'ok');
+    else if (!quiet || changed) showStatus('Sincronizado', 'ok');
+    window.dispatchEvent(new CustomEvent('ivory37:sync-acknowledged'));
   }
 
   function syncNow(options) {
@@ -519,14 +584,25 @@
 
   function queue(data) {
     if (!initialized || !data) return;
+    var changed = !snapshot || signature(normalizeData(data)) !== signature(snapshot);
     trackLocalChanges(data);
+    if (changed && session) showStatus(navigator.onLine === false ? 'Guardado aquí · pendiente de conexión' : 'Guardado aquí · pendiente de nube', 'neutral');
     scheduleSync(700, true, true);
   }
 
   function readCredentials() {
     var email = $('#cloud-email');
     var password = $('#cloud-password');
-    return { email: email ? email.value.trim() : '', password: password ? password.value : '' };
+    var credentials = { email: email ? email.value.trim() : '', password: password ? password.value : '' };
+    if (password) password.value = '';
+    return credentials;
+  }
+
+  function validSignupPassword(value) {
+    var password = String(value || '');
+    var hasBackslash = password.indexOf(String.fromCharCode(92)) !== -1;
+    return password.length >= 12 && /[a-z]/.test(password) && /[A-Z]/.test(password)
+      && /[0-9]/.test(password) && (hasBackslash || /[!@#$%^&*()_+\-=\[\]{};':"\|<>?,.\/`~]/.test(password));
   }
 
   function friendlyAuthError(error) {
@@ -534,7 +610,7 @@
     if (/invalid login credentials/i.test(message)) return 'Correo o contraseña incorrectos.';
     if (/email not confirmed/i.test(message)) return 'Confirma tu correo desde el mensaje de Supabase y vuelve a iniciar sesión.';
     if (/already registered|user already registered/i.test(message)) return 'Ese correo ya tiene una cuenta. Usa «Iniciar sesión». ';
-    if (/password should be at least/i.test(message)) return 'La contraseña debe tener al menos 6 caracteres.';
+    if (/password should|weak.password|password.*(characters|requirements)/i.test(message)) return 'Para crear o cambiar una contraseña: mínimo 12 caracteres con mayúsculas, minúsculas, números y símbolos.';
     if (/rate limit/i.test(message)) return 'Se alcanzó el límite temporal de correos. Inténtalo más tarde.';
     if (/email_address_not_authorized/i.test(message)) return 'Supabase solo permite enviar correos a miembros de tu organización con el servicio gratuito. Usa el correo de tu cuenta Supabase o configura SMTP.';
     if (/over_email_send_rate_limit/i.test(message)) return 'Se alcanzó el límite de correos de confirmación. Espera una hora antes de volver a intentarlo.';
@@ -542,13 +618,55 @@
   }
 
   function bindButtons() {
+    if (typeof location !== 'undefined' && location.hash && location.hash.indexOf('type=recovery') !== -1) {
+      var recoveryInput = $('#cloud-recovery-token');
+      if (recoveryInput) recoveryInput.value = location.href;
+      history.replaceState(null, '', location.pathname + location.search + '#ajustes');
+    }
+    var reset = $('#cloud-reset');
+    var update = $('#cloud-update-password');
+    if (reset) reset.addEventListener('click', async function () {
+      var email = $('#cloud-email').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showStatus('Escribe tu correo para recuperar la contraseña.', 'error'); return; }
+      reset.disabled = true;
+      try {
+        var response = await client.auth.resetPasswordForEmail(email);
+        if (response.error) throw response.error;
+        showStatus('Si la cuenta existe, recibirás el correo de recuperación. Revisa también spam.', 'neutral');
+      } catch (error) { showStatus(friendlyAuthError(error), 'error'); }
+      finally { reset.disabled = false; }
+    });
+    if (update) update.addEventListener('click', async function () {
+      var tokenField = $('#cloud-recovery-token'); var passwordField = $('#cloud-new-password');
+      var token = tokenField.value.trim(); var password = passwordField.value; var email = $('#cloud-email').value.trim();
+      tokenField.value = ''; passwordField.value = '';
+      if (!validSignupPassword(password) || !email || !token) { showStatus('Indica tu correo, recuperación válida y nueva contraseña de 12 caracteres con mayúsculas, minúsculas, números y símbolos.', 'error'); return; }
+      update.disabled = true; recoveringPassword = true;
+      try {
+        var verified;
+        if (/^\d{6,10}$/.test(token)) verified = await client.auth.verifyOtp({ email: email, token: token, type: 'recovery' });
+        else {
+          var url = new URL(token); var params = new URLSearchParams(url.hash.slice(1));
+          if (url.protocol !== 'https:' || params.get('type') !== 'recovery' || !params.get('access_token') || !params.get('refresh_token')) throw new Error('Pega la dirección final del enlace de recuperación, después de abrirlo.');
+          verified = await client.auth.setSession({ access_token: params.get('access_token'), refresh_token: params.get('refresh_token') });
+        }
+        if (verified.error) throw verified.error;
+        var identity = await client.auth.getUser();
+        if (identity.error) throw identity.error;
+        if (!identity.data.user || identity.data.user.email.toLowerCase() !== email.toLowerCase()) throw new Error('El enlace no corresponde al correo indicado.');
+        var changed = await client.auth.updateUser({ password: password });
+        if (changed.error) throw changed.error;
+        showStatus('Contraseña cambiada. Inicia sesión con la nueva contraseña.', 'ok');
+      } catch (error) { showStatus(friendlyAuthError(error), 'error'); }
+      finally { password = ''; token = ''; await client.auth.signOut().catch(function () {}); session = null; closeChannel(); recoveringPassword = false; update.disabled = false; }
+    });
     var signup = $('#cloud-signup');
     var login = $('#cloud-login');
     var logout = $('#cloud-logout');
     var sync = $('#cloud-now');
     if (signup) signup.addEventListener('click', async function () {
       var credentials = readCredentials();
-      if (!credentials.email || credentials.password.length < 6) { showStatus('Escribe un correo válido y una contraseña de al menos 6 caracteres.', 'error'); return; }
+      if (!credentials.email || !validSignupPassword(credentials.password)) { credentials.password = ''; showStatus('Escribe un correo válido y una contraseña de al menos 12 caracteres con mayúsculas, minúsculas, números y símbolos.', 'error'); return; }
       setBusy(true); showStatus('Creando la cuenta…', 'busy');
       try {
         var result = await client.auth.signUp({ email: credentials.email, password: credentials.password });
@@ -564,7 +682,7 @@
           showStatus('Cuenta creada. Abre el correo de confirmación y luego vuelve aquí para iniciar sesión.', 'ok');
         }
       } catch (error) { showStatus(friendlyAuthError(error), 'error'); }
-      finally { setBusy(false); }
+      finally { credentials.password = ''; setBusy(false); }
     });
     if (login) login.addEventListener('click', async function () {
       var credentials = readCredentials();
@@ -579,7 +697,7 @@
         watchUser(session.user && session.user.id);
         await syncNow();
       } catch (error) { showStatus(friendlyAuthError(error), 'error'); }
-      finally { setBusy(false); }
+      finally { credentials.password = ''; setBusy(false); }
     });
     if (logout) logout.addEventListener('click', async function () {
       setBusy(true);
@@ -615,6 +733,8 @@
     showUser('');
     showStatus('Preparando la sincronización segura…', 'busy');
     client.auth.onAuthStateChange(function (event, nextSession) {
+      authGeneration += 1;
+      if (recoveringPassword) { session = null; closeChannel(); return; }
       session = nextSession;
       var user = session && session.user;
       showUser(user && user.email);
@@ -626,7 +746,9 @@
         showStatus('Sin sesión · los datos siguen guardándose en este dispositivo.', 'neutral');
       }
     });
+    var initialGeneration = authGeneration;
     client.auth.getSession().then(function (result) {
+      if (initialGeneration !== authGeneration) return;
       if (result.error) throw result.error;
       session = result.data && result.data.session;
       var user = session && session.user;
@@ -637,7 +759,9 @@
       console.warn('No se pudo recuperar la sesión de Supabase:', error);
       showStatus('Sin conexión o sesión no disponible. Los datos locales están guardados.', 'neutral');
     });
-    pollTimer = setInterval(function () { if (session) syncNow({ quiet: true }); }, 25000);
+    pollTimer = setInterval(function () {
+      if (session && navigator.onLine !== false && (!realtimeHealthy || Date.now() - lastSuccess > 300000)) syncNow({ quiet: true });
+    }, 30000);
     window.addEventListener('online', function () { if (session) syncNow({ quiet: true }); });
     window.addEventListener('focus', function () { if (session && Date.now() - lastSuccess > 5000) syncNow({ quiet: true }); });
   }
@@ -645,12 +769,15 @@
   function resolveConflict(id, restoreAlternate) {
     var conflicts = cleanConflicts(readJson(CONFLICT_KEY, []));
     var conflict = conflicts.find(function (item) { return item.id === String(id); });
-    if (!conflict) return false;
+    if (!conflict || conflict.resolved) return false;
     var data = normalizeData(readJson(LOCAL_KEY, {}));
     if (restoreAlternate) {
       var rows = data[conflict.collection] || [];
       var index = rows.findIndex(function (item) { return conflict.collection === 'ausencias' ? String(item.fecha) === conflict.itemId : String(item.id) === conflict.itemId; });
-      if (index >= 0) rows[index] = clone(conflict.alternate);
+      const custom = typeof restoreAlternate === 'object';
+      if (custom && (conflict.collection !== 'jornadas' || index < 0 || !sameBusinessRecord(rows[index], conflict.chosen))) return false;
+      if (conflict.collection === 'pagos' && index >= 0 && !sameBusinessRecord(rows[index], conflict.chosen)) return false;
+      if (index >= 0) rows[index] = clone(custom ? restoreAlternate : conflict.alternate);
       else rows.push(clone(conflict.alternate));
       data[conflict.collection] = rows;
       writeJson(LOCAL_KEY, data);
@@ -663,7 +790,13 @@
     return true;
   }
 
-  window.IVORY37CloudSync = { init: init, queue: queue, syncNow: syncNow, getConflicts: function () { return cleanConflicts(readJson(CONFLICT_KEY, [])); }, resolveConflict: resolveConflict };
+  function jornadaSyncStatus(record) {
+    if (!session || !session.user || localStorage.getItem(OWNER_KEY) !== session.user.id) return 'Guardada en este dispositivo';
+    const acknowledged = sharedBaseSnapshot && sharedBaseSnapshot.jornadas.find(row => String(row.id) === String(record.id));
+    return lastSuccess && acknowledged && sameBusinessRecord(acknowledged, record) ? 'Sincronizada' : 'Pendiente de sincronizar';
+  }
+
+  window.IVORY37CloudSync = { jornadaSyncStatus: jornadaSyncStatus, init: init, queue: queue, syncNow: syncNow, getConflicts: function () { return cleanConflicts(readJson(CONFLICT_KEY, [])); }, resolveConflict: resolveConflict };
   window.addEventListener('ivory37:cloud-data', function (event) {
     if (!event.detail) return;
     var current = normalizeData(event.detail);

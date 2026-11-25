@@ -1,8 +1,14 @@
 (function () {
   'use strict';
+  const demoMode = new URLSearchParams(location.search).get('demo') === '1';
+  const demoValues = new Map();
+  const demoStorage = { get length() { return demoValues.size; }, key: index => [...demoValues.keys()][index], getItem: key => demoValues.get(key) ?? null, setItem: (key, value) => demoValues.set(key, String(value)), removeItem: key => demoValues.delete(key), clear: () => demoValues.clear() };
+  const localStorage = demoMode ? demoStorage : window.IVORY37Storage || globalThis.localStorage;
+  const cloudSync = demoMode ? null : window.IVORY37CloudSync;
+  window.IVORY37AppReady = false;
 
   const KEY = '工V龱尺ㄚ㇌7_data_v1';
-  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.12';
+  const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '3.3.23';
   const backupTools = window.IVORY37BackupTools;
   const themeTools = window.IVORY37Theme;
   const NOTIF_KEY = '工V龱尺ㄚ㇌7_reminder';
@@ -24,6 +30,7 @@
   let lastFocus = null;
   let lastAutoCheck = 0;
   let ratesDirty = false;
+  let undoRecords = null;
 
   const ui = { tab: 'dashboard', filter: 'all', query: '', limit: 30, today: '', hour: -1 };
 
@@ -53,22 +60,27 @@
       if (parts[0].indexOf(group) !== -1 && !grouped.test(parts[0])) return fail;
       normalized = parts[0].split(group).join('') + '.' + parts[1];
     } else if (commas > 1) {
-      if (!/^\d{1,3}(?:,\d{3})+$/.test(body)) return fail;
-      normalized = body.replace(/,/g, '');
+      return fail;
     } else if (dots > 1) {
       if (!/^\d{1,3}(?:\.\d{3})+$/.test(body)) return fail;
       normalized = body.replace(/\./g, '');
     } else if (commas === 1) {
       const parts = body.split(',');
       if (!/^\d+$/.test(parts[0]) || !/^\d+$/.test(parts[1])) return fail;
-      normalized = parts[1].length === 3 && parts[0].length <= 3 ? parts[0] + parts[1] : parts[0] + '.' + parts[1];
+      normalized = parts[0] + '.' + parts[1];
     }
     if (!/^\d+(?:\.\d+)?$/.test(normalized)) return fail;
     const n = Number(sign + normalized);
     return Number.isFinite(n) ? n : fail;
   };
 
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function uid() {
+    if (typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+  }
   function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function parseKey(key) { const parts = String(key).split('-').map(Number); const d = new Date(0); d.setHours(0, 0, 0, 0); d.setFullYear(parts[0], (parts[1] || 1) - 1, parts[2] || 1); return d; }
   function monthKey(date) { return dateKey(date).slice(0, 7); }
@@ -83,7 +95,7 @@
   function fmtDate(key) { if (!isDateKey(key)) return '—'; return parseKey(key).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }); }
   function fmtMonth(key) { if (!isDateKey(String(key) + '-01')) return String(key || '—'); return parseKey(key + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }); }
   function hhmm(value) { const v = String(value == null ? '' : value).trim(); return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : ''; }
-  const { toMinutes, minutesBetween, hoursBetween, netHoursBetween } = window.IVORY37WorkHours;
+  const { toMinutes, minutesBetween, hoursBetween, netHoursBetween, interruptionMinutes } = window.IVORY37WorkHours;
   function habitualPauseMinutes() { return clamp(Math.round(num(setting('pausa_habitual_minutos'), 0)), 0, 1440); }
   function recordPauseMinutes(record) { return clamp(Math.round(num(record && record.descanso_minutos, 0)), 0, 1440); }
   function weekdaysInMonth(month) { const year = Number(month.slice(0, 4)); const m = Number(month.slice(5, 7)); const days = new Date(year, m, 0).getDate(); const out = []; for (let day = 1; day <= days; day++) { const d = new Date(year, m - 1, day); const wd = d.getDay(); if (wd !== 0 && wd !== 6) out.push(d); } return out; }
@@ -106,7 +118,7 @@
         else if (notes.indexOf('[confirmado]') !== -1 || notes.indexOf('[revisado]') !== -1) estado = 'confirmado';
         else estado = (entrada && salida) ? 'confirmado' : 'provisional';
       }
-      return { id: item.id == null ? uid() : item.id, fecha, entrada, salida, horas_normales: clamp(round2(num(item.horas_normales, 0)), 0, 24), horas_extra: clamp(round2(num(item.horas_extra, 0)), 0, 24), descanso_minutos: clamp(Math.round(num(item.descanso_minutos, 0)), 0, 1440), estado, notas: String(item.notas || ''), pagado_extras: bool(item.pagado_extras), fecha_pago_extras: String(item.fecha_pago_extras || ''), auto: bool(item.auto), backfill: bool(item.backfill), creado: item.creado || new Date().toISOString() };
+      return { id: item.id == null ? uid() : item.id, fecha, entrada, salida, horas_normales: clamp(round2(num(item.horas_normales, 0)), 0, 24), horas_extra: clamp(round2(num(item.horas_extra, 0)), 0, 24), descanso_minutos: clamp(Math.round(num(item.descanso_minutos, 0)), 0, 1440), estado, ...(Array.isArray(item.proyectos) ? { proyectos: item.proyectos.slice(0, 20).filter(row => row && typeof row.nombre === 'string' && num(row.horas) > 0).map(row => ({ nombre: row.nombre.slice(0, 80), horas: round2(num(row.horas)) })) } : {}), ...(Array.isArray(item.interrupciones) ? { interrupciones: item.interrupciones.slice(0, 20).filter(row => row && hhmm(row.desde) && hhmm(row.hasta)) } : {}), ...(hhmm(item.pausa_desde) ? { pausa_desde: hhmm(item.pausa_desde) } : {}), notas: String(item.notas || ''), ...(Array.isArray(item.historial) ? { historial: item.historial.slice(-12).filter(entry => entry && typeof entry.fecha === 'string' && entry.campos && typeof entry.campos === 'object') } : {}), ...(isDateKey(item.fecha_compensacion) ? { fecha_compensacion: item.fecha_compensacion, horas_compensadas: Math.max(0, num(item.horas_compensadas, 0)) } : {}), pagado_extras: bool(item.pagado_extras), fecha_pago_extras: String(item.fecha_pago_extras || ''), auto: bool(item.auto), backfill: bool(item.backfill), creado: item.creado || new Date().toISOString() };
     }).filter(Boolean);
     const viajes = arr(obj.viajes).map((item) => {
       if (!item || !item.fecha) return null;
@@ -119,7 +131,7 @@
       const tipo = item.tipo === 'nomina_auto' || item.tipo === 'nomina_mensual' ? item.tipo : 'nomina_mensual';
       const fecha = String(item.fecha || '').slice(0, 10);
       if (!isDateKey(fecha)) return null;
-      return { id: item.id == null ? uid() : item.id, fecha, concepto: String(item.concepto || 'Nómina'), importe: round2(Math.max(0, num(item.importe, 0))), tipo, mes_key: item.mes_key || fecha.slice(0, 7), confirmado: bool(item.confirmado), horas_normales_mes: round2(num(item.horas_normales_mes, 0)), horas_extra_mes: round2(num(item.horas_extra_mes, 0)), dias_laborables: Math.max(0, Math.round(num(item.dias_laborables, 0))), manual_edit: bool(item.manual_edit), actualizado: item.actualizado || '', created: item.created || new Date().toISOString() };
+      return { id: item.id == null ? uid() : item.id, fecha, concepto: String(item.concepto || 'Nómina'), importe: round2(Math.max(0, num(item.importe, 0))), tipo, mes_key: item.mes_key || fecha.slice(0, 7), confirmado: bool(item.confirmado), ...(Array.isArray(item.historial_abonos) ? { historial_abonos: item.historial_abonos.filter(entry => entry && typeof entry.id === 'string' && typeof entry.fecha === 'string' && entry.anterior && isDateKey(entry.anterior.fecha) && num(entry.anterior.importe) > 0).slice(-50) } : {}), ...(isDateKey(item.fecha_cobro) ? { fecha_cobro: item.fecha_cobro } : {}), ...(Array.isArray(item.abonos) ? { abonos: item.abonos.filter(a => a && isDateKey(a.fecha) && num(a.importe) > 0).map(a => ({ id: String(a.id), fecha: a.fecha, importe: round2(num(a.importe)) })) } : {}), horas_normales_mes: round2(num(item.horas_normales_mes, 0)), horas_extra_mes: round2(num(item.horas_extra_mes, 0)), dias_laborables: Math.max(0, Math.round(num(item.dias_laborables, 0))), manual_edit: bool(item.manual_edit), actualizado: item.actualizado || '', created: item.created || new Date().toISOString() };
     }).filter(Boolean);
     const ausencias = window.IVORY37Calendar.normalize(arr(obj.ausencias), isDateKey, uid);
     const settingsMap = new Map();
@@ -145,19 +157,34 @@
   }
 
   function nativeStorageBridge() { return window.AndroidBridge || window.IVORY37DesktopBridge || null; }
-  function storageSnapshot() {
+  // Copia solo datos de la app: los tokens de Auth no son una copia de seguridad.
+  function isAppStorageKey(key) {
+    return [KEY, KEY + '_backup', KEY + '_backup_date', KEY + '_recovery', NOTIF_KEY,
+      'ivory37_cloud_sync_meta_v1', 'ivory37_cloud_sync_snapshot_v1',
+      'ivory37_cloud_sync_base_v1', 'ivory37_cloud_sync_conflicts_v1',
+      'ivory37_cloud_sync_owner_v1'].includes(key);
+  }
+  function storageSnapshot(includeAll = false) {
     const snapshot = {};
-    try { for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key) snapshot[key] = localStorage.getItem(key); } }
+    try { for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key && (includeAll || isAppStorageKey(key))) snapshot[key] = localStorage.getItem(key); } }
     catch (err) { console.warn('No se pudo preparar la copia local del almacenamiento.'); }
     return snapshot;
   }
   function mirrorNativeStorage() {
+    if (demoMode) return;
+    if (window.AndroidBridge && typeof window.AndroidBridge.configureReminders === 'function' && data) {
+      const schedule = scheduleWindow() || { startMin: 480, endMin: 960 }; const today = dateKey(new Date());
+      const shift = data.jornadas.find(row => row.fecha === today && !row.salida) || data.jornadas.find(row => row.fecha === today);
+      window.AndroidBridge.configureReminders(JSON.stringify({ enabled: setting('reminders_enabled', '0') === '1',
+        start: schedule.startMin, end: schedule.endMin, date: today, entered: Boolean(shift && shift.entrada), exited: Boolean(shift && shift.salida) }));
+    }
     const bridge = nativeStorageBridge();
     if (!bridge || typeof bridge.saveLocalStorage !== 'function') return;
     try { bridge.saveLocalStorage(JSON.stringify(storageSnapshot())); }
     catch (err) { console.warn('No se pudo actualizar la copia local de la app.'); }
   }
   function restoreNativeStorage() {
+    if (demoMode) return true;
     const bridge = nativeStorageBridge();
     const params = new URLSearchParams(location.search);
     const forceRestore = params.get('nativeRestore') === '1';
@@ -175,11 +202,11 @@
         if (typeof saved[KEY] !== 'string' || typeof bridge.completeLocalStorageMigration !== 'function') throw new Error('Faltan los datos para completar la migración.');
         const savedData = JSON.parse(saved[KEY]);
         if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData) || hasInvalidDates(savedData)) throw new Error('Los datos guardados no son válidos.');
-        const previous = storageSnapshot();
+        const previous = storageSnapshot(true);
         try {
           localStorage.clear();
           Object.keys(saved).forEach((key) => {
-            if (typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
+            if (isAppStorageKey(key) && typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
           });
         } catch (restoreError) {
           try {
@@ -193,7 +220,7 @@
         return true;
       }
       Object.keys(saved).forEach((key) => {
-        if (typeof saved[key] === 'string' && key.length < 512 && localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
+        if (isAppStorageKey(key) && typeof saved[key] === 'string' && key.length < 512 && localStorage.getItem(key) === null) localStorage.setItem(key, saved[key]);
       });
       return true;
     } catch (err) {
@@ -222,12 +249,28 @@
   const rateExtra = () => num(setting('hora_extra_euros'), 19.69);
   const legacyDayHours = () => num(setting('horas_normales_dia'), 8);
   const dayHours = () => rateOn(dateKey(new Date()), 'jornada');
+  let cachedRateSource;
+  let cachedRateHistory = [];
+  const cachedRateDates = new Map();
   function rateHistory() {
-    return window.IVORY37Rates.normalize(setting('tarifa_historial', '[]'), isDateKey);
+    const source = setting('tarifa_historial', '[]');
+    if (source !== cachedRateSource) {
+      cachedRateSource = source;
+      cachedRateHistory = window.IVORY37Rates.normalize(source, isDateKey);
+      cachedRateDates.clear();
+    }
+    return cachedRateHistory.slice();
   }
   function rateOn(date, kind) {
     const key = kind === 'extra' ? 'extra' : kind === 'jornada' ? 'jornada' : 'normal';
-    return window.IVORY37Rates.atDate(rateHistory(), date, key, { normal: rateNormal(), extra: rateExtra(), jornada: legacyDayHours() });
+    rateHistory();
+    if (!cachedRateDates.has(date)) {
+      let selected = null;
+      for (const version of cachedRateHistory) { if (version.desde > date) break; selected = version; }
+      cachedRateDates.set(date, selected);
+    }
+    const selected = cachedRateDates.get(date);
+    return selected ? selected[key] : key === 'normal' ? rateNormal() : key === 'extra' ? rateExtra() : legacyDayHours();
   }
   function saveRateVersion(version) {
     const history = window.IVORY37Rates.upsert(rateHistory(), version, { normal: rateNormal(), extra: rateExtra(), jornada: legacyDayHours() });
@@ -279,12 +322,23 @@
     };
     try { syncPayrolls(); }
     catch (err) { console.error('syncPayrolls:', err); restorePrevious(); toast('Error al recalcular las nóminas.', 'error'); return false; }
-    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    try {
+      if (previous) localStorage.setItem(KEY + '_recovery', previous);
+      localStorage.setItem(KEY, JSON.stringify(data));
+    }
     catch (err) { console.error(err); restorePrevious(); toast('No se pudo guardar. Libera espacio o exporta un backup.', 'error'); return false; }
-    window.IVORY37CloudSync?.queue(data);
-    mirrorNativeStorage();
-    renderAll(); updateStorageUsage(); if (message) toast(message);
-    return true;
+    const finish = () => {
+      cloudSync?.queue(data);
+      mirrorNativeStorage();
+      renderAll(); updateStorageUsage(); if (message) toast(message);
+      return true;
+    };
+    if (localStorage.flush) return localStorage.flush().then(finish).catch((err) => {
+      localStorage.rollback(); restorePrevious();
+      toast('No se ha guardado: ' + err.message + ' Conserva una copia antes de cerrar.', 'error');
+      return false;
+    });
+    return finish();
   }
 
   function estimatedDates(month, records) {
@@ -303,15 +357,21 @@
     const estimated = estimatedDates(month, allRecords);
     const estimatedHours = round2(estimated.reduce((sum, date) => sum + rateOn(date, 'jornada'), 0));
     const normalValue = round2(records.reduce((sum, j) => sum + j.horas_normales * rateOn(j.fecha, 'normal'), 0) + estimated.reduce((sum, date) => sum + rateOn(date, 'jornada') * rateOn(date, 'normal'), 0));
-    const extraValue = round2(records.reduce((sum, j) => sum + j.horas_extra * rateOn(j.fecha, 'extra'), 0));
+    const extraValue = round2(records.reduce((sum, j) => sum + hoursToBill(j) * rateOn(j.fecha, 'extra'), 0));
     return { days: records.length, normal, extra, estimated: estimated.length, normalTotal: round2(normal + estimatedHours), normalValue, extraValue };
   }
 
+  function paidPayroll(p) {
+    return p.confirmado ? p.importe : round2((p.abonos || []).reduce((sum, payment) => sum + payment.importe, 0));
+  }
+
+  function hoursToBill(row) { return window.IVORY37Overtime.billableHours(row); }
+
   function totals() {
     let extraH = 0; let extraPending = 0; let extraPaid = 0; let extraEarned = 0; let trips = 0; let tripsPaid = 0; let autoPaid = 0; let payrollPending = 0; let manualPaid = 0;
-    data.jornadas.forEach((j) => { if (j.estado !== 'confirmado') return; const value = j.horas_extra * rateOn(j.fecha, 'extra'); extraH += j.horas_extra; extraEarned += value; if (j.pagado_extras) extraPaid += value; else extraPending += value; });
+    data.jornadas.forEach((j) => { if (j.estado !== 'confirmado') return; const value = hoursToBill(j) * rateOn(j.fecha, 'extra'); extraH += j.horas_extra; extraEarned += value; if (j.pagado_extras) extraPaid += value; else extraPending += value; });
     data.viajes.forEach((v) => { trips += v.importe; if (v.pagado) tripsPaid += v.importe; });
-    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto') { if (p.confirmado) autoPaid += p.importe; else payrollPending += p.importe; } else if (p.confirmado) manualPaid += p.importe; });
+    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto') { const paid = paidPayroll(p); autoPaid += paid; payrollPending += p.importe - paid; } else if (p.confirmado) manualPaid += p.importe; });
     const payrollPaid = autoPaid + manualPaid; const payrollEarned = payrollPaid + payrollPending; const earned = round2(payrollEarned + extraEarned + trips); const collected = round2(payrollPaid + extraPaid + tripsPaid);
     return { extraH: round2(extraH), extraPending: round2(extraPending), extraPaid: round2(extraPaid), extraValue: round2(extraEarned), trips: round2(trips), tripsPaid: round2(tripsPaid), payrollPaid: round2(payrollPaid), payrollPending: round2(payrollPending), earned, collected, pending: round2(earned - collected), rn: rateNormal(), re: rateExtra() };
   }
@@ -341,7 +401,10 @@
 
   function syncPayrolls() {
     const manuallyCompletedDates = new Set(data.jornadas.filter((item) => !item.auto && item.entrada && item.salida).map((item) => item.fecha));
-    if (manuallyCompletedDates.size) data.jornadas = data.jornadas.filter((item) => !item.auto || !manuallyCompletedDates.has(item.fecha));
+    // Retain overlapping automatic records for review, without counting their hours twice.
+    data.jornadas.forEach((item) => {
+      if (item.auto && manuallyCompletedDates.has(item.fecha)) item.estado = 'provisional';
+    });
     const months = new Set(data.jornadas.filter((j) => j.estado === 'confirmado').map((j) => j.fecha.slice(0, 7)));
     const omitted = new Set(String(setting('nomina_auto_omitidas') || '').split(',').filter(Boolean));
     const generated = generatedPayrollsByMonth(data.pagos);
@@ -368,8 +431,8 @@
 
   function monthBreakdown(month) {
     let payroll = 0; let extras = 0; let trips = 0;
-    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) payroll += p.importe; });
-    data.jornadas.forEach((j) => { if (j.estado === 'confirmado' && j.fecha.slice(0, 7) === month && !j.pagado_extras) extras += j.horas_extra * rateOn(j.fecha, 'extra'); });
+    effectivePayments().forEach((p) => { if (p.tipo === 'nomina_auto' && p.mes_key === month && !p.confirmado) payroll += p.importe - paidPayroll(p); });
+    data.jornadas.forEach((j) => { if (j.estado === 'confirmado' && j.fecha.slice(0, 7) === month && !j.pagado_extras) extras += hoursToBill(j) * rateOn(j.fecha, 'extra'); });
     data.viajes.forEach((v) => { if (v.fecha.slice(0, 7) === month && !v.pagado) trips += v.importe; });
     payroll = round2(payroll); extras = round2(extras); trips = round2(trips);
     return { payroll, extras, trips, total: round2(payroll + extras + trips) };
@@ -386,8 +449,29 @@
     const setupBtn = $('#setup-show-btn'); if (setupBtn) setupBtn.hidden = setting('setup_dismissed') !== '1';
   }
 
-  function renderNotifState() { const el = $('#notif-state'); if (!el) return; if (!('Notification' in window)) el.textContent = 'No compatible'; else el.textContent = Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar'; }
-  function renderAll() { renderDashboard(); renderJornadas(); renderCalendar(); renderTrips(); renderPagos(); renderSetup(); renderDataTools(); updateStorageUsage(); }
+  function notificationState() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.getNotificationState === 'function') return window.AndroidBridge.getNotificationState();
+    if (!('Notification' in window)) return 'No compatible';
+    return Notification.permission === 'granted' ? 'Activados' : Notification.permission === 'denied' ? 'Bloqueados' : 'Sin activar';
+  }
+  function reminderTimingState() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.getReminderTimingState === 'function') return window.AndroidBridge.getReminderTimingState();
+    return 'Con la app abierta';
+  }
+  function renderNotifState() {
+    const el = $('#notif-state'); if (el) el.textContent = notificationState();
+    const timing = $('#reminder-timing-state'); if (timing) timing.textContent = reminderTimingState();
+    const exactButton = $('#request-exact-reminders'); if (exactButton) exactButton.hidden = !window.AndroidBridge || reminderTimingState() === 'Puntuales';
+  }
+  window.__ivoryAndroidRefreshNotifications = renderNotifState;
+  function renderAll() {
+    if (ui.tab === 'dashboard') { renderDashboard(); renderSetup(); }
+    else if (ui.tab === 'jornadas') { renderJornadas(); renderCalendar(); }
+    else if (ui.tab === 'viajes') renderTrips();
+    else if (ui.tab === 'pagos') renderPagos();
+    else if (ui.tab === 'ajustes') renderAjustes();
+    renderDataTools(); updateStorageUsage();
+  }
   function updateFillLabel() { const fill = $('#fill-month-btn'); if (!fill) return; const missing = missingMonthDays().length; const label = fill.querySelector('span'); if (label) label.textContent = missing ? 'Completar mes (' + missing + ')' : 'Completar mes'; }
 
   /* ---------- DASHBOARD 3.0 ---------- */
@@ -417,43 +501,58 @@
     const badges = $('#hero-badges');
     if (badges) {
       const list = [];
-      if (j && j.entrada && !j.salida) list.push('<span class="badge info">Jornada abierta</span>');
       if (isEstimation()) list.push('<span class="badge warn">Estimación activa</span>');
       badges.innerHTML = list.join('');
     }
   }
 
-  function renderRadial() {
+  function renderTodayClock() {
     const now = new Date();
     const today = dateKey(now);
     const yesterday = dateKey(addDays(now, -1));
-    const base = dayHours();
-    let j = jornadaForDate(today);
-    if (!j) j = openJornadaForDate(yesterday);
-    const ring = $('#radial-progress');
-    const eyebrow = $('#radial-eyebrow');
-    const hoursEl = $('#radial-hours');
-    const subEl = $('#radial-sub');
-    const dot = $('#ring-dot');
-    const inline = $('#today-status-inline');
-    const qaIn = $('#qa-clock-in');
-    const qaOut = $('#qa-clock-out');
-    if (!ring || !eyebrow) return;
-    const circumference = 2 * Math.PI * 88;
-    let worked = 0; let label = 'Sin fichar'; let subLabel = 'Hoy'; let dotClass = 'dot'; let inlineText = 'Sin actividad registrada';
+    const j = openJornadaForDate(today) || openJornadaForDate(yesterday) || jornadaForDate(today);
+    let worked = 0; let label = 'Sin fichar'; let subLabel = 'Hoy';
     if (!j) { worked = 0; }
-    else if (j.entrada && j.salida) { worked = round2(j.horas_normales + j.horas_extra); label = 'Jornada cerrada'; subLabel = j.entrada + ' – ' + j.salida; inlineText = 'Cerrada · ' + j.entrada + '–' + j.salida; }
-    else if (j.entrada) { const mins = toMinutes(j.entrada); const nowMins = now.getHours() * 60 + now.getMinutes(); const dayOffset = j.fecha === yesterday ? 1440 : 0; worked = round2((((nowMins - mins + dayOffset) % 1440) + 1440) % 1440 / 60); label = 'Trabajando'; subLabel = 'Desde ' + j.entrada; dotClass = 'dot live'; inlineText = 'Trabajando desde ' + j.entrada; }
-    else { worked = round2(j.horas_normales + j.horas_extra); label = 'Sin fichaje'; subLabel = fmtHours(worked) + ' manuales'; inlineText = 'Registro sin fichaje'; }
-    const pct = clamp(worked / base, 0, 1);
-    ring.setAttribute('stroke-dasharray', (pct * circumference).toFixed(2) + ' ' + circumference.toFixed(2));
-    eyebrow.textContent = label;
-    hoursEl.textContent = fmtHours(worked);
-    subEl.textContent = subLabel;
-    if (dot) dot.className = dotClass;
-    if (inline) inline.textContent = inlineText;
-    if (qaIn) qaIn.textContent = j && j.entrada ? 'A las ' + j.entrada : 'Fichar ahora';
-    if (qaOut) qaOut.textContent = j && j.salida ? 'A las ' + j.salida : 'Cerrar jornada';
+    else if (j.entrada && j.salida) { worked = round2(j.horas_normales + j.horas_extra); label = 'Jornada cerrada'; subLabel = j.entrada + ' – ' + j.salida; }
+    else if (j.entrada) { const mins = toMinutes(j.entrada); const nowMins = now.getHours() * 60 + now.getMinutes(); const dayOffset = j.fecha === yesterday ? 1440 : 0; worked = round2((((nowMins - mins + dayOffset) % 1440) + 1440) % 1440 / 60); label = 'Trabajando'; subLabel = 'Desde ' + (j.fecha === yesterday ? 'ayer a las ' : '') + j.entrada; }
+    else { worked = round2(j.horas_normales + j.horas_extra); label = 'Registro manual'; subLabel = 'Horas registradas sin horario'; }
+    const pause = $('#hero-pause');
+    if (j?.entrada && !j.salida) {
+      const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      const intervals = intervalsThrough(j, time);
+      worked = round2(Math.max(0, worked - (interruptionMinutes(j.entrada, time, intervals) || 0) / 60));
+      if (j.pausa_desde) label = 'En pausa';
+    }
+    if (pause) {
+      pause.hidden = !j?.entrada || Boolean(j.salida);
+      pause.textContent = j?.pausa_desde ? 'Volver al trabajo' : 'Iniciar pausa';
+    }
+    const manual = $('#hero-manual-action');
+    if (manual) {
+      manual.dataset.action = j ? 'edit-jornada' : 'new-jornada';
+      if (j) manual.dataset.id = String(j.id); else delete manual.dataset.id;
+      manual.querySelector('span').textContent = j ? 'Revisar jornada' : 'Registrar jornada';
+    }
+    const state = $('#hero-clock-state');
+    if (state) {
+      if (state.textContent !== label) state.textContent = label;
+      state.dataset.state = j && j.entrada && !j.salida ? 'working' : (j && j.salida ? 'closed' : 'idle');
+    }
+    const action = $('#hero-clock-action');
+    if (action) {
+      const open = Boolean(j && j.entrada && !j.salida);
+      const nextAction = open ? 'clock-out' : 'clock-in';
+      action.hidden = Boolean(j && j.salida);
+      if (action.dataset.action !== nextAction) {
+        action.dataset.action = nextAction;
+        action.querySelector('span').textContent = open ? 'Fichar salida' : 'Fichar entrada';
+        action.querySelector('use').setAttribute('href', open ? '#i-logout' : '#i-login');
+      }
+      const heroHours = $('#hero-today-hours');
+      const heroMeta = $('#hero-today-meta');
+      if (heroHours) heroHours.textContent = fmtHours(worked);
+      if (heroMeta) heroMeta.textContent = subLabel;
+    }
   }
 
   function renderSparklines() {
@@ -466,7 +565,7 @@
     const values = list.map((m) => {
       let paid = 0;
       data.pagos.forEach((p) => { if (p.mes_key === m && p.confirmado) paid += p.importe; });
-      data.jornadas.forEach((j) => { if (j.fecha.slice(0, 7) === m && j.pagado_extras) paid += j.horas_extra * rateOn(j.fecha, 'extra'); });
+      data.jornadas.forEach((j) => { if (j.fecha.slice(0, 7) === m && j.pagado_extras) paid += hoursToBill(j) * rateOn(j.fecha, 'extra'); });
       data.viajes.forEach((v) => { if (v.fecha.slice(0, 7) === m && v.pagado) paid += v.importe; });
       return paid;
     });
@@ -521,7 +620,47 @@
     box.innerHTML = cells.map((c) => '<i class="hm-cell" data-lvl="' + c.lvl + '" title="' + esc(c.title) + '"></i>').join('');
   }
 
+  $('#dashboard-period')?.addEventListener('change', renderDashboardPeriod);
+  function renderDashboardPeriod() {
+    const host = $('#dashboard-period-summary');
+    if (!host) return;
+    const now = new Date();
+    const today = dateKey(now);
+    const period = $('#dashboard-period').value;
+    const from = period === 'week' ? dateKey(addDays(now, -((now.getDay() + 6) % 7))) : period === 'month' ? today.slice(0, 7) + '-01' : today;
+    const rows = data.jornadas.filter(row => row.fecha >= from && row.fecha <= today && row.estado === 'confirmado');
+    const normal = rows.reduce((sum, row) => sum + row.horas_normales, 0);
+    const extra = rows.reduce((sum, row) => sum + row.horas_extra, 0);
+    const value = rows.reduce((sum, row) => sum + hoursToBill(row) * rateOn(row.fecha, 'extra'), 0);
+    const goal = clamp(num(setting('weekly_goal', 40), 40), 1, 168);
+    host.textContent = fmtHours(round2(normal + extra)) + ' registradas · ' + fmtHours(round2(extra)) + ' extra · ' + fmtMoney(value) + ' en extras' + (period === 'week' ? ' · Objetivo: ' + fmtHours(goal) : '');
+    const chart = $('#dashboard-period-chart');
+    if (chart) {
+      const byDay = new Map();
+      for (const row of rows) byDay.set(row.fecha, (byDay.get(row.fecha) || 0) + row.horas_normales + row.horas_extra);
+      const scale = Math.max(1, ...byDay.values());
+      chart.innerHTML = [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, hours]) =>
+        '<div class="period-bar"><span>' + esc(fmtDate(date)) + '</span><meter min="0" max="' + scale + '" value="' + hours + '">' + esc(fmtHours(hours)) + '</meter><strong>' + esc(fmtHours(hours)) + '</strong></div>').join('');
+      chart.hidden = !byDay.size;
+    }
+  }
+
+  function renderReviewQueue() {
+    const host = $('#review-queue');
+    if (!host) return;
+    const counts = new Map();
+    for (const row of data.jornadas) counts.set(row.fecha, (counts.get(row.fecha) || 0) + 1);
+    const rows = data.jornadas.filter(row => row.estado === 'provisional' || (row.entrada && !row.salida) || counts.get(row.fecha) > 1).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const unpaidTrips = data.viajes.filter(row => !row.pagado).length;
+    host.hidden = !rows.length && !unpaidTrips;
+    host.innerHTML = '<h2>Pendientes</h2>'
+      + rows.slice(0, 8).map(row => '<p><button class="btn ghost sm" type="button" data-action="edit-jornada" data-id="' + esc(row.id) + '">' + esc(fmtDate(row.fecha)) + ' · ' + (row.entrada && !row.salida ? 'Sin salida' : counts.get(row.fecha) > 1 ? 'Varios registros' : 'Provisional') + '</button></p>').join('')
+      + (unpaidTrips ? '<button class="btn ghost sm" type="button" data-action="tab" data-tab="viajes">' + unpaidTrips + ' viajes pendientes de cobro</button>' : '');
+  }
+
   function renderDashboard() {
+    renderDashboardPeriod();
+    renderReviewQueue();
     const t = totals();
     const collectedEl = $('#kpi-collected'); if (collectedEl) collectedEl.textContent = fmtMoney(t.collected);
     const pendingEl = $('#kpi-pending'); if (pendingEl) pendingEl.textContent = fmtMoney(t.pending);
@@ -541,7 +680,7 @@
       status.textContent = !hasIncome ? 'Sin movimientos' : pct >= 1 ? 'Al día' : pct >= 0.9 ? 'Casi al día' : pct >= 0.5 ? 'Parcial' : 'Pendiente';
       status.className = 'badge ' + (!hasIncome ? 'muted' : pct >= 1 ? 'ok' : pct >= 0.5 ? 'warn' : 'bad');
     }
-    renderBars(); renderRecentPayrolls(); renderHero(); renderRadial(); renderSparklines(); renderWeek(); renderNextPayroll(); renderHeatmap();
+    renderBars(); renderRecentPayrolls(); renderHero(); renderTodayClock(); renderSparklines(); renderWeek(); renderNextPayroll(); renderHeatmap();
   }
 
   function renderBars() {
@@ -651,12 +790,20 @@
 
   function visibleJornadas() {
     let list = data.jornadas.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-    if (ui.filter === 'confirmado') list = list.filter((j) => j.estado === 'confirmado'); else if (ui.filter === 'provisional') list = list.filter((j) => j.estado === 'provisional'); else if (ui.filter === 'extra') list = list.filter((j) => j.horas_extra > 0); else if (ui.filter === 'pendiente') list = list.filter((j) => j.estado === 'confirmado' && j.horas_extra > 0 && !j.pagado_extras);
+    if (ui.filter === 'confirmado') list = list.filter((j) => j.estado === 'confirmado'); else if (ui.filter === 'provisional') list = list.filter((j) => j.estado === 'provisional'); else if (ui.filter === 'extra') list = list.filter((j) => j.horas_extra > 0); else if (ui.filter === 'pendiente') list = list.filter((j) => j.estado === 'confirmado' && hoursToBill(j) > 0 && !j.pagado_extras);
+    const month = $('#jornadas-month')?.value;
+    if (month) list = list.filter(j => j.fecha.startsWith(month));
+    const project = $('#jornadas-project')?.value.trim().toLocaleLowerCase('es');
+    if (project) list = list.filter(j => j.proyectos?.some(row => row.nombre.toLocaleLowerCase('es').includes(project)));
     const q = ui.query.trim().toLowerCase(); if (q) list = list.filter((j) => (j.fecha + ' ' + j.notas + ' ' + j.estado).toLowerCase().indexOf(q) !== -1);
     return list;
   }
 
-  function badgeFor(j) { const state = j.estado === 'provisional' ? '<span class="badge warn">Provisional</span>' : '<span class="badge ok">Confirmada</span>'; return state + (j.auto ? '<span class="badge info">Auto</span>' : ''); }
+  function badgeFor(j) { const state = j.estado === 'provisional' ? '<span class="badge warn">Provisional</span>' : '<span class="badge ok">Confirmada</span>'; return state + (j.auto ? '<span class="badge info">Auto</span>' : '') + '<span class="badge muted">' + esc(cloudSync?.jornadaSyncStatus?.(j) || 'Guardada en este dispositivo') + '</span>'; }
+
+  document.querySelector('#jornadas-month')?.addEventListener('change', () => { ui.limit = 30; renderJornadas(); });
+
+  $('#jornadas-project')?.addEventListener('input', () => { ui.limit = 30; renderJornadas(); });
 
   function renderJornadas() {
     const provisional = data.jornadas.filter((j) => j.estado === 'provisional').length;
@@ -689,7 +836,261 @@
     }).join('');
   }
 
+  let closingMonth = '';
+  let comparisonMonth = '';
+  const payConcepts = { night: 'Nocturnidad', holiday: 'Festivo', standby: 'Guardia', mileage: 'Kilometraje', advance: 'Anticipo', withholding: 'Retención', other: 'Ajuste manual' };
+  function payEntries(prefix) {
+    return data.ajustes.filter(row => row.clave.startsWith(prefix)).flatMap(row => {
+      try {
+        const entry = JSON.parse(row.valor);
+        return Object.hasOwn(payConcepts, entry.concept) && isDateKey(entry.date) && Number.isFinite(entry.rate) ? [{ ...entry, key: row.clave }] : [];
+      } catch (_) { return []; }
+    });
+  }
+
+  function configuredPayRate(concept, date) {
+    const rate = payEntries('pay_rate_').filter(row => row.concept === concept && row.date <= date).sort((a, b) => b.date.localeCompare(a.date))[0];
+    return rate?.rate;
+  }
+
+  function payConceptModal(kind, key, correction = false) {
+    const isRate = kind === 'rate';
+    const prefix = isRate ? 'pay_rate_' : 'pay_entry_';
+    const original = key ? payEntries(prefix).find(row => row.key === key) : null;
+    const initialDate = original?.date || (closingMonth || monthKey(new Date())) + '-01';
+    openModal({
+      title: isRate ? 'Tarifa por concepto' : correction ? 'Corregir un mes sin cambiar los cobros' : 'Concepto o ajuste del mes',
+      body: '<label class="field"><span>Concepto</span><select class="input" id="pay-concept">' + Object.entries(payConcepts).map(([id, label]) =>
+        '<option value="' + id + '"' + ((original?.concept || (correction ? 'other' : '')) === id ? ' selected' : '') + '>' + label + '</option>').join('') + '</select></label>'
+        + '<label class="field"><span>' + (isRate ? 'En vigor desde' : 'Fecha del trabajo o ajuste') + '</span><input type="date" class="input" id="pay-concept-date" value="' + esc(initialDate) + '"></label>'
+        + (isRate ? '' : '<label class="field"><span>Unidades (horas, kilómetros o 1 para importe fijo)</span><input class="input" inputmode="decimal" id="pay-concept-units" value="' + esc(original?.units ?? 1) + '"></label>')
+        + '<label class="field"><span>' + (isRate ? 'Euros por unidad' : 'Euros por unidad. Vacío para aplicar tarifa histórica') + '</span><input class="input" inputmode="decimal" id="pay-concept-rate" value="' + esc(original?.rate == null ? '' : fmtInput(original.rate)) + '"></label>'
+        + (isRate ? '' : '<p class="hint">Registra los anticipos como cobros. Usa un importe negativo para una retención.</p><label class="field"><span>Motivo</span><input class="input" maxlength="120" id="pay-concept-note" value="' + esc(original?.note || '') + '"></label><label class="field"><span>Fecha real de ingreso (opcional)</span><input type="date" class="input" id="pay-concept-paid" value="' + esc(original?.paid || '') + '"></label>'),
+      onSave() {
+        const concept = $('#pay-concept').value;
+        const date = $('#pay-concept-date').value;
+        const enteredRate = $('#pay-concept-rate').value.trim();
+        const rate = enteredRate ? num(enteredRate, NaN) : isRate ? NaN : configuredPayRate(concept, date);
+        const units = isRate ? 1 : num($('#pay-concept-units').value, NaN);
+        const paid = isRate ? '' : $('#pay-concept-paid').value;
+        if (!Object.hasOwn(payConcepts, concept) || !isDateKey(date) || !Number.isFinite(rate) || !Number.isFinite(units) || units <= 0 || !Number.isFinite(rate * units)
+          || (paid && !isDateKey(paid)) || (concept === 'advance' && !isRate && (!paid || rate <= 0)) || (concept === 'withholding' && (rate > 0 || paid))) {
+          toast('Comprueba la fecha, las unidades, el importe y la fecha de ingreso.', 'error'); return false;
+        }
+        if (original && setting(key) !== JSON.stringify({ concept: original.concept, date: original.date, rate: original.rate, units: original.units, paid: original.paid, note: original.note })) {
+          toast('El registro cambió. Cierra el formulario y vuelve a abrirlo.', 'warn'); return false;
+        }
+        const target = isRate ? prefix + concept + '_' + date : key || prefix + uid();
+        if (key && key !== target) removeSetting(key);
+        setSetting(target, JSON.stringify({ concept, date, rate, units, paid, note: isRate ? '' : $('#pay-concept-note').value.trim() }));
+        return persist('Concepto guardado');
+      },
+      onDelete: original ? () => { removeSetting(key); return persist('Concepto eliminado'); } : null
+    });
+  }
+
+  function payConceptRows(month) {
+    const entries = payEntries('pay_entry_').filter(row => row.date.startsWith(month));
+    const rates = payEntries('pay_rate_').sort((a, b) => b.date.localeCompare(a.date));
+    const list = (rows, action, describe) => rows.map(row => '<p><button class="btn ghost sm" type="button" data-action="' + action + '" data-id="' + esc(row.key) + '">' + esc(payConcepts[row.concept] + ' · ' + fmtDate(row.date)) + '</button> ' + esc(describe(row)) + '</p>').join('');
+    return '<details><summary>Complementos, anticipos y retenciones</summary><button class="btn ghost sm" type="button" data-action="pay-concept">Añadir concepto</button> <button class="btn ghost sm" type="button" data-action="pay-rate">Configurar tarifa por fecha</button>'
+      + list(entries, 'pay-concept', row => fmtInput(row.units) + ' × ' + fmtMoney(row.rate) + ' = ' + fmtMoney(round2(row.units * row.rate)) + (row.note ? ' · ' + row.note : ''))
+      + list(rates, 'pay-rate', row => fmtMoney(row.rate) + ' por unidad') + '</details>';
+  }
+
+  function shiftCrossesClockChange(row) {
+    if (!row.entrada || !row.salida || row.salida >= row.entrada) return false;
+    const start = new Date(row.fecha + 'T' + row.entrada + ':00');
+    const endDate = dateKey(addDays(parseKey(row.fecha), 1));
+    const end = new Date(endDate + 'T' + row.salida + ':00');
+    return end.getTimezoneOffset() !== start.getTimezoneOffset();
+  }
+
+  function monthlyFigures(month) {
+    const stats = monthStats(month);
+    const rows = data.jornadas.filter(row => row.fecha.startsWith(month));
+    const trips = data.viajes.filter(row => row.fecha.startsWith(month));
+    const payrolls = effectivePayments().filter(row => row.mes_key === month);
+    const payroll = payrolls.filter(row => row.tipo === 'nomina_auto');
+    const expected = (payroll.length ? payroll.reduce((sum, row) => sum + row.importe, 0) : (payrolls.length ? payrolls.reduce((sum, row) => sum + row.importe, 0) : stats.normalValue))
+      + stats.extraValue + trips.reduce((sum, row) => sum + row.importe, 0);
+    const received = payrolls.reduce((sum, row) => sum + paidPayroll(row), 0) + trips.reduce((sum, row) => sum + (row.pagado ? row.importe : 0), 0)
+      + rows.reduce((sum, row) => sum + (row.pagado_extras && row.estado === 'confirmado' ? hoursToBill(row) * rateOn(row.fecha, 'extra') : 0), 0);
+    const cash = effectivePayments().reduce((sum, row) => {
+      if (row.abonos?.length) return sum + row.abonos.filter(payment => payment.fecha.startsWith(month)).reduce((total, payment) => total + payment.importe, 0);
+      return sum + (row.confirmado && (row.fecha_cobro || row.fecha).startsWith(month) ? row.importe : 0);
+    }, 0) + data.viajes.reduce((sum, row) => sum + (row.pagado && (row.fecha_pago || row.fecha).startsWith(month) ? row.importe : 0), 0)
+      + data.jornadas.reduce((sum, row) => sum + (row.pagado_extras && row.estado === 'confirmado' && (row.fecha_pago_extras || row.fecha).startsWith(month) ? hoursToBill(row) * rateOn(row.fecha, 'extra') : 0), 0);
+    const entries = payEntries('pay_entry_');
+    const amount = entry => round2(entry.units * entry.rate);
+    const adjustments = entries.filter(entry => entry.date.startsWith(month) && entry.concept !== 'advance').reduce((sum, entry) => sum + amount(entry), 0);
+    const receivedAdjustments = entries.filter(entry => entry.date.startsWith(month) && entry.paid).reduce((sum, entry) => sum + amount(entry), 0);
+    const cashAdjustments = entries.filter(entry => entry.paid && entry.paid.startsWith(month)).reduce((sum, entry) => sum + amount(entry), 0);
+    return { stats, rows, trips, expected: round2(expected + adjustments), received: round2(received + receivedAdjustments), cash: round2(cash + cashAdjustments) };
+  }
+
+  function renderMonthlyClosing() {
+    const host = $('#monthly-closing');
+    if (!host) return;
+    const month = closingMonth || monthKey(new Date());
+    const summary = monthlyFigures(month);
+    const { stats, rows, trips, expected, received, cash } = summary;
+    const comparison = comparisonMonth ? monthlyFigures(comparisonMonth) : null;
+    const review = rows.map(row => {
+      const reasons = [];
+      if (row.estado === 'provisional') reasons.push('provisional');
+      if (row.entrada && !row.salida) reasons.push('sin salida');
+      if (rows.some(other => other !== row && other.fecha === row.fecha)) reasons.push('varios registros en el día');
+      if (shiftCrossesClockChange(row)) reasons.push('cruza un cambio de hora local');
+      return { row, reasons };
+    }).filter(item => item.reasons.length);
+    host.innerHTML = '<div class="page-head"><div><h2>Cierre mensual</h2><p class="muted">Importes por mes trabajado</p></div><label class="field"><span>Mes</span><input class="input" type="month" id="closing-month" value="' + esc(month) + '"></label></div>'
+      + '<div class="form-grid">' + [['Días registrados', stats.days], ['Horas normales', fmtHours(stats.normal)], ['Horas extra', fmtHours(stats.extra)], ['Viajes y dietas', fmtMoney(trips.reduce((sum, row) => sum + row.importe, 0))], ['Previsto', fmtMoney(expected)], ['Cobrado por este trabajo', fmtMoney(received)], ['Ingresado en este mes', fmtMoney(cash)], ['Diferencia', fmtMoney(round2(expected - received))]].map(([label, value]) => '<div class="row"><span>' + label + '</span><strong>' + esc(value) + '</strong></div>').join('') + '</div>'
+      + '<h3>Jornadas por revisar</h3>' + (review.length ? review.map(({ row, reasons }) => '<button type="button" class="btn ghost sm" data-action="edit-jornada" data-id="' + esc(row.id) + '">' + esc(fmtDate(row.fecha) + ' · ' + reasons.join(', ')) + '</button>').join(' ') : '<p class="muted">Sin jornadas abiertas, provisionales o repetidas.</p>')
+      + '<details><summary>Desglose de jornadas y tarifas</summary>' + rows.map(row => '<p><button type="button" class="btn ghost sm" data-action="edit-jornada" data-id="' + esc(row.id) + '">' + esc(fmtDate(row.fecha)) + '</button> ' + esc(fmtHours(row.horas_normales) + ' × ' + fmtMoney(rateOn(row.fecha, 'normal')) + ' · ' + fmtHours(row.horas_extra) + ' extra × ' + fmtMoney(rateOn(row.fecha, 'extra'))) + '</p>').join('') + '</details>';
+    host.insertAdjacentHTML('beforeend', '<label class="field"><span>Comparar con otro mes</span><input class="input" type="month" id="closing-compare" value="' + esc(comparisonMonth) + '"></label>'
+      + (comparison ? '<p><strong>' + esc(fmtMonth(comparisonMonth)) + '</strong> · ' + esc(fmtHours(comparison.stats.normal + comparison.stats.extra) + ' trabajadas · ' + fmtMoney(comparison.received) + ' cobrados · ' + fmtMoney(round2(comparison.expected - comparison.received)) + ' de diferencia') + '</p>' : '')
+      + '<button class="btn ghost sm" type="button" data-action="export-closing">Guardar paquete del mes</button> <button class="btn ghost sm" type="button" data-action="month-correction">Añadir corrección al mes</button>');
+    host.insertAdjacentHTML('beforeend', payConceptRows(month));
+    $('#closing-compare').addEventListener('change', event => {
+      comparisonMonth = isDateKey(event.target.value + '-01') ? event.target.value : '';
+      renderMonthlyClosing();
+    });
+    $('#closing-month').addEventListener('change', (event) => {
+      if (!isDateKey(event.target.value + '-01')) return;
+      closingMonth = event.target.value;
+      renderMonthlyClosing();
+    });
+  }
+
+  async function receiptStore(id, action, value) {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('control-laboral-receipts', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('files');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => reject(new Error('Cierra las otras ventanas.'));
+    });
+    try {
+      return await new Promise((resolve, reject) => {
+        const transaction = database.transaction('files', action === 'get' ? 'readonly' : 'readwrite');
+        const store = transaction.objectStore('files');
+        const request = action === 'get' ? store.get(id) : action === 'put' ? store.put(value, id) : store.delete(id);
+        transaction.oncomplete = () => resolve(request.result);
+        transaction.onabort = transaction.onerror = () => reject(transaction.error);
+      });
+    } finally { database.close(); }
+  }
+
+  function receiptModal(id) {
+    if (demoMode) { toast('Los justificantes se guardan desde tus datos reales.', 'info'); return; }
+    if (!editableRecord('pagos', id)) return;
+    openModal({
+      title: 'Justificante de pago', saveText: 'Adjuntar o sustituir',
+      body: '<p class="hint">PDF, JPEG o PNG de hasta 4 MB. El justificante queda en este dispositivo y no viaja en las copias JSON ni en la nube.</p><label class="field"><span>Archivo</span><input class="input" id="receipt-file" type="file" accept="application/pdf,image/jpeg,image/png"></label><button class="btn ghost sm" id="receipt-get" type="button">Guardar una copia del justificante</button>',
+      async onSave() {
+        const file = $('#receipt-file').files[0];
+        const types = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' };
+        if (!file || !Object.hasOwn(types, file.type) || !file.size || file.size > 4 * 1024 * 1024 || !editableRecord('pagos', id)) {
+          toast('Elige un PDF, JPEG o PNG de hasta 4 MB.', 'error'); return false;
+        }
+        try {
+          await receiptStore(String(id), 'put', { file: new Blob([file], { type: file.type }), extension: types[file.type] });
+          toast('Justificante guardado en este dispositivo.');
+          return true;
+        } catch (_) { toast('No se pudo guardar el justificante.', 'error'); return false; }
+      },
+      async onDelete() {
+        try { await receiptStore(String(id), 'delete'); toast('Justificante eliminado.'); return true; }
+        catch (_) { toast('No se pudo eliminar el justificante.', 'error'); return false; }
+      }
+    });
+    $('#receipt-get').addEventListener('click', async () => {
+      try {
+        const attachment = await receiptStore(String(id), 'get');
+        if (!attachment) { toast('No hay justificante en este dispositivo.', 'info'); return; }
+        download(attachment.file, 'justificante.' + attachment.extension);
+      } catch (_) { toast('No se pudo abrir el justificante.', 'error'); }
+    });
+  }
+
+  function rememberInstallment(payment, anterior, next) {
+    if (next && anterior.fecha === next.fecha && anterior.importe === next.importe) return;
+    const entry = { id: uid(), fecha: new Date().toISOString(), anterior, siguiente: next };
+    payment.historial_abonos = [...(payment.historial_abonos || []), entry].slice(-50);
+  }
+
+  async function restoreInstallment(payrollId, entryId) {
+    const payment = data.pagos.find(row => String(row.id) === String(payrollId));
+    const entry = payment?.historial_abonos?.find(row => row.id === entryId);
+    if (!entry || payment.confirmado) return;
+    const current = (payment.abonos || []).find(row => row.id === entry.anterior.id);
+    if (entry.siguiente ? (!current || current.fecha !== entry.siguiente.fecha || current.importe !== entry.siguiente.importe) : current) {
+      toast('El abono cambió después de esta corrección. Revisa su valor actual.', 'warn'); return;
+    }
+    if (round2(paidPayroll(payment) - (current?.importe || 0) + entry.anterior.importe) > payment.importe) {
+      toast('El importe restaurado superaría la nómina.', 'error'); return;
+    }
+    payment.abonos = [...(payment.abonos || []).filter(row => row.id !== entry.anterior.id), { ...entry.anterior }];
+    if (current) rememberInstallment(payment, current, entry.anterior);
+    if (await persist('Abono restaurado')) partialPayrollModal(payrollId);
+  }
+
+  function partialPayrollModal(id, installmentId) {
+    const payment = data.pagos.find(row => String(row.id) === String(id));
+    if (!payment || payment.confirmado || payment.tipo !== 'nomina_auto') return;
+    const installments = payment.abonos || [];
+    const original = installmentId == null ? null : installments.find(row => String(row.id) === installmentId);
+    if (installmentId != null && !original) return;
+    const paid = paidPayroll(payment);
+    const sameInstallment = row => row && row.fecha === original.fecha && row.importe === original.importe;
+    const unchangedIndex = entries => entries.findIndex(row => String(row.id) === installmentId && sameInstallment(row));
+    openModal({
+      title: original ? 'Editar abono' : 'Abonos de nómina', saveText: 'Guardar abono',
+      body: '<p>Previsto: <strong>' + esc(fmtMoney(payment.importe)) + '</strong> · Cobrado: <strong>' + esc(fmtMoney(paid)) + '</strong> · Pendiente: <strong>' + esc(fmtMoney(round2(payment.importe - paid))) + '</strong></p>'
+        + installments.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).map(row =>
+          '<p>' + esc(fmtDate(row.fecha) + ' · ' + fmtMoney(row.importe)) + ' <button class="btn ghost sm" type="button" data-action="edit-installment" data-id="' + esc(id) + '" data-installment="' + esc(row.id) + '">Editar abono</button></p>').join('')
+        + (payment.historial_abonos?.length ? '<details><summary>Correcciones anteriores</summary>' + payment.historial_abonos.slice().reverse().map(entry => '<p>' + esc(fmtDate(entry.anterior.fecha) + ' · ' + fmtMoney(entry.anterior.importe) + (entry.siguiente ? ' → ' + fmtDate(entry.siguiente.fecha) + ' · ' + fmtMoney(entry.siguiente.importe) : ' → Eliminado')) + ' <button type="button" class="btn ghost sm" data-action="restore-installment" data-id="' + esc(id) + '" data-history="' + esc(entry.id) + '">Recuperar valor anterior</button></p>').join('') + '</details>' : '')
+        + (original ? '<button class="btn ghost sm" type="button" data-action="partial-payroll" data-id="' + esc(id) + '">Volver al historial</button>' : '')
+        + '<label class="field"><span>Fecha de cobro</span><input class="input" type="date" id="partial-date" value="' + esc(original?.fecha || dateKey(new Date())) + '"></label><label class="field"><span>Importe recibido</span><input class="input" inputmode="decimal" id="partial-amount" value="' + esc(original ? fmtInput(original.importe) : '') + '"></label>',
+      onSave() {
+        const current = data.pagos.find(row => String(row.id) === String(id));
+        const amount = round2(num($('#partial-amount').value, 0));
+        const date = $('#partial-date').value;
+        if (!current || current.confirmado || current.tipo !== 'nomina_auto') {
+          toast('La nómina cambió. Vuelve a abrir el historial.', 'warn'); return false;
+        }
+        const entries = [...(current.abonos || [])];
+        const existing = original ? unchangedIndex(entries) : -1;
+        if (original && existing < 0) { toast('El abono cambió. Vuelve a abrir el historial.', 'warn'); return false; }
+        const available = round2(current.importe - paidPayroll(current) + (original?.importe || 0));
+        if (!isDateKey(date) || amount <= 0 || amount > available) {
+          toast('Comprueba la fecha y el importe pendiente de la nómina.', 'error');
+          return false;
+        }
+        const record = { id: original?.id || uid(), fecha: date, importe: amount };
+        if (original) { rememberInstallment(current, entries[existing], record); entries[existing] = record; } else entries.push(record);
+        current.abonos = entries;
+        current.manual_edit = true;
+        return persist(original ? 'Abono actualizado' : 'Abono guardado');
+      },
+      onDelete: original ? () => {
+        confirmAction('Eliminar abono', 'Se descontarán ' + fmtMoney(original.importe) + ' del importe cobrado.', 'Eliminar abono', () => {
+          const current = data.pagos.find(row => String(row.id) === String(id));
+          const entries = current?.abonos || [];
+          const existing = unchangedIndex(entries);
+          if (!current || current.confirmado || existing < 0) { toast('El abono cambió. Revisa el historial.', 'warn'); return false; }
+          rememberInstallment(current, entries[existing], null);
+          current.abonos = entries.filter((_, index) => index !== existing);
+          return persist('Abono eliminado');
+        });
+        return false;
+      } : null
+    });
+  }
+
   function renderPagos() {
+    renderMonthlyClosing();
     const t = totals();
     const el1 = $('#sum-pending-payrolls'); if (el1) el1.textContent = fmtMoney(t.payrollPending);
     const el2 = $('#sum-pending-extras'); if (el2) el2.textContent = fmtMoney(t.extraPending);
@@ -702,7 +1103,7 @@
       else {
         payroll.innerHTML = products.map((p) => {
           const ok = p.confirmado; const meta = [fmtMonth(p.mes_key || p.fecha.slice(0, 7))]; if (p.dias_laborables) meta.push(p.dias_laborables + ' días'); if (p.horas_normales_mes) meta.push(fmtHours(p.horas_normales_mes));
-          return '<div class="row" style="--edge:' + (ok ? 'var(--ok)' : 'var(--warn)') + '"><div class="main"><p class="title">' + esc(p.concepto) + '</p><p class="sub">' + esc(meta.join(' · ')) + ' <span class="badge ' + (p.tipo === 'nomina_auto' ? 'info' : 'muted') + '">' + (p.tipo === 'nomina_auto' ? 'Auto' : 'Manual') + '</span></p></div><div class="row-actions"><span class="amount">' + fmtMoney(p.importe) + '</span><button class="btn ghost sm" type="button" data-action="' + (ok ? 'unconfirm-payroll' : 'confirm-payroll') + '" data-id="' + esc(p.id) + '">' + (ok ? 'Deshacer' : 'Confirmar') + '</button><button class="icon-btn" type="button" data-action="edit-payroll" data-id="' + esc(p.id) + '" aria-label="Editar"><svg class="i"><use href="#i-pen"></use></svg></button><button class="icon-btn bad" type="button" data-action="delete-payroll" data-id="' + esc(p.id) + '" aria-label="Eliminar"><svg class="i"><use href="#i-trash"></use></svg></button></div></div>';
+          return '<div class="row" style="--edge:' + (ok ? 'var(--ok)' : 'var(--warn)') + '"><div class="main"><p class="title">' + esc(p.concepto) + '</p><p class="sub">' + esc(meta.join(' · ') + (p.abonos?.length ? ' · Cobrado: ' + fmtMoney(paidPayroll(p)) + ' · Pendiente: ' + fmtMoney(p.importe - paidPayroll(p)) : '')) + ' <span class="badge ' + (p.tipo === 'nomina_auto' ? 'info' : 'muted') + '">' + (p.tipo === 'nomina_auto' ? 'Auto' : 'Manual') + '</span></p></div><div class="row-actions"><span class="amount">' + fmtMoney(p.importe) + '</span><button class="btn ghost sm" type="button" data-action="' + (ok ? 'unconfirm-payroll' : 'confirm-payroll') + '" data-id="' + esc(p.id) + '">' + (ok ? 'Deshacer' : p.abonos?.length ? 'Ver abonos' : 'Confirmar') + '</button>' + (!ok && p.tipo === 'nomina_auto' && !p.abonos?.length ? '<button class="btn ghost sm" type="button" data-action="partial-payroll" data-id="' + esc(p.id) + '">Abono</button>' : '') + '<button class="btn ghost sm" type="button" data-action="receipt-payroll" data-id="' + esc(p.id) + '">Justificante</button><button class="icon-btn" type="button" data-action="edit-payroll" data-id="' + esc(p.id) + '" aria-label="Editar"><svg class="i"><use href="#i-pen"></use></svg></button><button class="icon-btn bad" type="button" data-action="delete-payroll" data-id="' + esc(p.id) + '" aria-label="Eliminar"><svg class="i"><use href="#i-trash"></use></svg></button></div></div>';
         }).join('');
       }
     }
@@ -711,9 +1112,29 @@
     if (!box) return;
     if (!extras.length) { box.innerHTML = '<div class="empty" style="padding:22px"><strong>Sin horas extra</strong>Añádelas desde una jornada.</div>'; return; }
     box.innerHTML = extras.map((j) => {
-      const paid = j.pagado_extras; const value = round2(j.horas_extra * rateOn(j.fecha, 'extra'));
-      return '<div class="row" style="--edge:' + (paid ? 'var(--ok)' : 'var(--bad)') + '"><div class="main"><p class="title">' + esc(fmtDate(j.fecha)) + ' · +' + fmtHours(j.horas_extra) + '</p><p class="sub">' + fmtMoney(value) + ' · <span class="badge ' + (paid ? 'ok' : 'bad') + '">' + (paid ? 'Pagado' : 'Pendiente') + '</span></p></div><div class="row-actions">' + (paid ? '<button class="btn ghost sm" type="button" data-action="mark-extra-unpaid" data-id="' + esc(j.id) + '">Deshacer</button>' : '<button class="btn primary sm" type="button" data-action="mark-extra-paid" data-id="' + esc(j.id) + '">Pagado</button>') + '</div></div>';
+      const paid = j.pagado_extras; const compensated = j.fecha_compensacion; const value = round2(hoursToBill(j) * rateOn(j.fecha, 'extra'));
+      return '<div class="row" style="--edge:' + (paid ? 'var(--ok)' : 'var(--bad)') + '"><div class="main"><p class="title">' + esc(fmtDate(j.fecha)) + ' · +' + fmtHours(j.horas_extra) + '</p><p class="sub">' + fmtMoney(value) + ' · <span class="badge ' + (paid ? 'ok' : 'bad') + '">' + (paid ? 'Pagado' : compensated && !hoursToBill(j) ? 'Compensado con descanso' : 'Pendiente') + '</span></p></div><div class="row-actions">' + (paid ? '<button class="btn ghost sm" type="button" data-action="mark-extra-unpaid" data-id="' + esc(j.id) + '">Deshacer</button>' : '<button class="btn primary sm" type="button" data-action="mark-extra-paid" data-id="' + esc(j.id) + '">Pagado</button>') + (!paid ? '<button class="btn ghost sm" type="button" data-action="compensate-extra" data-id="' + esc(j.id) + '">' + (compensated ? 'Editar descanso' : 'Compensar con descanso') + '</button>' : '') + '</div></div>';
     }).join('');
+  }
+
+  function compensateExtra(id) {
+    const row = editableRecord('jornadas', id);
+    if (!row || row.pagado_extras) return;
+    openModal({
+      title: 'Compensar horas extra con descanso',
+      body: '<label class="field"><span>Día de descanso</span><input id="rest-date" class="input" type="date" value="' + esc(row.fecha_compensacion || dateKey(new Date())) + '"></label><label class="field"><span>Horas compensadas (0 para quitar)</span><input id="rest-hours" class="input" inputmode="decimal" value="' + esc(fmtInput(row.horas_compensadas ?? row.horas_extra)) + '"></label>',
+      onSave() {
+        const current = editableRecord('jornadas', id);
+        const date = $('#rest-date').value;
+        const hours = round2(num($('#rest-hours').value, -1));
+        if (!current || current.pagado_extras || hours < 0 || hours > current.horas_extra || (hours && !isDateKey(date))) {
+          toast('Comprueba la fecha y las horas de descanso.', 'error'); return false;
+        }
+        if (hours) { current.fecha_compensacion = date; current.horas_compensadas = hours; }
+        else { delete current.fecha_compensacion; delete current.horas_compensadas; }
+        return persist('Compensación guardada');
+      }
+    });
   }
 
   function extraPaymentModal(month) {
@@ -777,7 +1198,26 @@
     }).join('');
   }
 
+  $('#calendar-inspect')?.addEventListener('change', renderCalendarDay);
+  function renderCalendarDay() {
+    const host = $('#calendar-day-detail');
+    const date = $('#calendar-inspect')?.value;
+    if (!host || !isDateKey(date)) return;
+    const shifts = data.jornadas.filter(row => row.fecha === date);
+    const incident = calendarEntryOn(date);
+    const plan = scheduleWindow();
+    const weekday = parseKey(date).getDay();
+    const planned = plan && weekday !== 0 && weekday !== 6 && !incident ? Math.max(0, plan.hours - habitualPauseMinutes() / 60) : 0;
+    const worked = shifts.filter(row => row.estado === 'confirmado' && row.salida).reduce((sum, row) => sum + row.horas_normales + row.horas_extra, 0);
+    host.innerHTML = '<p>Previsto según horario habitual: <strong>' + esc(fmtHours(planned)) + '</strong> · Registrado: <strong>' + esc(fmtHours(worked)) + '</strong></p>'
+      + shifts.map(row => '<p><button type="button" class="btn ghost sm" data-action="edit-jornada" data-id="' + esc(row.id) + '">Editar jornada</button> ' + esc((row.entrada || '—') + '–' + (row.salida || '—') + ' · Pausa ' + row.descanso_minutos + ' min · ' + fmtHours(row.horas_extra) + ' extra') + '</p>').join('')
+      + '<button type="button" class="btn ghost sm" data-action="' + (incident ? 'edit-calendar' : 'calendar-inspect-add') + '" data-id="' + esc(incident?.id || '') + '">' + (incident ? 'Editar incidencia' : 'Añadir incidencia este día') + '</button>';
+  }
+
   function renderCalendar() {
+    const dateField = $('#calendar-inspect');
+    if (dateField && !dateField.value) dateField.value = dateKey(new Date());
+    renderCalendarDay();
     const box = $('#calendar-list'); const empty = $('#calendar-empty'); if (!box) return;
     const rows = data.ausencias.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
     if (!rows.length) { box.innerHTML = ''; if (empty) { empty.hidden = false; empty.innerHTML = '<strong>Sin incidencias</strong>Añade descansos, vacaciones, bajas o festivos.'; } return; }
@@ -810,15 +1250,63 @@
     };
     const keys = new Set(Object.keys(chosen || {}).concat(Object.keys(alternate || {})));
     return Array.from(keys).filter((key) => !technicalFields.has(key) && JSON.stringify(stable(chosen && chosen[key])) !== JSON.stringify(stable(alternate && alternate[key])))
-      .map((key) => labels[key] || key.replace(/_/g, ' ').replace(/^./, (letter) => letter.toUpperCase()));
+            .map(key => {
+        const label = labels[key] || key.replace(/_/g, ' ').replace(/^./, letter => letter.toUpperCase());
+        const display = value => value == null || value === '' ? '—' : value === true ? 'Sí' : value === false ? 'No' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return label + ': ' + display(chosen?.[key]) + ' → ' + display(alternate?.[key]);
+      });
+  }
+
+  function mergeShiftConflict(id) {
+    const conflict = cloudSync?.getConflicts().find(item => item.id === id && !item.resolved && item.collection === 'jornadas');
+    if (!conflict) return;
+    const labels = { entrada: 'Entrada', salida: 'Salida', descanso_minutos: 'Pausa (minutos)', interrupciones: 'Intervalos', horas_normales: 'Horas normales', horas_extra: 'Horas extra', notas: 'Notas', estado: 'Estado', fecha: 'Fecha' };
+    const fields = Object.keys(labels).filter(key => JSON.stringify(conflict.chosen[key] ?? null) !== JSON.stringify(conflict.alternate[key] ?? null));
+    if (!fields.length) { toast('Utiliza una de las dos versiones para resolver este conflicto.', 'info'); return; }
+    const display = value => value == null || value === '' ? '—' : Array.isArray(value) ? value.map(row => row.desde + '–' + row.hasta).join(', ') : String(value);
+    const combined = () => {
+      const result = { ...conflict.chosen };
+      for (const key of fields) {
+        const source = $('#merge-' + key).value === 'alternate' ? conflict.alternate : conflict.chosen;
+        if (Object.hasOwn(source, key)) result[key] = source[key]; else delete result[key];
+      }
+      const net = result.entrada && result.salida ? minutesBetween(result.entrada, result.salida) : null;
+      const gaps = net == null ? 0 : interruptionMinutes(result.entrada, result.salida, result.interrupciones || []);
+      const pause = recordPauseMinutes(result);
+      const tracked = round2(num(result.horas_normales, 0) + num(result.horas_extra, 0));
+      const total = net == null || gaps == null ? null : round2((net - gaps - pause) / 60);
+      const valid = isDateKey(result.fecha) && tracked >= 0 && tracked <= 24
+        && (!result.entrada || !result.salida || (total != null && total >= 0 && net > 0))
+        && (!result.interrupciones?.length || total != null)
+        && (!conflict.chosen.pagado_extras || (result.horas_extra === conflict.chosen.horas_extra && result.fecha === conflict.chosen.fecha));
+      return { result, tracked, total, valid };
+    };
+    openModal({
+      title: 'Combinar versiones de la jornada',
+      body: fields.map(key => '<label class="field"><span>' + labels[key] + '</span><select class="input merge-shift-field" id="merge-' + key + '"><option value="chosen">Aplicada · ' + esc(display(conflict.chosen[key])) + '</option><option value="alternate">Alternativa · ' + esc(display(conflict.alternate[key])) + '</option></select></label>').join('')
+        + '<p class="hint" id="merge-shift-preview" role="status"></p>',
+      onSave() {
+        const { result, valid } = combined();
+        if (!valid) { toast('Revisa el horario, las pausas y las horas. Si hay extras cobradas, conserva su fecha e importe.', 'error'); return false; }
+        if (!cloudSync.resolveConflict(id, result)) { toast('La jornada cambió. Vuelve a abrir la revisión.', 'warn'); return false; }
+        toast('Jornada combinada. Cambios pendientes de sincronizar.');
+        return true;
+      }
+    });
+    const preview = () => {
+      const { tracked, total } = combined();
+      $('#merge-shift-preview').textContent = 'Horas que se guardarán: ' + fmtHours(tracked) + (total == null ? '' : ' · Tiempo según horario y pausas: ' + fmtHours(total));
+    };
+    $$('.merge-shift-field').forEach(field => field.addEventListener('change', preview));
+    preview();
   }
 
   function renderSyncConflicts() {
     const box = $('#sync-conflicts'); if (!box) return;
-    const conflicts = window.IVORY37CloudSync?.getConflicts() || [];
+    const conflicts = cloudSync?.getConflicts() || [];
     const pending = conflicts.filter((item) => !item.resolved).slice().reverse();
     if (!pending.length) { box.innerHTML = conflicts.length ? '<p class="muted small" style="margin:0">Conflictos revisados: ' + conflicts.length + '</p>' : ''; return; }
-    box.innerHTML = '<p class="eyebrow" style="margin:8px 0 0">Revisar cambios entre dispositivos</p>' + pending.map((item) => '<div class="row" style="--edge:var(--warn)"><div class="main"><p class="title">' + esc(({ jornadas: 'Jornada', viajes: 'Viaje', pagos: 'Pago', ausencias: 'Incidencia' })[item.collection] || 'Registro') + ' · dos versiones</p><p class="sub"><b>Campos distintos:</b> ' + esc(conflictDifferences(item.chosen, item.alternate).join(' · ') || 'Ninguno (solo metadatos)') + '<br><b>Versión aplicada:</b> ' + esc(conflictItemLabel(item.collection, item.chosen)) + '<br><b>Versión alternativa:</b> ' + esc(conflictItemLabel(item.collection, item.alternate)) + '</p></div><div class="row-actions"><button class="btn ghost sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="keep">Conservar aplicada</button><button class="btn primary sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="restore">Restaurar alternativa</button></div></div>').join('');
+    box.innerHTML = '<p class="eyebrow" style="margin:8px 0 0">Revisar cambios entre dispositivos</p>' + pending.map((item) => '<div class="row" style="--edge:var(--warn)"><div class="main"><p class="title">' + esc(({ jornadas: 'Jornada', viajes: 'Viaje', pagos: 'Pago', ausencias: 'Incidencia' })[item.collection] || 'Registro') + ' · dos versiones</p><p class="sub"><b>Campos distintos:</b> ' + esc(conflictDifferences(item.chosen, item.alternate).join(' · ') || 'Ninguno (solo metadatos)') + '<br><b>Versión aplicada:</b> ' + esc(conflictItemLabel(item.collection, item.chosen)) + '<br><b>Versión alternativa:</b> ' + esc(conflictItemLabel(item.collection, item.alternate)) + '</p></div><div class="row-actions"><button class="btn ghost sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="keep">Conservar aplicada</button><button class="btn primary sm" type="button" data-action="resolve-conflict" data-id="' + esc(item.id) + '" data-choice="restore">Restaurar alternativa</button>' + (item.collection === 'jornadas' ? '<button class="btn ghost sm" type="button" data-action="merge-shift-conflict" data-id="' + esc(item.id) + '">Combinar campos</button>' : '') + '</div></div>').join('');
   }
 
   function applyBrandColor(value) {
@@ -831,6 +1319,20 @@
   }
 
   function applyBranding() {
+    const extrasFirst = setting('extras_first', '0') === '1';
+    const finance = $('.dash-finance');
+    const overtime = $('.dash-overtime');
+    const cash = $('.dash-cash');
+    if (finance && overtime && cash) {
+      const anchor = extrasFirst ? finance : cash.nextElementSibling;
+      const parent = extrasFirst ? finance.parentElement : finance;
+      if (overtime.parentElement !== parent) parent.insertBefore(overtime, anchor);
+    }
+    const extrasToggle = $('#extras-first'); if (extrasToggle) extrasToggle.checked = extrasFirst;
+    const reminder = $('#review-month-end'); if (reminder) reminder.checked = setting('review_month_end', '0') === '1';
+    document.body?.classList.toggle('outdoor-mode', setting('outdoor_mode', '0') === '1');
+    const outdoor = $('#outdoor-toggle'); if (outdoor) outdoor.checked = setting('outdoor_mode', '0') === '1';
+    const goal = $('#weekly-goal'); if (goal) goal.value = setting('weekly_goal', '40');
     const name = 'Control Laboral';
     const color = applyBrandColor(setting('app_color')).color;
     document.title = name;
@@ -853,7 +1355,7 @@
     let img; try { img = new Image(); } catch (err) { logoRatioProbe = false; return; }
     const reset = () => { logoRatioProbe = false; };
     const timer = setTimeout(reset, 4000);
-    img.onload = () => { clearTimeout(timer); logoRatioProbe = false; if (setting('custom_logo') !== logo) return; setSetting('logo_ratio', String(round2(img.width / Math.max(1, img.height)))); try { localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); } catch (err) {} applyBranding(); renderLogoPreview(); };
+    img.onload = () => { clearTimeout(timer); logoRatioProbe = false; if (setting('custom_logo') !== logo) return; setSetting('logo_ratio', String(round2(img.width / Math.max(1, img.height)))); try { localStorage.setItem(KEY, JSON.stringify(data)); cloudSync?.queue(data); } catch (err) {} applyBranding(); renderLogoPreview(); };
     img.onerror = () => { clearTimeout(timer); logoRatioProbe = false; };
     img.src = logo;
   }
@@ -884,7 +1386,7 @@
     ui.tab = tab; ui.limit = 30;
     $$('[data-tab-panel]').forEach((section) => { section.hidden = section.dataset.tabPanel !== tab; });
     $$('[data-action="tab"]').forEach((btn) => { const active = btn.dataset.tab === tab; btn.classList.toggle('active', active); if (active) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current'); });
-    if (tab === 'ajustes') renderAjustes();
+    renderAll();
     if (location.hash.slice(1) !== tab) { try { history.replaceState(null, '', '#' + tab); } catch (err) {} }
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -908,7 +1410,23 @@
   function closeModal() { $('#modal').hidden = true; document.body.style.overflow = ''; modalSave = null; modalDelete = null; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
 
   function confirmAction(title, message, confirmText, onConfirm, danger) {
-    openModal({ title, body: '<p class="muted" style="white-space:pre-line">' + esc(message) + '</p>', saveText: confirmText || 'Confirmar', danger: Boolean(danger), onSave: () => onConfirm() });
+    openModal({ title, body: '<p class="muted" style="white-space:pre-line">' + esc(message) + '</p>', saveText: confirmText || 'Confirmar', danger: Boolean(danger), onSave: async () => {
+      const previous = JSON.parse(JSON.stringify(data));
+      const result = await onConfirm();
+      if (result === false) return false;
+      if (localStorage.flush) await localStorage.flush();
+      if (danger && title !== 'Borrar todos los datos') rememberDeleted(previous);
+      return true;
+    } });
+  }
+  function rememberDeleted(previous) {
+    const removed = {};
+    for (const collection of ['jornadas', 'viajes', 'pagos', 'ausencias']) {
+      removed[collection] = previous[collection].filter(row => !data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha)));
+    }
+    if (!Object.values(removed).some(rows => rows.length)) return;
+    undoRecords = removed;
+    const button = $('#undo-delete'); if (button) button.hidden = false;
   }
 
   function editableRecord(collection, id) {
@@ -939,10 +1457,38 @@
     if (!j) { j = { id: uid(), fecha: today, entrada: time, salida: '', horas_normales: 0, horas_extra: 0, descanso_minutos: habitualPauseMinutes(), estado: 'confirmado', notas: '[Fichado en la app]', pagado_extras: false, fecha_pago_extras: '', auto: false, backfill: false, creado: now.toISOString() }; data.jornadas.push(j); }
     else { if (!j.entrada) j.descanso_minutos = habitualPauseMinutes(); j.entrada = time; j.estado = 'confirmado'; if (!j.notas) j.notas = '[Fichado en la app]'; }
     j.auto = false; j.backfill = false;
-    persist('Entrada registrada a las ' + time);
+    persist('Entrada guardada en este dispositivo · ' + time);
   }
 
-  function clockOut() {
+  function intervalsThrough(shift, time) {
+    const intervals = [...(shift.interrupciones || [])];
+    if (shift.pausa_desde && shift.pausa_desde !== time) intervals.push({ desde: shift.pausa_desde, hasta: time });
+    return intervals;
+  }
+
+  function toggleLivePause() {
+    const now = new Date();
+    const shift = openJornadaForDate(dateKey(now)) || openJornadaForDate(dateKey(addDays(now, -1)));
+    if (!shift) return;
+    const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    if (shift.pausa_desde) {
+      const intervals = intervalsThrough(shift, time);
+      if (interruptionMinutes(shift.entrada, time, intervals) == null) {
+        toast('Revisa el horario antes de cerrar la pausa.', 'error');
+        return;
+      }
+      shift.interrupciones = intervals;
+      delete shift.pausa_desde;
+      return persist('Pausa guardada · ' + time);
+    }
+    if ((shift.interrupciones || []).length >= 20) { toast('Ya hay 20 pausas en esta jornada.', 'warn'); return; }
+    shift.pausa_desde = time;
+    shift.descanso_minutos = 0;
+    shift.auto = false;
+    return persist('Pausa iniciada · ' + time);
+  }
+
+  async function clockOut() {
     const now = new Date(); const today = dateKey(now); const yesterday = dateKey(addDays(now, -1)); const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
     let j = openJornadaForDate(today);
     if (!j) j = openJornadaForDate(yesterday);
@@ -950,15 +1496,20 @@
     if (j.salida) { toast('Ya has fichado la salida.', 'warn'); return; }
     const elapsed = minutesBetween(j.entrada, time);
     if (elapsed == null) { toast('Revisa la hora de entrada.', 'error'); return; }
-    const pauseMinutes = recordPauseMinutes(j);
+    const intervals = intervalsThrough(j, time);
+    const gaps = interruptionMinutes(j.entrada, time, intervals);
+    if (gaps == null) { toast('Revisa los intervalos de pausa de la jornada.', 'error'); return; }
+    const pauseMinutes = recordPauseMinutes(j) + gaps;
     if (pauseMinutes > elapsed) { toast('La pausa supera el tiempo fichado. Edita la pausa de la jornada antes de cerrar.', 'error'); return; }
     const worked = round2((elapsed - pauseMinutes) / 60);
     const base = rateOn(j.fecha, 'jornada');
+    if (intervals.length) j.interrupciones = intervals;
+    delete j.pausa_desde;
     j.salida = time; j.horas_normales = round2(Math.min(worked, base)); j.horas_extra = round2(Math.max(0, worked - base)); j.estado = 'confirmado';
     if (worked < base) { const short = round2(base - worked); j.notas = (j.notas ? j.notas + ' | ' : '') + 'Salida anticipada: ' + fmtHours(short) + ' menos.'; }
     j.auto = false; j.backfill = false;
-    if (!persist('Salida a las ' + time + ' · ' + fmtHours(worked))) return;
-    notify('Jornada cerrada', 'Has trabajado ' + fmtHours(worked) + ' hoy.');
+    if (!await persist('Salida guardada en este dispositivo · ' + time + ' · ' + fmtHours(worked))) return;
+    if (!demoMode) notify('Jornada cerrada', 'Has trabajado ' + fmtHours(worked) + ' hoy.');
   }
 
   function applyAutoClose(j, win, note) { const base = rateOn(j.fecha, 'jornada'); const gross = hoursBetween(win.start, win.end); const scheduled = round2(Math.max(0, (gross == null ? base : gross) - recordPauseMinutes(j) / 60)); j.salida = win.end; j.horas_normales = round2(Math.min(scheduled, base)); j.horas_extra = round2(Math.max(j.horas_extra, Math.max(0, scheduled - base))); j.estado = 'confirmado'; j.notas = (j.notas ? j.notas + ' | ' : '') + note; }
@@ -1003,6 +1554,34 @@
     });
   }
 
+  function shiftTemplates() {
+    return data.ajustes.filter(row => row.clave.startsWith('turno_')).flatMap(row => {
+      try {
+        const template = JSON.parse(row.valor);
+        return typeof template.name === 'string' && hhmm(template.start) && hhmm(template.end) ? [template] : [];
+      } catch (_) { return []; }
+    });
+  }
+
+  function saveShiftTemplate() {
+    openModal({
+      title: 'Guardar plantilla de jornada',
+      body: '<label class="field"><span>Nombre</span><input class="input" id="template-name" maxlength="60"></label><div class="form-grid"><label class="field"><span>Entrada</span><input class="input" id="template-in" type="time"></label><label class="field"><span>Salida</span><input class="input" id="template-out" type="time"></label><label class="field"><span>Pausa (min)</span><input class="input" id="template-pause" type="number" min="0" value="0"></label></div>',
+      onSave() {
+        const name = $('#template-name').value.trim();
+        const start = hhmm($('#template-in').value);
+        const end = hhmm($('#template-out').value);
+        const pause = num($('#template-pause').value, -1);
+        const duration = minutesBetween(start, end);
+        if (!name || !duration || !Number.isInteger(pause) || pause < 0 || pause > duration) {
+          toast('Comprueba el nombre, el horario y la pausa.', 'error'); return false;
+        }
+        setSetting('turno_' + name.toLocaleLowerCase('es'), JSON.stringify({ name, start, end, pause }));
+        return persist('Plantilla guardada');
+      }
+    });
+  }
+
   function jornadaModal(id) {
     if (id == null || id === '') {
       const existingToday = jornadaForDate(dateKey(new Date()));
@@ -1013,9 +1592,17 @@
     if (!isNew && !record) return;
     const today = dateKey(new Date()); const defaultPause = habitualPauseMinutes(); const base = { fecha: today, entrada: '', salida: '', horas_normales: round2(Math.max(0, rateOn(today, 'jornada') - defaultPause / 60)), horas_extra: 0, descanso_minutos: defaultPause, estado: 'confirmado', notas: '' };
     const item = record ? { ...record } : base;
+    let verifiedDuration = '';
+    const template = scheduleWindow();
+    const templates = shiftTemplates();
     openModal({
       title: isNew ? 'Nueva jornada' : 'Editar jornada',
-      body: '<div class="form-grid"><label class="field"><span>Fecha</span><input class="input" id="f-fecha" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Estado</span><select class="input" id="f-estado"><option value="confirmado"' + (item.estado === 'confirmado' ? ' selected' : '') + '>Confirmada</option><option value="provisional"' + (item.estado === 'provisional' ? ' selected' : '') + '>Provisional</option></select></label><label class="field"><span>Entrada</span><input class="input mono" id="f-entrada" type="time" value="' + esc(item.entrada) + '"></label><label class="field"><span>Salida</span><input class="input mono" id="f-salida" type="time" value="' + esc(item.salida) + '"></label><label class="field"><span>Pausa no computable (min)</span><input class="input mono" id="f-pausa" type="number" min="0" max="1440" step="1" value="' + esc(recordPauseMinutes(item)) + '"></label><label class="field"><span>Horas normales</span><input class="input mono" id="f-normales" type="text" inputmode="decimal" value="' + fmtInput(item.horas_normales) + '"></label><label class="field"><span>Horas extra</span><input class="input mono" id="f-extra" type="text" inputmode="decimal" value="' + fmtInput(item.horas_extra) + '"></label></div><div class="hint-row"><button class="btn ghost sm" type="button" id="calc-hours">Calcular desde fichaje</button><span class="muted small" id="calc-hint"></span></div><label class="field"><span>Notas</span><textarea class="input" id="f-notas" rows="3">' + esc(item.notas) + '</textarea></label>',
+      body: '<div class="form-grid"><label class="field"><span>Fecha</span><input class="input" id="f-fecha" type="date" value="' + esc(item.fecha) + '"></label><label class="field"><span>Estado</span><select class="input" id="f-estado"><option value="confirmado"' + (item.estado === 'confirmado' ? ' selected' : '') + '>Confirmada</option><option value="provisional"' + (item.estado === 'provisional' ? ' selected' : '') + '>Provisional</option></select></label><label class="field"><span>Entrada</span><input class="input mono" id="f-entrada" type="time" value="' + esc(item.entrada) + '"></label><label class="field"><span>Salida</span><input class="input mono" id="f-salida" type="time" value="' + esc(item.salida) + '"></label><label class="field"><span>Pausa no computable (min)</span><input class="input mono" id="f-pausa" type="number" min="0" max="1440" step="1" value="' + esc(recordPauseMinutes(item)) + '"></label><label class="field"><span>Horas normales</span><input class="input mono" id="f-normales" type="text" inputmode="decimal" value="' + fmtInput(item.horas_normales) + '"></label><label class="field"><span>Horas extra</span><input class="input mono" id="f-extra" type="text" inputmode="decimal" value="' + fmtInput(item.horas_extra) + '"></label></div><div class="hint-row"><button class="btn ghost sm" type="button" id="calc-hours">Calcular desde fichaje</button><span class="muted small" id="calc-hint"></span></div><label class="field"><span>Notas</span><textarea class="input" id="f-notas" rows="3">' + esc(item.notas) + '</textarea></label>'
+        + '<label class="field"><span>Intervalos sin trabajar, uno por línea (HH:MM-HH:MM)</span><textarea class="input" id="shift-gaps" rows="2" placeholder="12:00-16:00">' + esc((item.interrupciones || []).map(row => row.desde + '-' + row.hasta).join('\n')) + '</textarea></label>'
+        + '<label class="field"><span>Horas por empresa, obra o proyecto (nombre | horas, uno por línea)</span><textarea class="input" id="shift-projects" rows="2" placeholder="Obra A | 5&#10;Obra B | 3">' + esc((item.proyectos || []).map(row => row.nombre + ' | ' + fmtInput(row.horas)).join('\n')) + '</textarea></label>'
+        + (templates.length ? '<label class="field"><span>Aplicar plantilla</span><select class="input" id="choose-template"><option value="">Seleccionar</option>' + templates.map((row, index) => '<option value="' + index + '">' + esc(row.name) + '</option>').join('') + '</select></label>' : '')
+        + (template ? '<button type="button" class="btn ghost sm" id="apply-shift-template">Usar horario habitual</button>' : '')
+        + (item.historial?.length ? '<details><summary>Historial de esta jornada</summary>' + item.historial.slice().reverse().map((entry, index) => '<p>' + esc(entry.fecha.replace('T', ' ').slice(0, 16)) + ' UTC · <button class="btn ghost sm" type="button" data-history-index="' + index + '">Cargar valores anteriores</button></p>').join('') + '</details>' : ''),
       onSave: () => {
         let j = isNew ? null : editableRecord('jornadas', id);
         if (!isNew && !j) return false;
@@ -1025,6 +1612,41 @@
         if (normales < 0 || extra < 0 || normales > 24 || extra > 24) { toast('Horas entre 0 y 24.', 'error'); return false; }
         if (round2(normales + extra) > 24) { toast('No puede superar 24 h en un día.', 'error'); return false; }
         const payload = { fecha, entrada: hhmm($('#f-entrada').value), salida: hhmm($('#f-salida').value), horas_normales: round2(normales), horas_extra: round2(extra), descanso_minutos: pauseMinutes, estado: $('#f-estado').value === 'provisional' ? 'provisional' : 'confirmado', notas: $('#f-notas').value.trim() };
+        const rawIntervals = ($('#shift-gaps')?.value || '').trim();
+        if (rawIntervals || item.interrupciones?.length) {
+          const lines = rawIntervals ? rawIntervals.split(/\r?\n/) : [];
+          const intervals = lines.map(line => {
+            const match = /^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/.exec(line.trim());
+            return { desde: match?.[1], hasta: match?.[2] };
+          });
+          const gaps = interruptionMinutes(payload.entrada, payload.salida, intervals);
+          const duration = minutesBetween(payload.entrada, payload.salida);
+          if (intervals.length > 20 || gaps == null || gaps + pauseMinutes > duration) {
+            toast('Ordena los intervalos sin solaparlos y mantenlos dentro del horario.', 'error');
+            return false;
+          }
+          if (JSON.stringify(intervals) !== JSON.stringify(item.interrupciones || []) || payload.entrada !== item.entrada || payload.salida !== item.salida || pauseMinutes !== item.descanso_minutos) {
+            payload.interrupciones = intervals;
+            const worked = round2((duration - gaps - pauseMinutes) / 60);
+            const baseHours = rateOn(fecha, 'jornada');
+            payload.horas_normales = round2(Math.min(worked, baseHours));
+            payload.horas_extra = round2(Math.max(0, worked - baseHours));
+          }
+        }
+        const rawProjects = ($('#shift-projects')?.value || '').trim();
+        if (rawProjects || item.proyectos?.length) {
+          const projects = rawProjects ? rawProjects.split(/\r?\n/).map(line => {
+            const separator = line.lastIndexOf('|');
+            if (separator < 0) return null;
+            return { nombre: line.slice(0, separator).trim(), horas: round2(num(line.slice(separator + 1), -1)) };
+          }) : [];
+          if (projects.length > 20 || projects.some(row => !row || !row.nombre || row.nombre.length > 80 || row.horas <= 0)
+            || round2(projects.reduce((sum, row) => sum + row.horas, 0)) > round2(payload.horas_normales + payload.horas_extra)) {
+            toast('Revisa los nombres y las horas de proyecto. Su suma no puede superar las horas de la jornada.', 'error');
+            return false;
+          }
+          if (JSON.stringify(projects) !== JSON.stringify(item.proyectos || [])) payload.proyectos = projects;
+        }
         const changes = j ? changesFromForm(item, j, payload) : payload;
         if (!changes) return false;
         const result = { ...j, ...changes };
@@ -1032,15 +1654,26 @@
         if (duplicate && (!j || j.fecha !== result.fecha)) { toast('Ya existe una jornada para esa fecha. Ábrela desde la lista y edítala para evitar duplicarla.', 'warn'); return false; }
         const elapsed = result.entrada && result.salida ? minutesBetween(result.entrada, result.salida) : null;
         if (result.entrada && result.salida && (!Number.isFinite(elapsed) || elapsed === 0)) { toast('Horario no válido: entrada y salida deben ser distintas.', 'error'); return false; }
+        const durationKey = [result.fecha, result.entrada, result.salida, result.descanso_minutos].join('|');
+        if (elapsed > 16 * 60 && durationKey !== verifiedDuration && (!j || j.entrada !== result.entrada || j.salida !== result.salida)) {
+          verifiedDuration = durationKey;
+          toast('Este turno duraría ' + fmtHours(elapsed / 60) + '. Revisa las horas o pulsa Guardar otra vez para confirmar.', 'warn');
+          return false;
+        }
         if (elapsed != null && result.descanso_minutos > elapsed) { toast('La pausa no puede superar el tiempo fichado.', 'error'); return false; }
         if (round2(result.horas_normales + result.horas_extra) > 24) { toast('No puede superar 24 h en un día.', 'error'); return false; }
         const automaticDuplicate = !j && data.jornadas.find((row) => row.fecha === result.fecha && row.auto);
         if (automaticDuplicate) j = automaticDuplicate;
         if (j) {
           const extrasChanged = round2(j.horas_extra) !== result.horas_extra;
+          const before = {};
+          for (const field of ['entrada', 'salida', 'descanso_minutos', 'horas_normales', 'horas_extra', 'notas', 'estado']) {
+            if (Object.prototype.hasOwnProperty.call(changes, field) && changes[field] !== j[field]) before[field] = j[field];
+          }
+          if (Object.keys(before).length) j.historial = [...(j.historial || []), { fecha: new Date().toISOString(), campos: before }].slice(-12);
           Object.assign(j, changes, { auto: false, backfill: false });
+          if (j.salida) delete j.pausa_desde;
           if (extrasChanged) { j.pagado_extras = false; j.fecha_pago_extras = ''; }
-          data.jornadas = data.jornadas.filter((row) => row.fecha !== result.fecha || !row.auto || String(row.id) === String(j.id));
         } else data.jornadas.push({ id: uid(), pagado_extras: false, fecha_pago_extras: '', creado: new Date().toISOString(), ...payload, auto: false, backfill: false });
         return persist(isNew ? 'Jornada creada' : 'Jornada actualizada');
       },
@@ -1052,6 +1685,28 @@
         return persist('Jornada eliminada');
       } : null
     });
+    $('#choose-template')?.addEventListener('change', event => {
+      const chosen = event.target.value === '' ? null : templates[Number(event.target.value)];
+      if (!chosen) return;
+      $('#f-entrada').value = chosen.start;
+      $('#f-salida').value = chosen.end;
+      $('#f-pausa').value = chosen.pause;
+      $('#shift-gaps').value = '';
+      $('#calc-hours').click();
+    });
+    $('#apply-shift-template')?.addEventListener('click', () => {
+      $('#f-entrada').value = template.start;
+      $('#f-salida').value = template.end;
+      $('#f-pausa').value = habitualPauseMinutes();
+      $('#calc-hours').click();
+    });
+    const fields = { entrada: 'f-entrada', salida: 'f-salida', descanso_minutos: 'f-pausa', horas_normales: 'f-normales', horas_extra: 'f-extra', notas: 'f-notas', estado: 'f-estado' };
+    if (item.historial?.length) $('[data-history-index]').forEach(button => button.addEventListener('click', () => {
+      const entry = item.historial[item.historial.length - 1 - Number(button.dataset.historyIndex)];
+      if (!entry) return;
+      for (const [field, id] of Object.entries(fields)) if (Object.prototype.hasOwnProperty.call(entry.campos, field)) $('#' + id).value = entry.campos[field];
+      toast('Valores cargados. Pulsa Guardar para aplicar.', 'info');
+    }));
     const calc = $('#calc-hours');
     if (calc) calc.addEventListener('click', () => { const grossMinutes = minutesBetween($('#f-entrada').value, $('#f-salida').value); if (grossMinutes == null) { toast('Indica entrada y salida.', 'warn'); return; } const pauseMinutes = num($('#f-pausa').value, -1); if (!Number.isInteger(pauseMinutes) || pauseMinutes < 0 || pauseMinutes > grossMinutes) { toast('La pausa debe ser un número válido y no superar el tiempo fichado.', 'warn'); return; } const worked = netHoursBetween($('#f-entrada').value, $('#f-salida').value, pauseMinutes); const b = rateOn($('#f-fecha').value, 'jornada'); $('#f-normales').value = round2(Math.min(worked, b)); $('#f-extra').value = round2(Math.max(0, worked - b)); const hintEl = $('#calc-hint'); if (hintEl) hintEl.textContent = hoursFmt.format(grossMinutes / 60) + ' h fichadas − ' + pauseMinutes + ' min = ' + fmtHours(worked); toast('Horas calculadas.', 'info'); });
   }
@@ -1077,10 +1732,10 @@
     });
   }
 
-  function calendarModal(id) {
+  function calendarModal(id, selectedDate) {
     const existing = id ? data.ausencias.find((item) => String(item.id) === String(id)) : null;
     if (id && !existing) return;
-    const item = existing || { fecha: dateKey(new Date()), tipo: 'vacaciones', concepto: '', notas: '' };
+    const item = existing || { fecha: selectedDate || dateKey(new Date()), tipo: 'vacaciones', concepto: '', notas: '' };
     const group = existing ? String(existing.grupo || existing.id) : uid();
     openModal({
       title: existing ? 'Editar incidencia' : 'Añadir al calendario',
@@ -1178,6 +1833,7 @@
         if (!concepto) { toast('Indica concepto.', 'error'); return false; } if (importe < 0) { toast('Importe no válido.', 'error'); return false; } if (!isDateKey(fecha)) { toast('Fecha no válida.', 'error'); return false; }
         const current = editableRecord('pagos', id);
         if (!current) return false;
+        if (current.abonos?.length && round2(importe) < paidPayroll(current)) { toast('El importe no puede ser inferior a los abonos guardados.', 'error'); return false; }
         const changes = changesFromForm(original, current, { concepto, importe: round2(importe), fecha });
         if (!changes) return false;
         if (Object.keys(changes).length) current.manual_edit = true;
@@ -1202,7 +1858,7 @@
   }
 
   function pendingModal() {
-    const unpaidExtras = data.jornadas.filter((j) => j.estado === 'confirmado' && j.horas_extra > 0 && !j.pagado_extras); const extraHours = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra, 0)); const extraTotal = round2(unpaidExtras.reduce((sum, j) => sum + j.horas_extra * rateOn(j.fecha, 'extra'), 0));
+    const unpaidExtras = data.jornadas.filter((j) => j.estado === 'confirmado' && hoursToBill(j) > 0 && !j.pagado_extras); const extraHours = round2(unpaidExtras.reduce((sum, j) => sum + hoursToBill(j), 0)); const extraTotal = round2(unpaidExtras.reduce((sum, j) => sum + hoursToBill(j) * rateOn(j.fecha, 'extra'), 0));
     const pendingTrips = data.viajes.filter((v) => !v.pagado); const tripTotal = round2(pendingTrips.reduce((sum, v) => sum + v.importe, 0));
     const pendingPayrolls = effectivePayments().filter((p) => p.tipo === 'nomina_auto' && !p.confirmado); const payrollTotal = round2(pendingPayrolls.reduce((sum, p) => sum + p.importe, 0));
     const total = round2(payrollTotal + extraTotal + tripTotal);
@@ -1256,7 +1912,7 @@
     setSetting('last_backup', dateKey(new Date()));
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
-      window.IVORY37CloudSync?.queue(data);
+      cloudSync?.queue(data);
       mirrorNativeStorage();
       renderDataTools(); renderSetup();
       toast(window.AndroidBridge ? 'Backup guardado. Elige Descargas para encontrarlo.' : (window.IVORY37DesktopBridge ? 'Backup guardado en la ubicación elegida.' : 'Descarga iniciada. Busca el archivo en Descargas.'));
@@ -1278,20 +1934,20 @@
 
   function openReportModal() {
     const today = dateKey(new Date()); const from = today.slice(0, 7) + '-01';
-    openModal({ title: 'Informe por periodo', hideSave: true, body: '<div class="form-grid"><label class="field"><span>Desde</span><input class="input" id="report-from" type="date" value="' + esc(from) + '"></label><label class="field"><span>Hasta</span><input class="input" id="report-to" type="date" value="' + esc(today) + '"></label></div><p class="hint">El informe incluye jornadas, tarifas aplicadas, incidencias y viajes del periodo elegido.</p><div class="hint-row"><button class="btn primary" type="button" data-action="report-pdf"><svg class="i" aria-hidden="true"><use href="#i-print"></use></svg> Guardar como PDF</button><button class="btn ghost" type="button" data-action="report-csv"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> Exportar CSV</button></div>' });
+    openModal({ title: 'Informe por periodo', hideSave: true, body: '<div class="form-grid"><label class="field"><span>Desde</span><input class="input" id="report-from" type="date" value="' + esc(from) + '"></label><label class="field"><span>Hasta</span><input class="input" id="report-to" type="date" value="' + esc(today) + '"></label></div><label class="switch"><input type="checkbox" id="report-summary"><span><b>Solo resumen</b><small>Sin filas de jornadas, incidencias ni viajes en el PDF.</small></span></label><label class="switch"><input type="checkbox" id="report-private" checked><span><b>Ocultar notas privadas</b></span></label><div class="hint-row"><button class="btn primary" type="button" data-action="report-pdf"><svg class="i" aria-hidden="true"><use href="#i-print"></use></svg> Guardar como PDF</button><button class="btn ghost" type="button" data-action="report-csv"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> Exportar CSV</button></div>' });
   }
 
   function readReportRange() {
     const from = $('#report-from') && $('#report-from').value; const to = $('#report-to') && $('#report-to').value;
     if (!isDateKey(from) || !isDateKey(to) || from > to) { toast('Elige un periodo válido: la fecha inicial debe ser anterior a la final.', 'error'); return null; }
-    return { from, to };
+    return { from, to, summary: Boolean($('#report-summary')?.checked), privateNotes: Boolean($('#report-private')?.checked) };
   }
 
   function exportCSV(from, to) {
     const rows = [['Tipo', 'Fecha', 'Entrada', 'Salida', 'Pausa no computable (min)', 'Horas normales', 'Horas extra', 'Tarifa normal €/h', 'Tarifa extra €/h', 'Estado', 'Extras pagadas', 'Concepto', 'Importe €', 'Notas']];
     data.jornadas.filter((j) => j.fecha >= from && j.fecha <= to).slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).forEach((j) => {
       const confirmed = j.estado === 'confirmado';
-      rows.push(['Jornada', j.fecha, j.entrada, j.salida, String(j.descanso_minutos || 0), String(j.horas_normales).replace('.', ','), String(j.horas_extra).replace('.', ','), confirmed ? String(rateOn(j.fecha, 'normal')).replace('.', ',') : '', confirmed ? String(rateOn(j.fecha, 'extra')).replace('.', ',') : '', j.estado, j.pagado_extras ? 'Sí' : 'No', '', confirmed ? String(round2(j.horas_normales * rateOn(j.fecha, 'normal') + j.horas_extra * rateOn(j.fecha, 'extra'))).replace('.', ',') : '', j.notas]);
+      rows.push(['Jornada', j.fecha, j.entrada, j.salida, String(j.descanso_minutos || 0), String(j.horas_normales).replace('.', ','), String(j.horas_extra).replace('.', ','), confirmed ? String(rateOn(j.fecha, 'normal')).replace('.', ',') : '', confirmed ? String(rateOn(j.fecha, 'extra')).replace('.', ',') : '', j.estado, j.pagado_extras ? 'Sí' : 'No', '', confirmed ? String(round2(j.horas_normales * rateOn(j.fecha, 'normal') + hoursToBill(j) * rateOn(j.fecha, 'extra'))).replace('.', ',') : '', j.notas]);
     });
     data.ausencias.filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push(['Incidencia · ' + calendarLabel(item.tipo), item.fecha, '', '', '', '', '', '', '', '', '', item.concepto, '', item.notas]));
     data.viajes.filter((item) => item.fecha >= from && item.fecha <= to).forEach((item) => rows.push(['Viaje/dieta', item.fecha, '', '', '', '', '', '', '', item.pagado ? 'Cobrado' : 'Pendiente', '', item.concepto, String(item.importe).replace('.', ','), item.notas]));
@@ -1301,43 +1957,139 @@
     download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'informe_' + from + '_' + to + '.csv', function (saved) { toast(saved ? (window.IVORY37DesktopBridge ? 'CSV guardado en la ubicación elegida.' : 'CSV guardado. Elige Descargas para encontrarlo.') : 'No se guardó el CSV.', saved ? 'info' : 'warn'); });
   }
 
+  function exportEncryptedBackup() {
+    openModal({
+      title: 'Copia cifrada', saveText: 'Cifrar y guardar',
+      body: '<p>Guarda la contraseña en un lugar seguro. La necesitarás para abrir la copia.</p><label class="field"><span>Contraseña de la copia (mínimo 12 caracteres)</span><input class="input" type="password" id="backup-password" autocomplete="new-password"></label><label class="field"><span>Repite la contraseña</span><input class="input" type="password" id="backup-password-repeat" autocomplete="new-password"></label>',
+      async onSave() {
+        const input = $('#backup-password');
+        const repeat = $('#backup-password-repeat');
+        const password = input.value;
+        if (password.length < 12 || password !== repeat.value) { toast('Las contraseñas deben coincidir y tener al menos 12 caracteres.', 'error'); return false; }
+        input.value = repeat.value = '';
+        try {
+          const date = dateKey(new Date());
+          const original = JSON.stringify(backupTools.create(data, date));
+          const encrypted = await backupTools.encrypt(original, password);
+          if (await backupTools.decrypt(JSON.parse(encrypted), password) !== original) throw Error('Verificación');
+          const blob = new Blob([encrypted], { type: 'application/json' });
+          if (blob.size > 12 * 1024 * 1024) { toast('La copia cifrada supera el tamaño admitido.', 'error'); return false; }
+          download(blob, 'control-laboral-cifrado-' + date + '.json', saved => { if (saved) markBackupSaved(); });
+          return true;
+        } catch (_) { toast('No se pudo cifrar y verificar la copia.', 'error'); return false; }
+      }
+    });
+  }
+
   function importJSON(file) {
-    if (!file) return; if (file.size > 5 * 1024 * 1024) { toast('Backup demasiado grande.', 'error'); return; }
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) { toast('Backup demasiado grande.', 'error'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = backupTools.parse(reader.result, isDateKey);
-        confirmAction('Restaurar copia', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
-          const previous = data; const previousLoadError = loadError;
-          try { try { localStorage.setItem(KEY + '_backup', JSON.stringify(previous)); } catch (err) {} data = normalize(parsed); syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); window.IVORY37CloudSync?.queue(data); }
-          catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo guardar la copia. Tus datos actuales siguen intactos.', 'error'); return; }
-          loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data); toast('Datos restaurados.');
-        });
-      } catch (err) { toast(err && err.message === 'Fecha' ? 'El backup contiene fechas imposibles; no se cambiaron tus datos.' : 'Backup no válido.', 'error'); }
+        const envelope = JSON.parse(reader.result);
+        if (envelope?.format === backupTools.encryptedFormat) {
+          openModal({
+            title: 'Abrir copia cifrada', saveText: 'Abrir y revisar',
+            body: '<label class="field"><span>Contraseña de la copia</span><input class="input" type="password" id="decrypt-password" autocomplete="off"></label>',
+            async onSave() {
+              const field = $('#decrypt-password'); const password = field.value; field.value = '';
+              try {
+                const decrypted = await backupTools.decrypt(envelope, password);
+                previewImport(backupTools.parse(decrypted, isDateKey));
+                return false;
+              } catch (_) { toast('Contraseña incorrecta o copia dañada.', 'error'); return false; }
+            }
+          });
+          return;
+        }
+        previewImport(backupTools.parse(reader.result, isDateKey));
+      } catch (error) { toast(error.message === 'Fecha' ? 'El backup contiene fechas imposibles.' : 'Backup no válido.', 'error'); }
     };
     reader.onerror = () => toast('No se pudo leer el archivo de backup.', 'error');
     reader.readAsText(file);
   }
 
-  function restoreInternalBackup() {
-    let raw;
-    try { raw = localStorage.getItem(KEY + '_backup'); } catch (err) { toast('No se pudo leer la copia interna.', 'error'); return; }
-    if (!raw) { toast('No hay copia interna.', 'warn'); return; }
-    confirmAction('Restaurar copia interna', 'Se sustituirán los datos actuales.', 'Restaurar', () => {
-      const previous = data; const previousLoadError = loadError;
-      try {
-        const parsed = JSON.parse(raw);
-        if (hasInvalidDates(parsed)) throw new Error('Fecha');
-        data = normalize(parsed); syncPayrolls();
-        localStorage.setItem(KEY, JSON.stringify(data));
-        window.IVORY37CloudSync?.queue(data);
-        loadError = false; applyBranding(); renderAll(); renderAjustes(); window.IVORY37CloudSync?.init(data); window.IVORY37CloudSync?.queue(data);
-        toast('Copia restaurada.');
-      } catch (err) { data = previous; loadError = previousLoadError; toast('No se pudo restaurar; los datos actuales siguen intactos.', 'error'); }
+  function previewImport(parsed) {
+    const incoming = normalize(parsed);
+    const collections = ['jornadas', 'viajes', 'pagos', 'ausencias'];
+    const recordKey = (collection, row) => String(collection === 'ausencias' ? row.fecha : row.id);
+    const fingerprint = row => JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a], [b]) => a.localeCompare(b))));
+    const compare = () => {
+      const additions = {};
+      const differences = [];
+      let repeated = 0;
+      for (const collection of collections) {
+        const current = new Map(data[collection].map(row => [recordKey(collection, row), row]));
+        additions[collection] = [];
+        for (const row of incoming[collection]) {
+          const key = recordKey(collection, row);
+          const existing = current.get(key);
+          if (!existing) { additions[collection].push(row); current.set(key, row); }
+          else if (fingerprint(existing) === fingerprint(row)) repeated++;
+          else differences.push([collection, row.fecha]);
+        }
+      }
+      return { additions, differences, repeated };
+    };
+    const preview = compare();
+    const newCount = Object.values(preview.additions).reduce((sum, rows) => sum + rows.length, 0);
+    openModal({
+      title: 'Revisar copia antes de importar', saveText: 'Aplicar copia',
+      body: '<p>' + newCount + ' nuevos · ' + preview.repeated + ' repetidos · ' + preview.differences.length + ' distintos según identificador o fecha de incidencia.</p>'
+        + (preview.differences.length ? '<details><summary>Ver diferencias detectadas</summary><ul>' + preview.differences.slice(0, 50).map(([collection, date]) => '<li>' + esc(collection + ' · ' + fmtDate(date)) + '</li>').join('') + '</ul></details>' : '')
+        + '<label class="field"><span>Operación</span><select class="input" id="import-mode"><option value="replace">Restaurar copia completa</option><option value="add">Añadir solo registros nuevos</option></select></label><p class="muted">Restaurar sustituye los datos y ajustes actuales. Añadir conserva los registros existentes.</p>',
+      async onSave() {
+        const previous = data;
+        const previousLoadError = loadError;
+        try {
+          const mode = $('#import-mode').value;
+          if (mode === 'add' && loadError) { toast('Para recuperar datos dañados utiliza una copia completa.', 'error'); return false; }
+          if (mode === 'add') {
+            const { additions } = compare();
+            data = { ...data };
+            for (const collection of collections) data[collection] = data[collection].concat(additions[collection]);
+          } else data = incoming;
+          const rawPrevious = localStorage.getItem(KEY);
+          if (rawPrevious) localStorage.setItem(KEY + '_recovery', rawPrevious);
+          syncPayrolls();
+          localStorage.setItem(KEY, JSON.stringify(data));
+          if (localStorage.flush) await localStorage.flush();
+        } catch (error) {
+          localStorage.rollback?.(); data = previous; loadError = previousLoadError;
+          toast('No se pudo guardar la copia. Tus datos siguen intactos.', 'error'); return false;
+        }
+        loadError = false;
+        mirrorNativeStorage(); applyBranding(); renderAll(); renderAjustes();
+        cloudSync?.init(data); cloudSync?.queue(data);
+        toast('Copia aplicada.');
+        return true;
+      }
     });
   }
 
-  function printReport(from, to) {
+  function restoreInternalBackup(sourceKey = KEY + '_backup') {
+    let raw;
+    try { raw = localStorage.getItem(sourceKey); } catch (err) { toast('No se pudo leer la copia interna.', 'error'); return; }
+    if (!raw) { toast('No hay copia interna.', 'warn'); return; }
+    confirmAction('Restaurar copia interna', 'Se sustituirán los datos actuales y se conservará una copia previa.', 'Restaurar', async () => {
+      const previous = data; const previousLoadError = loadError;
+      try {
+        const parsed = backupTools.parse(raw, isDateKey);
+        if (hasInvalidDates(parsed)) throw new Error('Fecha');
+        data = normalize(parsed); syncPayrolls();
+        localStorage.setItem(KEY + '_recovery', JSON.stringify(previous));
+        localStorage.setItem(KEY, JSON.stringify(data));
+        if (localStorage.flush) await localStorage.flush();
+        mirrorNativeStorage();
+        cloudSync?.queue(data);
+        loadError = false; applyBranding(); renderAll(); renderAjustes(); cloudSync?.init(data); cloudSync?.queue(data);
+        toast('Copia restaurada.');
+      } catch (err) { if (localStorage.rollback) localStorage.rollback(); data = previous; loadError = previousLoadError; toast('No se pudo restaurar; los datos actuales siguen intactos.', 'error'); return false; }
+    });
+  }
+
+  function printReport(from, to, options = {}) {
     const records = data.jornadas.filter((j) => j.fecha >= from && j.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
     const confirmed = records.filter((j) => j.estado === 'confirmado');
     const exceptions = data.ausencias.filter((item) => item.fecha >= from && item.fecha <= to).sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -1346,7 +2098,7 @@
     let normalHours = round2(confirmed.reduce((sum, j) => sum + j.horas_normales, 0));
     const extraHours = round2(confirmed.reduce((sum, j) => sum + j.horas_extra, 0));
     let normalValue = round2(confirmed.reduce((sum, j) => sum + j.horas_normales * rateOn(j.fecha, 'normal'), 0));
-    const extraValue = round2(confirmed.reduce((sum, j) => sum + j.horas_extra * rateOn(j.fecha, 'extra'), 0));
+    const extraValue = round2(confirmed.reduce((sum, j) => sum + hoursToBill(j) * rateOn(j.fecha, 'extra'), 0));
     const activeMonths = new Set(data.jornadas.map((j) => j.fecha.slice(0, 7)));
     const existingDates = new Set(data.jornadas.map((j) => j.fecha)); const exceptionDates = new Set(data.ausencias.map((item) => item.fecha));
     if (isEstimation()) {
@@ -1369,15 +2121,37 @@
     const paymentRows = payments.map((item) => '<tr><td>' + esc(fmtDate(item.fecha)) + '</td><td>' + esc(item.concepto) + '</td><td>' + (item.tipo === 'nomina_auto' ? 'Automática' : 'Manual') + '</td><td class="num">' + fmtMoney(item.importe) + '</td><td>' + (item.confirmado ? 'Confirmada' : 'Pendiente') + '</td></tr>').join('');
     const name = 'Control Laboral'; const logo = setting('custom_logo') || './assets/ivory37-logo.jpg'; const person = String(setting('user_name') || '').trim();
     const total = round2(normalValue + extraValue + tripTotal);
-    $('#print').innerHTML = '<div class="print-head">' + (logo && isSafeImage(logo) ? '<img src="' + esc(logo) + '" alt="">' : '') + '<h1>' + esc(name) + '</h1></div>' + '<p class="sub">' + (person ? esc(person) + ' · ' : '') + 'Informe · ' + esc(fmtDate(from)) + ' – ' + esc(fmtDate(to)) + '</p>' + '<div class="totals"><div>Horas normales<b>' + fmtHours(normalHours) + '</b></div><div>Horas extra<b>' + fmtHours(extraHours) + '</b></div><div>Valor normales<b>' + fmtMoney(normalValue) + '</b></div><div>Valor extras<b>' + fmtMoney(extraValue) + '</b></div><div>Viajes y dietas<b>' + fmtMoney(tripTotal) + '</b></div><div>Total estimado<b>' + fmtMoney(total) + '</b></div></div>' + (isEstimation() ? '<p class="sub">El cálculo incluye estimaciones de días laborables sin jornada ni incidencia registrada.</p>' : '') + (provisionalCount ? '<p class="sub">' + provisionalCount + ' jornada(s) provisional(es) aparecen para revisión y no se incluyen en los importes.</p>' : '') + '<h2>Jornadas</h2>' + (jornadaRows ? '<table><thead><tr><th>Fecha</th><th>Horario</th><th class="num">Pausa</th><th class="num">Norm.</th><th class="num">Extra</th><th class="num">€/h norm.</th><th class="num">€/h extra</th><th>Estado</th></tr></thead><tbody>' + jornadaRows + '</tbody></table>' : '<p>Sin jornadas en el periodo.</p>') + (exceptions.length ? '<h2>Calendario e incidencias</h2><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Notas</th></tr></thead><tbody>' + exceptionRows + '</tbody></table>' : '') + (trips.length ? '<h2>Viajes y dietas</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + tripRows + '</tbody></table>' : '') + (payments.length ? '<h2>Pagos registrados</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + paymentRows + '</tbody></table>' : '') + '<footer>Las incidencias son anotaciones de calendario. El total estimado no sustituye una nómina oficial. Generado por ' + esc(name) + '</footer>';
-    setTimeout(() => window.print(), 60);
+    $('#print').innerHTML = '<div class="print-head">' + (logo && isSafeImage(logo) ? '<img src="' + esc(logo) + '" alt="">' : '') + '<h1>' + esc(name) + '</h1></div>' + '<p class="sub">' + (person ? esc(person) + ' · ' : '') + 'Informe · ' + esc(fmtDate(from)) + ' – ' + esc(fmtDate(to)) + '</p>' + '<div class="totals"><div>Horas normales<b>' + fmtHours(normalHours) + '</b></div><div>Horas extra<b>' + fmtHours(extraHours) + '</b></div><div>Valor normales<b>' + fmtMoney(normalValue) + '</b></div><div>Valor extras<b>' + fmtMoney(extraValue) + '</b></div><div>Viajes y dietas<b>' + fmtMoney(tripTotal) + '</b></div><div>Total estimado<b>' + fmtMoney(total) + '</b></div></div>' + (isEstimation() ? '<p class="sub">El cálculo incluye estimaciones de días laborables sin jornada ni incidencia registrada.</p>' : '') + (provisionalCount ? '<p class="sub">' + provisionalCount + ' jornada(s) provisional(es) aparecen para revisión y no se incluyen en los importes.</p>' : '') + (options.summary ? '' : '<h2>Jornadas</h2>' + (jornadaRows ? '<table><thead><tr><th>Fecha</th><th>Horario</th><th class="num">Pausa</th><th class="num">Norm.</th><th class="num">Extra</th><th class="num">€/h norm.</th><th class="num">€/h extra</th><th>Estado</th></tr></thead><tbody>' + jornadaRows + '</tbody></table>' : '<p>Sin jornadas en el periodo.</p>') + (exceptions.length ? '<h2>Calendario e incidencias</h2><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Notas</th></tr></thead><tbody>' + exceptionRows + '</tbody></table>' : '') + (trips.length ? '<h2>Viajes y dietas</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + tripRows + '</tbody></table>' : '') + (payments.length ? '<h2>Pagos registrados</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>' + paymentRows + '</tbody></table>' : '') ) + '<footer>Las incidencias son anotaciones de calendario. El total estimado no sustituye una nómina oficial. Generado por ' + esc(name) + '</footer>';
+    setTimeout(printPreparedReport, 60);
   }
 
-  function notify(title, body) { try { if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); } } catch (err) {} }
-  function requestNotifications() { if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
+  function printPreparedReport() {
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.printReport === 'function') window.AndroidBridge.printReport();
+      else window.print();
+    } catch (err) { toast('No se pudo abrir la impresión. Vuelve a intentarlo.', 'error'); }
+  }
+  function notify(title, body) { try {
+    if (window.AndroidBridge && typeof window.AndroidBridge.showNotification === 'function') {
+      if (notificationState() === 'Activados') window.AndroidBridge.showNotification(title, body);
+      return;
+    }
+    if ('Notification' in window && Notification.permission === 'granted') { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body }); else new Notification(title, { body: body }); }
+  } catch (err) {} }
+  function requestNotifications() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.requestNotifications === 'function') { window.AndroidBridge.requestNotifications(); renderNotifState(); return; }
+    if (!('Notification' in window)) { toast('Este navegador no admite notificaciones.', 'error'); return; } Notification.requestPermission().then((p) => { if (p === 'granted') { toast('Recordatorios activados.'); } else { toast('Permiso denegado.', 'warn'); } renderNotifState(); }).catch(() => { toast('No se pudo activar.', 'warn'); }); }
+
+  function requestExactReminders() {
+    if (!window.AndroidBridge || typeof window.AndroidBridge.requestExactReminderAccess !== 'function') return;
+    window.AndroidBridge.requestExactReminderAccess();
+  }
 
   function reminderTick() {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (demoMode) return;
+    if (window.AndroidBridge && typeof window.AndroidBridge.configureReminders === 'function') return;
+    if (setting('reminders_enabled', '0') !== '1') return;
+    if (notificationState() !== 'Activados') return;
     const now = new Date(); const hour = now.getHours(); const minute = now.getMinutes();
     if (minute !== 0 || (hour !== 8 && hour !== 16)) return;
     const key = dateKey(now) + '-' + hour;
@@ -1395,23 +2169,41 @@
     if (action === 'tab') { showTab(el.dataset.tab); return; } if (action === 'close-modal') { closeModal(); return; }
     switch (action) {
       case 'clock-in': clockIn(); break;
+      case 'live-pause': toggleLivePause(); break;
       case 'clock-out': clockOut(); break;
       case 'save-profile': { const name = $('#cfg-user-name').value.trim().slice(0, 40); const role = $('#cfg-user-role').value.trim().slice(0, 40); setSetting('user_name', name); setSetting('user_role', role || 'Control laboral'); applyBranding(); persist('Perfil guardado'); break; }
+      case 'calendar-inspect-add': {
+        const chosen = $('#calendar-inspect')?.value;
+        if (isDateKey(chosen)) calendarModal(null, chosen);
+        break;
+      }
       case 'new-calendar-entry': calendarModal(); break;
       case 'edit-calendar': calendarModal(id); break;
       case 'delete-calendar': { const item = data.ausencias.find((row) => String(row.id) === String(id)); if (item) { const group = String(item.grupo || item.id); confirmAction('Eliminar incidencia', 'Se quitará ' + calendarLabel(item.tipo) + ' del periodo que comienza el ' + fmtDate(item.fecha) + '.', 'Eliminar', () => { data.ausencias = data.ausencias.filter((row) => String(row.grupo || row.id) !== group); persist('Incidencia eliminada'); }, true); } break; }
       case 'load-rate': loadRateVersion(el.dataset.date); break;
       case 'delete-rate': deleteRateVersion(el.dataset.date); break;
-      case 'resolve-conflict': { const restore = el.dataset.choice === 'restore'; confirmAction(restore ? 'Restaurar la otra versión' : 'Conservar la versión aplicada', restore ? 'La versión alternativa sustituirá el registro actual en tus dispositivos.' : 'Se mantendrá el registro aplicado y se cerrará esta revisión.', restore ? 'Restaurar versión' : 'Conservar versión', () => { if (window.IVORY37CloudSync?.resolveConflict(id, restore)) toast('Revisión guardada y sincronización programada.'); else toast('No se encontró el conflicto.', 'warn'); }); break; }
-      case 'report-pdf': { const range = readReportRange(); if (range) { closeModal(); printReport(range.from, range.to); } break; }
+      case 'merge-shift-conflict': mergeShiftConflict(id); break;
+      case 'resolve-conflict': { const restore = el.dataset.choice === 'restore'; confirmAction(restore ? 'Restaurar la otra versión' : 'Conservar la versión aplicada', restore ? 'La versión alternativa sustituirá el registro actual en tus dispositivos.' : 'Se mantendrá el registro aplicado y se cerrará esta revisión.', restore ? 'Restaurar versión' : 'Conservar versión', () => { if (cloudSync?.resolveConflict(id, restore)) toast('Revisión guardada y sincronización programada.'); else toast('No se encontró el conflicto.', 'warn'); }); break; }
+      case 'report-pdf': { const range = readReportRange(); if (range) { closeModal(); printReport(range.from, range.to, range); } break; }
       case 'report-csv': { const range = readReportRange(); if (range) { closeModal(); exportCSV(range.from, range.to); } break; }
       case 'print': openReportModal(); break;
       case 'export-csv': openReportModal(); break;
+      case 'enter-demo':
+      case 'exit-demo': {
+        const target = new URL(location.href);
+        if (action === 'enter-demo') target.searchParams.set('demo', '1');
+        else target.searchParams.delete('demo');
+        target.hash = 'dashboard';
+        location.href = target.href;
+        break;
+      }
       case 'export-json': exportJSON(); break;
+      case 'export-encrypted': exportEncryptedBackup(); break;
       case 'new-jornada': jornadaModal(null); break;
       case 'edit-jornada': jornadaModal(id); break;
       case 'add-extra': extraModal(id); break;
       case 'add-extra-quick': { const today = dateKey(new Date()); const j = jornadaForDate(today); if (!j) { toast('Crea primero la jornada de hoy.', 'warn'); return; } extraModal(j.id); break; }
+      case 'save-shift-template': saveShiftTemplate(); break;
       case 'new-trip': tripModal(null); break;
       case 'edit-trip': tripModal(id); break;
       case 'delete-trip': { const v = data.viajes.find((x) => String(x.id) === String(id)); if (v) confirmAction('Eliminar viaje', '¿Eliminar «' + v.concepto + '»?', 'Eliminar', () => { data.viajes = data.viajes.filter((x) => String(x.id) !== String(id)); persist('Viaje eliminado'); }, true); break; }
@@ -1420,20 +2212,62 @@
       case 'filter': { ui.filter = el.dataset.filter || 'all'; ui.limit = 30; $$('[data-action="filter"]').forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.filter === ui.filter))); renderJornadas(); break; }
       case 'load-more': ui.limit += 30; renderJornadas(); break;
       case 'recalc': setSetting('nomina_auto_omitidas', ''); syncPayrolls(); persist('Nóminas recalculadas; se regeneran las nóminas eliminadas'); break;
-      case 'confirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { p.confirmado = true; persist('Nómina confirmada'); } break; }
-      case 'unconfirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { p.confirmado = false; persist('Nómina a pendiente'); } break; }
+      case 'month-correction': payConceptModal('entry', null, true); break;
+      case 'pay-rate': payConceptModal('rate', id); break;
+      case 'pay-concept': payConceptModal('entry', id); break;
+      case 'export-project-hours': {
+        const project = $('#jornadas-project').value.trim().toLocaleLowerCase('es');
+        const rows = [['Fecha', 'Empresa, obra o proyecto', 'Horas']];
+        for (const shift of visibleJornadas()) {
+          for (const allocation of shift.proyectos || []) {
+            if (!project || allocation.nombre.toLocaleLowerCase('es').includes(project)) rows.push([shift.fecha, allocation.nombre, fmtInput(allocation.horas)]);
+          }
+        }
+        if (rows.length === 1) { toast('No hay horas de proyecto para este filtro.', 'info'); break; }
+        download(new Blob([window.IVORY37Reports.toCsv(rows)], { type: 'text/csv;charset=utf-8' }), 'horas-por-proyecto.csv');
+        break;
+      }
+      case 'export-closing': {
+        const month = closingMonth || monthKey(new Date());
+        const figures = monthlyFigures(month);
+        const backup = {
+          jornadas: figures.rows, viajes: figures.trips,
+          pagos: effectivePayments().filter(row => row.mes_key === month),
+          ausencias: data.ausencias.filter(row => row.fecha.startsWith(month)),
+          ajustes: data.ajustes.filter(row => ['tarifa_historial', 'hora_extra_euros', 'hora_normal_euros', 'horas_normales_dia'].includes(row.clave) || row.clave.startsWith('pay_rate_') || payEntries('pay_entry_').some(entry => entry.key === row.clave && entry.date.startsWith(month)))
+        };
+        const packet = { ...backup, cierre: { mes: month, ...figures.stats, previsto: figures.expected, cobrado: figures.received, diferencia: round2(figures.expected - figures.received) } };
+        download(new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' }), 'cierre-' + month + '.json');
+        break;
+      }
+      case 'partial-payroll': partialPayrollModal(id); break;
+      case 'restore-installment': restoreInstallment(id, el.dataset.history); break;
+      case 'edit-installment': partialPayrollModal(id, el.dataset.installment); break;
+      case 'confirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { if (p.abonos?.length) { partialPayrollModal(id); break; } p.confirmado = true; p.fecha_cobro = dateKey(new Date()); persist('Nómina confirmada'); } break; }
+      case 'unconfirm-payroll': { const p = data.pagos.find((x) => String(x.id) === String(id)); if (p) { p.confirmado = false; delete p.fecha_cobro; persist('Nómina a pendiente'); } break; }
+      case 'receipt-payroll': receiptModal(id); break;
       case 'edit-payroll': payrollModal(id); break;
       case 'delete-payroll': {
         const p = data.pagos.find((row) => String(row.id) === String(id));
         if (p) confirmAction('Eliminar nómina', '¿Eliminar «' + p.concepto + '»? Si es automática, solo volverá a generarse al pulsar «Recalcular».', 'Eliminar', () => deletePayroll(id), true);
         break;
       }
-      case 'mark-extra-paid': { const j = data.jornadas.find((x) => String(x.id) === String(id)); if (j) { j.pagado_extras = true; j.fecha_pago_extras = dateKey(new Date()); persist('Extras pagadas'); } break; }
+      case 'compensate-extra': compensateExtra(id); break;
+      case 'mark-extra-paid': { const j = data.jornadas.find((x) => String(x.id) === String(id)); if (j && hoursToBill(j) > 0) { j.pagado_extras = true; j.fecha_pago_extras = dateKey(new Date()); persist('Extras pagadas'); } break; }
       case 'mark-extra-unpaid': { const j = data.jornadas.find((x) => String(x.id) === String(id)); if (j) { j.pagado_extras = false; j.fecha_pago_extras = ''; persist('Extras a pendiente'); } break; }
       case 'edit-extra-payment': extraPaymentModal(el.dataset.month); break;
       case 'cleanup-auto': { const auto = data.jornadas.filter(isAutoGenerated); if (!auto.length) { toast('No hay jornadas de «Completar mes».', 'info'); break; } confirmAction('Quitar jornadas de «Completar mes»', 'Se eliminarán ' + auto.length + ' registros creados con «Completar mes». No se tocan las jornadas creadas con «Según horario».', 'Eliminar ' + auto.length, () => { data.jornadas = data.jornadas.filter((j) => !isAutoGenerated(j)); persist('Jornadas de «Completar mes» eliminadas'); renderDataTools(); }, true); break; }
       case 'pending-detail': pendingModal(); break;
-      case 'request-notif': requestNotifications(); break;
+      case 'safe-diagnostics': {
+        const status = $('#local-save-state')?.dataset.state;
+        const cloud = $('#cloud-status')?.dataset.state;
+        const diagnostic = { version: APP_VERSION, platform: window.AndroidBridge ? 'Android' : window.IVORY37DesktopBridge ? 'Windows' : 'Web', online: navigator.onLine, storageReady: Boolean(window.IVORY37Storage?.isReady), storageState: status || 'unknown', cloudState: cloud || 'unknown' };
+        download(new Blob([JSON.stringify(diagnostic, null, 2)], { type: 'application/json' }), 'control-laboral-diagnostico.json');
+        break;
+      }
+      case 'restore-previous': restoreInternalBackup(KEY + '_recovery'); break;
+      case 'request-notif': if (demoMode) break; setSetting('reminders_enabled', '1'); Promise.resolve(persist()).then(saved => { if (saved) { requestNotifications(); mirrorNativeStorage(); } }); break;
+      case 'request-exact-reminders': requestExactReminders(); break;
       case 'settings-jump': { const target = el.dataset.target ? document.querySelector(el.dataset.target) : null; if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
       case 'open-profile': { showTab('ajustes'); setTimeout(() => { const field = $('#cfg-user-name'); if (field) { field.focus(); if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 120); break; }
       case 'open-schedule': { showTab('ajustes'); setTimeout(() => { const field = $('#cfg-schedule'); if (field) { field.focus(); if (field.scrollIntoView) field.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 120); break; }
@@ -1493,9 +2327,59 @@
   }
 
   const modalSaveBtn = $('#modal-save');
-  if (modalSaveBtn) modalSaveBtn.addEventListener('click', () => { if (!modalSave) return; const result = modalSave(); if (result !== false) closeModal(); });
+  if (modalSaveBtn) modalSaveBtn.addEventListener('click', async () => {
+    if (!modalSave || modalSaveBtn.disabled) return;
+    const save = modalSave; modalSaveBtn.disabled = true;
+    try { const result = await save(); if (result !== false && modalSave === save) closeModal(); }
+    catch (error) { toast('No se pudo guardar: ' + error.message, 'error'); }
+    finally { modalSaveBtn.disabled = false; }
+  });
+  for (const [id, settingKey] of [['extras-first', 'extras_first'], ['review-month-end', 'review_month_end']]) {
+    $('#' + id)?.addEventListener('change', async event => {
+      setSetting(settingKey, event.target.checked ? '1' : '0');
+      if (await persist()) applyBranding();
+    });
+  }
+  $('#outdoor-toggle')?.addEventListener('change', async (event) => {
+    setSetting('outdoor_mode', event.target.checked ? '1' : '0');
+    await persist();
+    applyBranding();
+  });
+  $('#weekly-goal')?.addEventListener('change', async (event) => {
+    const value = num(event.target.value, 0);
+    if (value < 1 || value > 168) { event.target.value = setting('weekly_goal', '40'); toast('Introduce entre 1 y 168 horas.', 'error'); return; }
+    setSetting('weekly_goal', value);
+    await persist('Objetivo semanal guardado');
+  });
   const modalDelBtn = $('#modal-delete');
-  if (modalDelBtn) modalDelBtn.addEventListener('click', () => { if (!modalDelete) return; const result = modalDelete(); if (result !== false) closeModal(); });
+  if (modalDelBtn) modalDelBtn.addEventListener('click', async () => {
+    if (!modalDelete || modalDelBtn.disabled) return;
+    const previous = JSON.parse(JSON.stringify(data)); modalDelBtn.disabled = true;
+    try {
+      const result = await modalDelete();
+      if (result !== false) {
+        undoRecords = {};
+        for (const collection of ['jornadas', 'viajes', 'pagos', 'ausencias']) {
+          undoRecords[collection] = previous[collection].filter(row => !data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha)));
+        }
+        const button = $('#undo-delete'); if (button) button.hidden = false;
+        closeModal();
+      }
+    } finally { modalDelBtn.disabled = false; }
+  });
+  $('#undo-delete')?.addEventListener('click', async () => {
+    if (!undoRecords) return;
+    for (const collection of Object.keys(undoRecords)) {
+      for (const row of undoRecords[collection]) if (!data[collection].some(current => (current.id || current.fecha) === (row.id || row.fecha))) data[collection].push(row);
+    }
+    if (await persist('Borrado deshecho.')) { undoRecords = null; $('#undo-delete').hidden = true; }
+  });
+  window.addEventListener('ivory37:storage-state', event => {
+    const element = $('#local-save-state'); if (!element) return;
+    element.textContent = event.detail.state === 'saved' ? 'Guardado en este dispositivo' : event.detail.state === 'pending' ? 'Guardando en este dispositivo…' : 'Error de guardado · ' + event.detail.error;
+    element.dataset.state = event.detail.state === 'saved' ? 'ok' : event.detail.state === 'pending' ? 'busy' : 'error';
+  });
+  $('#disable-reminders')?.addEventListener('click', () => { setSetting('reminders_enabled', '0'); persist('Recordatorios desactivados.'); });
 
   document.addEventListener('keydown', (event) => {
     const modal = $('#modal'); if (!modal || modal.hidden) return;
@@ -1509,6 +2393,7 @@
 
   window.addEventListener('storage', (event) => { if (event.key !== KEY) return; data = loadData(); applyBranding(); probeLogoRatio(); renderAll(); renderAjustes(); toast('Datos sincronizados.', 'info'); });
   window.addEventListener('ivory37:sync-conflicts', renderSyncConflicts);
+  window.addEventListener('ivory37:sync-acknowledged', () => { if (!demoMode && data && ui.tab === 'jornadas') renderJornadas(); });
 
   function processImage(file, maxSize, callback) {
     if (!file || !file.type || file.type.indexOf('image/') !== 0) { toast('Debe ser una imagen.', 'error'); return; }
@@ -1543,31 +2428,58 @@
         if (ui.tab === 'ajustes' && !ratesDirty) { const normal = $('#cfg-normal'); const extra = $('#cfg-extra'); const day = $('#cfg-day'); if (normal) normal.value = fmtInput(rateOn(today, 'normal')); if (extra) extra.value = fmtInput(rateOn(today, 'extra')); if (day) day.value = fmtInput(rateOn(today, 'jornada')); renderRateHistory(); }
       } else renderDashboard();
     }
-    else if (ui.tab === 'dashboard') { renderRadial(); }
+    else if (ui.tab === 'dashboard') { renderTodayClock(); }
     if (now.getTime() - lastAutoCheck >= 60000) { lastAutoCheck = now.getTime(); autoFichaje(); }
   }
 
   window.addEventListener('ivory37:cloud-data', (event) => {
-    if (!event.detail || loadError) return;
+    if (demoMode || !event.detail || loadError) return;
     try {
       data = normalize(event.detail);
       syncPayrolls();
       localStorage.setItem(KEY, JSON.stringify(data));
       applyBranding(); renderAll(); renderAjustes(); updateStorageUsage();
-      window.IVORY37CloudSync?.queue(data);
+      cloudSync?.queue(data);
       mirrorNativeStorage();
     } catch (err) { console.error('No se pudo aplicar la sincronización en la app:', err); }
   });
 
   function init() {
+    if (!demoMode && window.IVORY37Storage && !window.IVORY37Storage.isReady) {
+      window.IVORY37Storage.ready.then(init).catch(error => {
+        loadError = true;
+        const state = $('#local-save-state'); if (state) { state.textContent = 'No se pudo abrir el almacenamiento: ' + error.message; state.dataset.state = 'error'; }
+        toast('No se pudieron abrir los datos. No borres la aplicación ni sus datos.', 'error');
+        $$('button').forEach(button => { button.disabled = true; });
+      });
+      return;
+    }
     const hash = location.hash.slice(1); if (['dashboard', 'jornadas', 'viajes', 'pagos', 'ajustes'].includes(hash)) ui.tab = hash;
     ui.today = dateKey(new Date());
     restoreNativeStorage();
     ensureInternalBackup();
-    data = loadData(); applyBranding(); probeLogoRatio();
+    data = loadData();
+    if (demoMode) {
+      const now = new Date();
+      const today = dateKey(now);
+      const yesterday = dateKey(addDays(now, -1));
+      data = normalize({
+        ajustes: [{ clave: 'user_name', valor: 'Marina · Demostración' }, { clave: 'auto_fichaje', valor: '0' }],
+        jornadas: [{ id: 'example-shift', fecha: yesterday, entrada: '08:00', salida: '18:00', horas_normales: 8, horas_extra: 2, estado: 'confirmado', notas: 'Jornada ficticia' }],
+        viajes: [{ id: 'example-trip', fecha: today, concepto: 'Visita ficticia', importe: 25 }]
+      });
+      $('#demo-banner').hidden = false;
+      $('#sync-card').hidden = true;
+    }
+    applyBranding(); probeLogoRatio();
     if (!loadError) { try { syncPayrolls(); localStorage.setItem(KEY, JSON.stringify(data)); } catch (err) { console.warn(err); } }
     const verEl = $('#app-version'); if (verEl) verEl.textContent = APP_VERSION;
     ui.hour = new Date().getHours(); showTab(ui.tab); renderAll(); renderAjustes(); updateStorageUsage(); autoFichaje(); tick();
+    const shortcut = new URLSearchParams(location.search).get('shortcut');
+    if (shortcut === 'extras' || shortcut === 'clock') {
+      const target = shortcut === 'extras' ? $('[data-action="add-extra-quick"]') : $('#hero-clock-action');
+      if (target && !target.hidden) { target.focus(); target.scrollIntoView({ block: 'center' }); }
+    }
     setInterval(tick, 1000); setInterval(reminderTick, 30000);
     if (loadError) { setTimeout(() => toast('No se pudieron leer los datos o tienen fechas no válidas. No se ha sobrescrito nada: importa un backup correcto.', 'error'), 500); }
     else if (!data.jornadas.length && !data.viajes.length && !data.pagos.length && !data.ausencias.length) { setTimeout(() => toast('Empieza fichando la entrada o crea una jornada.', 'info'), 700); }
@@ -1576,8 +2488,19 @@
       const cloudStatus = $('#cloud-status');
       if (cloudStatus) { cloudStatus.textContent = 'Sincronización pausada hasta recuperar los datos.'; cloudStatus.dataset.state = 'error'; }
       ['#cloud-signup', '#cloud-login', '#cloud-now'].forEach((selector) => { const button = $(selector); if (button) button.disabled = true; });
-    } else window.IVORY37CloudSync?.init(data);
+    } else cloudSync?.init(data);
     if (!loadError) mirrorNativeStorage();
+    if (!loadError && !demoMode && setting('review_month_end', '0') === '1') {
+      const now = new Date();
+      const month = monthKey(now);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      if (lastDay - now.getDate() <= 2) {
+        const open = data.jornadas.filter(row => row.fecha.startsWith(month) && row.entrada && !row.salida).length;
+        const pendingTrips = data.viajes.filter(row => row.fecha.startsWith(month) && !row.pagado).length;
+        if (open || pendingTrips) setTimeout(() => toast('Fin de mes · ' + open + ' jornadas sin salida y ' + pendingTrips + ' viajes pendientes. Revisa Pagos.', 'info'), 1200);
+      }
+    }
+    window.IVORY37AppReady = !loadError;
   }
 
   init();

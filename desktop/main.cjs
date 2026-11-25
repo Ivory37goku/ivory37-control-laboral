@@ -78,11 +78,15 @@ ipcMain.handle('ivory37:save-file', async (event, fileName, mimeType, encoded) =
   if (!isTrustedAppDocument(event.senderFrame?.url || '') || typeof encoded !== 'string'
     || encoded.length > (12 * 1024 * 1024 * 4 / 3) + 16 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) return false;
   const mime = String(mimeType || '').split(';', 1)[0].trim().toLowerCase();
-  if (mime !== 'application/json' && mime !== 'text/csv') return false;
+  const extensions = { 'application/json': 'json', 'text/csv': 'csv', 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' };
+  if (!Object.hasOwn(extensions, mime)) return false;
   const safeName = String(fileName || 'backup.json').replace(/[\u0000-\u001f\\/:*?"<>|]/g, '_').trim().slice(0, 120) || 'backup.json';
   const bytes = Buffer.from(encoded, 'base64');
   if (bytes.length > 12 * 1024 * 1024) return false;
-  const extension = mime === 'application/json' ? 'json' : 'csv';
+  const extension = extensions[mime];
+  if (extension === 'pdf' && bytes.subarray(0, 5).toString('ascii') !== '%PDF-') return false;
+  if (extension === 'jpg' && bytes.subarray(0, 3).toString('hex') !== 'ffd8ff') return false;
+  if (extension === 'png' && bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') return false;
   const defaultName = safeName.toLowerCase().endsWith('.' + extension) ? safeName : safeName + '.' + extension;
   const options = {
     title: 'Guardar archivo de Control Laboral',
@@ -100,6 +104,12 @@ ipcMain.handle('ivory37:save-file', async (event, fileName, mimeType, encoded) =
 
 function localAppUrl(forceRestore) {
   return pathToFileURL(indexPath).href + (forceRestore ? '?nativeRestore=1' : '');
+}
+
+function canUsePermission(contents, permission, details, expectedContents) {
+  return contents === expectedContents && permission === 'notifications'
+    && details?.isMainFrame !== false
+    && isTrustedAppDocument(details?.requestingUrl || contents?.getURL() || '');
 }
 
 function createWindow() {
@@ -121,6 +131,14 @@ function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false
     }
+  });
+
+  // La app solo necesita avisos; denegar cámara, micrófono, ubicación y otros permisos.
+  window.webContents.session.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(canUsePermission(contents, permission, details, window.webContents));
+  });
+  window.webContents.session.setPermissionCheckHandler((contents, permission, _origin, details) => {
+    return canUsePermission(contents, permission, details, window.webContents);
   });
 
   window.once('ready-to-show', () => window.show());

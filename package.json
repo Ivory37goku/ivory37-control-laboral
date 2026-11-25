@@ -1,16 +1,19 @@
 {
   "name": "ivory37-control-laboral",
-  "version": "3.3.12",
+  "version": "3.3.23",
   "private": true,
   "description": "Control Laboral — jornadas, horas extra, viajes y nóminas",
   "main": "desktop/main.cjs",
   "scripts": {
     "start": "electron .",
+    "sync:android": "node scripts/sync-android.cjs",
+    "test:ui": "electron scripts/qa-ui.cjs",
     "dist:win": "electron-builder --win nsis --x64",
     "dist:win:setup": "electron-builder --win nsis --x64",
     "test": "node --test tests/*.test.cjs",
-    "check:syntax": "node --check app.js && node --check rates.js && node --check calendar.js && node --check reports.js && node --check work-hours.js && node --check backup-tools.js && node --check theme-tools.js && node --check overtime-tools.js && node --check pwa.js && node --check spotlight.js && node --check supabase-config.js && node --check supabase-sync.js && node --check sw.js && node --check desktop/main.cjs && node --check desktop/preload.cjs",
-    "check": "npm run check:syntax && npm test"
+    "check:syntax": "node --check app.js && node --check rates.js && node --check calendar.js && node --check reports.js && node --check work-hours.js && node --check backup-tools.js && node --check theme-tools.js && node --check overtime-tools.js && node --check pwa.js && node --check spotlight.js && node --check supabase-config.js && node --check supabase-sync.js && node --check sw.js && node --check desktop/main.cjs && node --check desktop/preload.cjs && node --check storage.js && node --check privacy.js && node --check updates.js",
+    "check": "npm run check:syntax && npm test",
+    "test:reliability": "electron scripts/qa-reliability.cjs"
   },
   "devDependencies": {
     "electron": "^45.3.2",
@@ -48,7 +51,11 @@
       "icon-512.png",
       "icon-512-maskable.png",
       "brand-icon.svg",
-      "assets/ivory37-logo.jpg"
+      "assets/ivory37-logo.jpg",
+      "storage.js",
+      "privacy.js",
+      "updates.js",
+      "aurora-ui.css"
     ],
     "win": {
       "icon": "desktop/assets/icon.ico",
@@ -69,5 +76,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Control Laboral"
     }
-  }
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "11.0.6"
+  },
+  "author": "工V龱尺ㄚ㇌7"
 }

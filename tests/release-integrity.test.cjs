@@ -7,8 +7,8 @@ const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('Android packaged web scripts match web release', () => {
-  for (const name of ['app.js', 'rates.js', 'calendar.js', 'reports.js', 'work-hours.js', 'backup-tools.js', 'theme-tools.js', 'overtime-tools.js', 'pwa.js', 'spotlight.js', 'supabase-sync.js']) {
-    assert.equal(read('android-app/app/src/main/assets/' + name), read(name), name + ' differs between Android and web');
+  for (const name of JSON.parse(read('package.json')).build.files.filter(name => !name.startsWith('desktop/'))) {
+    assert.deepEqual(fs.readFileSync(path.join(root, 'android-app/app/src/main/assets', name)), fs.readFileSync(path.join(root, name)), name + ' differs between Android and web');
   }
   assert.equal(read('android-app/app/src/main/assets/index.html'), read('index.html'), 'Android HTML differs from web');
   assert.equal(read('android-app/app/src/main/assets/overtime-tools.js'), read('overtime-tools.js'));
@@ -16,7 +16,7 @@ test('Android packaged web scripts match web release', () => {
 
 test('Android runs the installed app bundle and migrates hosted data only once', () => {
   const activity = read('android-app/app/src/main/java/com/ivory37/controllaboral/MainActivity.java');
-  assert.match(activity, /webView\.loadUrl\(pendingShadowMigration \? LOCAL_URL \+ "\?nativeRestore=1" : LOCAL_URL\)/);
+  assert.match(activity, /webView\.loadUrl\(pendingShadowMigration \? LOCAL_URL \+ "\?nativeRestore=1" : localStartUrl\(\)\)/);
   assert.match(activity, /LOCAL_STORAGE_MIGRATED_KEY/);
   assert.match(activity, /completeLocalStorageMigration/);
   assert.doesNotMatch(activity, /HOSTED_URL|HOSTED_HOST|beginHostedApp/);
@@ -25,7 +25,7 @@ test('Android runs the installed app bundle and migrates hosted data only once',
 
 test('PWA precache includes application scripts', () => {
   const sw = read('sw.js');
-  for (const name of ['index.html', 'app.js', 'rates.js', 'calendar.js', 'reports.js', 'work-hours.js', 'backup-tools.js', 'theme-tools.js', 'overtime-tools.js', 'supabase-sync.js']) {
+  for (const name of ['index.html', 'app.js', 'rates.js', 'calendar.js', 'reports.js', 'work-hours.js', 'backup-tools.js', 'theme-tools.js', 'overtime-tools.js', 'supabase-sync.js', 'storage.js', 'privacy.js', 'updates.js']) {
     assert.ok(sw.includes("'./" + name + "'"), name + ' missing from offline cache');
   }
   assert.match(read('index.html'), /chart-month-hours/);

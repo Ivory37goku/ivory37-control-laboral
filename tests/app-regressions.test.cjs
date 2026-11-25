@@ -15,6 +15,9 @@ function appHarness(seed, options = {}) {
   const toasts = [];
   let failWrite = false;
   const window = {
+    crypto: require('node:crypto').webcrypto,
+    AndroidBridge: options.android,
+    print: options.print,
     IVORY37DesktopBridge: options.desktop,
     IVORY37CloudSync: { queue() {} },
     addEventListener(name, handler) { listeners.set(name, handler); }
@@ -39,7 +42,8 @@ function appHarness(seed, options = {}) {
     data = loadData();
     window.qa = {
       jornadaModal, extraModal, tripModal, payrollModal, syncPayrolls, effectivePayments, totals,
-      monthBreakdown, restoreNativeStorage,
+      monthBreakdown, restoreNativeStorage, storageSnapshot, renderTodayClock,
+      num, uid, rateOn, setSetting, printPreparedReport, notify, requestNotifications, notificationState, renderNotifState,
       loadError: () => loadError,
       saved: () => JSON.parse(localStorage.getItem(KEY)),
       current: () => JSON.parse(JSON.stringify(data))
@@ -60,7 +64,7 @@ function appHarness(seed, options = {}) {
   }
   vm.runInContext(source.replace(suffix, entry), context, { filename: 'app.js' });
   return {
-    ...window.qa, toasts, get dialog() { return window.dialog; },
+    ...window.qa, toasts, storage, element: (selector, element) => fields.set(selector, element), get dialog() { return window.dialog; },
     fields(values) { for (const [id, value] of Object.entries(values)) fields.set('#' + id, { value: String(value) }); },
     cloud(data) { listeners.get('ivory37:cloud-data')({ detail: data }); },
     failWrites(value) { failWrite = value; }
@@ -69,6 +73,93 @@ function appHarness(seed, options = {}) {
 
 const shift = { id: 'jornada', fecha: '2026-11-04', entrada: '08:00', salida: '17:00', horas_normales: 8, horas_extra: 1,
   descanso_minutos: 0, estado: 'confirmado', notas: '', creado: '2026-11-04T17:00:00.000Z' };
+
+test('Spanish comma is always decimal, including three decimal places', () => {
+  const qa = appHarness({});
+  for (const [input, expected] of [['1,234', 1.234], ['1.234', 1.234], ['1.234,56 €', 1234.56], ['-1,234', -1.234], ['12,50', 12.5], ['1,234.56', 1234.56], [1234.56, 1234.56]]) {
+    assert.equal(qa.num(input, NaN), expected, String(input));
+  }
+  for (const input of ['1,234,567', '1,,2', 'NaN', 'Infinity']) assert.ok(Number.isNaN(qa.num(input, NaN)), input);
+});
+
+test('new record IDs use UUID v4 without changing existing IDs', () => {
+  const qa = appHarness({ jornadas: [shift] });
+  const ids = new Set(Array.from({ length: 1000 }, () => qa.uid()));
+  assert.equal(ids.size, 1000);
+  for (const id of ids) assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.equal(qa.current().jornadas[0].id, shift.id);
+});
+
+test('rate lookup cache invalidates for edited history and fallback settings', () => {
+  const qa = appHarness({});
+  qa.setSetting('hora_extra_euros', '20');
+  assert.equal(qa.rateOn('2026-11-04', 'extra'), 20);
+  qa.setSetting('hora_extra_euros', '21');
+  assert.equal(qa.rateOn('2026-11-04', 'extra'), 21);
+  qa.setSetting('tarifa_historial', JSON.stringify([{ desde: '2026-11-01', normal: 10, extra: 25, jornada: 8 }]));
+  assert.equal(qa.rateOn('2026-11-04', 'extra'), 25);
+  assert.equal(qa.rateOn('2026-10-31', 'extra'), 21);
+  qa.setSetting('tarifa_historial', JSON.stringify([{ desde: '2026-11-01', normal: 10, extra: 30, jornada: 8 }]));
+  assert.equal(qa.rateOn('2026-11-04', 'extra'), 30);
+});
+
+test('Android PDF and notifications use native bridge without web APIs', () => {
+  const calls = [];
+  let state = 'Sin activar';
+  const qa = appHarness({}, { android: {
+    printReport() { calls.push('print'); },
+    getNotificationState() { return state; },
+    requestNotifications() { calls.push('permission'); state = 'Activados'; },
+    showNotification(title, body) { calls.push([title, body]); }
+  }, print() { throw new Error('Web print must not run on Android'); } });
+  qa.printPreparedReport();
+  qa.notify('Entrada', '08:00');
+  assert.deepEqual(calls, ['print']);
+  qa.requestNotifications();
+  qa.notify('Salida', '16:00');
+  assert.deepEqual(calls, ['print', 'permission', ['Salida', '16:00']]);
+  assert.equal(qa.notificationState(), 'Activados');
+});
+
+test('desktop PDF retains browser printing and reports failures', () => {
+  let printed = 0;
+  appHarness({}, { print() { printed++; } }).printPreparedReport();
+  assert.equal(printed, 1);
+  const qa = appHarness({}, { print() { throw new Error('Unavailable'); } });
+  qa.printPreparedReport();
+  assert.match(qa.toasts.at(-1), /No se pudo abrir/);
+});
+
+test('overlapping automatic shifts retain their extras and payment evidence for review without inflating payroll', () => {
+  const automatic = { ...shift, id: 'automatic', auto: true, horas_extra: 3, pagado_extras: true,
+    fecha_pago_extras: '2026-11-05', notas: 'Extra revisada por el trabajador' };
+  const qa = appHarness({ jornadas: [shift, automatic] });
+  qa.syncPayrolls();
+  const rows = qa.current().jornadas;
+  assert.equal(rows.length, 2);
+  const preserved = rows.find(row => row.id === 'automatic');
+  assert.equal(preserved.estado, 'provisional');
+  assert.equal(preserved.horas_extra, 3);
+  assert.equal(preserved.pagado_extras, true);
+  assert.equal(preserved.fecha_pago_extras, automatic.fecha_pago_extras);
+  assert.equal(preserved.notas, automatic.notas);
+  assert.equal(qa.totals().extraH, 1);
+  assert.equal(qa.totals().earned, Math.round((qa.totals().collected + qa.totals().pending) * 100) / 100);
+});
+
+test('accounting identity holds across historical rates, paid extras, trips and confirmed or pending payrolls', () => {
+  for (let scenario = 0; scenario < 50; scenario++) {
+    const qa = appHarness({
+      jornadas: [{ ...shift, horas_extra: scenario / 4, pagado_extras: scenario % 2 === 0 }],
+      viajes: [{ id: 'trip', fecha: shift.fecha, importe: 12.37 + scenario, pagado: scenario % 3 === 0 }],
+      pagos: [{ id: 'pay', fecha: shift.fecha, tipo: 'nomina_auto', mes_key: '2026-11', importe: 100 + scenario / 10, confirmado: scenario % 2 === 0, manual_edit: true }],
+      ajustes: [{ clave: 'tarifa_historial', valor: JSON.stringify([{ desde: '2026-01-01', normal: 12.5, extra: 19.69, jornada: 8 }]) }]
+    });
+    const totals = qa.totals();
+    assert.ok(Math.abs(totals.earned - totals.collected - totals.pending) < 0.000001, 'scenario ' + scenario);
+    assert.ok(Math.abs(totals.extraValue - totals.extraPaid - totals.extraPending) < 0.000001, 'extras ' + scenario);
+  }
+});
 
 function shiftFields(qa, extra = '2') {
   qa.fields({ 'f-fecha': shift.fecha, 'f-entrada': shift.entrada, 'f-salida': shift.salida, 'f-normales': '8',
@@ -184,4 +275,43 @@ test('Windows keeps the previous local data if the migration copy contains an in
   assert.equal(qa.loadError(), true);
   assert.equal(marked, false);
   assert.equal(qa.saved().jornadas[0].fecha, shift.fecha);
+});
+
+
+test('native backups omit auth tokens and migration never restores them', () => {
+  const saved = { [DATA_KEY]: JSON.stringify({ jornadas: [shift] }),
+    'sb-test-auth-token': 'secret-refresh-token', 'unrelated-password': 'secret',
+    ivory37_cloud_sync_owner_v1: 'owner-a' };
+  const qa = appHarness({ jornadas: [] }, { desktop: {
+    getLocalStorageSnapshot: () => JSON.stringify(saved), completeLocalStorageMigration: () => true
+  } });
+  qa.storage.set('sb-current-auth-token', 'active-session');
+  assert.equal(qa.storageSnapshot()['sb-current-auth-token'], undefined);
+  assert.equal(qa.restoreNativeStorage(), true);
+  assert.equal(qa.storage.has('sb-test-auth-token'), false);
+  assert.equal(qa.storage.has('unrelated-password'), false);
+  assert.equal(qa.storage.get('ivory37_cloud_sync_owner_v1'), 'owner-a');
+  assert.equal(qa.saved().jornadas.length, 1);
+});
+
+
+test('an overnight open shift stays accessible even beside a closed record for today', () => {
+  const now = new Date();
+  const key = d => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+  const qa = appHarness({ jornadas: [
+    { ...shift, id: 'today-closed', fecha: key(now), salida: '08:00' },
+    { ...shift, id: 'overnight', fecha: key(yesterday), entrada: '23:00', salida: '' }
+  ] });
+  const state = { textContent: '', dataset: {} };
+  const label = { textContent: '' };
+  const button = { dataset: { action: 'clock-in' }, hidden: false,
+    querySelector: selector => selector === 'span' ? label : { setAttribute() {} } };
+  qa.element('#hero-clock-state', state);
+  qa.element('#hero-clock-action', button);
+  qa.renderTodayClock();
+  assert.equal(button.hidden, false);
+  assert.equal(button.dataset.action, 'clock-out');
+  assert.equal(label.textContent, 'Fichar salida');
+  assert.equal(state.textContent, 'Trabajando');
 });

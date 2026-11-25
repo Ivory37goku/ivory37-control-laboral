@@ -1,6 +1,19 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+
+test('encrypted backup opens with the correct password and detects changes', async () => {
+  const tools = require('../backup-tools.js');
+  const original = JSON.stringify({ jornadas: [{ notas: 'Privado' }] });
+  const password = 'una-clave-larga-42';
+  const ciphertext = await tools.encrypt(original, password);
+  assert.equal(ciphertext.includes('Privado'), false);
+  const envelope = JSON.parse(ciphertext);
+  assert.equal(await tools.decrypt(envelope, password), original);
+  await assert.rejects(tools.decrypt(envelope, 'incorrecta-42'));
+  envelope.data = (envelope.data[0] === 'A' ? 'B' : 'A') + envelope.data.slice(1);
+  await assert.rejects(tools.decrypt(envelope, password));
+});
 const backupTools = require('../backup-tools.js');
 
 const isDateKey = value => {
@@ -35,4 +48,18 @@ test('backup import rejects malformed objects and impossible dates in every date
 test('backup import rejects an oversized shift list before any restore can start', () => {
   const oversized = { jornadas: Array.from({ length: 50001 }, () => ({ fecha: '2026-11-17' })) };
   assert.throws(() => backupTools.parse(JSON.stringify(oversized), isDateKey), /Demasiados/);
+});
+
+
+test('backup limits apply to every collection and their combined size', () => {
+  for (const collection of ['viajes', 'pagos', 'ausencias', 'ajustes']) {
+    assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: [], [collection]: Array(50001).fill({}) }), isDateKey), /Demasiados/);
+  }
+  assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: Array(25001).fill({ fecha: '2026-11-19' }), viajes: Array(25000).fill({ fecha: '2026-11-19' }) }), isDateKey), /Demasiados/);
+});
+
+test('malformed optional collections and records cannot silently erase imported data', () => {
+  for (const value of [{ viajes: {} }, { pagos: [null] }, { ausencias: ['text'] }, { ajustes: [{ valor: '1' }] }]) {
+    assert.throws(() => backupTools.parse(JSON.stringify({ jornadas: [], ...value }), isDateKey), /Formato/);
+  }
 });

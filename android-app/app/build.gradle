@@ -10,11 +10,42 @@ android {
         applicationId 'com.ivory37.controllaboral'
         minSdk 24
         targetSdk 34
-        versionCode 21
-        versionName '3.3.12'
+        versionCode 32
+        versionName '3.3.23'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    // Instalación aislada para QA: no comparte datos con la app del usuario.
+    testBuildType 'audit'
+    buildTypes {
+        release {
+            // Conserva la identidad de las APK anteriores; no es una clave nueva para Play Store.
+            signingConfig signingConfigs.debug
+            debuggable false
+            jniDebuggable false
+        }
+        preview {
+            initWith release
+            applicationIdSuffix '.preview'
+            versionNameSuffix '-preview'
+            matchingFallbacks = ['release']
+        }
+        audit {
+            initWith debug
+            applicationIdSuffix '.audit'
+            versionNameSuffix '-audit'
+            matchingFallbacks = ['debug']
+        }
     }
 }
 
 dependencies {
     implementation 'androidx.webkit:webkit:1.18.0'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
 }
+
+tasks.register('syncWebAssets', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine 'node', 'scripts/sync-android.cjs'
+}
+tasks.named('preBuild').configure { dependsOn 'syncWebAssets' }

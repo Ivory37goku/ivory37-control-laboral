@@ -15,6 +15,8 @@ Si dos registros del mismo mes ya están confirmados o editados a mano, se conse
 
 ## Comprobación automática
 
+La 3.3.20 añade `npm run test:ui` y `npm run test:reliability` para recorridos de interfaz y almacenamiento real. Android incluye pruebas instrumentadas de avisos mediante `connectedAuditAndroidTest`. Resultados, instrucciones y límites en [Fiabilidad 3.3.20](RELIABILITY-3.3.20.md).
+
 En la raíz del repositorio, con Node.js 22:
 
 ```sh

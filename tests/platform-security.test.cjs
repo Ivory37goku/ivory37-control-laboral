@@ -74,13 +74,27 @@ test('Android disables system backup, cleartext traffic and enforces network sec
   assert.match(netConf, /certificates src="system"/);
 });
 
+test('Android reminders use exact alarms with an explicit inexact fallback', () => {
+  const manifest = read('android-app/app/src/main/AndroidManifest.xml');
+  const receiver = read('android-app/app/src/main/java/com/ivory37/controllaboral/ReminderReceiver.java');
+  const activity = read('android-app/app/src/main/java/com/ivory37/controllaboral/MainActivity.java');
+  const html = read('index.html');
+  assert.match(manifest, /android\.permission\.SCHEDULE_EXACT_ALARM/);
+  assert.match(receiver, /canScheduleExactAlarms\(\)/);
+  assert.match(receiver, /setExactAndAllowWhileIdle/);
+  assert.match(receiver, /setAndAllowWhileIdle/);
+  assert.match(activity, /ACTION_REQUEST_SCHEDULE_EXACT_ALARM/);
+  assert.match(html, /Permitir hora exacta/);
+  assert.match(html, /Android puede retrasarlos/);
+});
+
 test('Web and Android HTML define a strict Content Security Policy meta tag', () => {
   for (const htmlPath of ['index.html', 'android-app/app/src/main/assets/index.html']) {
     const html = read(htmlPath);
     assert.match(html, /<meta http-equiv="Content-Security-Policy"/);
-    assert.match(html, /connect-src[^>]*https:\/\/\*\.supabase\.co/);
+    assert.match(html, /connect-src[^>]*https:\/\/vpdpketyattbmzghujmv\.supabase\.co/);
     assert.match(html, /object-src 'none'/);
-    assert.match(html, /base-uri 'self'/);
+    assert.match(html, /base-uri 'none'/);
   }
 });
 
@@ -95,4 +109,41 @@ test('Supabase sync tables enforce payload size limits, owner-scoped RLS and non
     assert.match(sql, new RegExp('check_payload_size_' + table, 'i'));
   }
   assert.match(sql, /revoke execute on function public\.rls_auto_enable\(\) from public, anon, authenticated/i);
+});
+
+
+test('the document blocks injected scripts, remote frames and form exfiltration', () => {
+  const html = read('index.html');
+  const policy = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+  assert.match(policy, /script-src 'self';/);
+  assert.doesNotMatch(policy, /unsafe-eval/);
+  for (const directive of ['object-src', 'frame-src', 'base-uri', 'form-action']) {
+    assert.ok(policy.includes(directive + " 'none'"));
+  }
+  assert.match(policy, /https:\/\/vpdpketyattbmzghujmv\.supabase\.co/);
+});
+
+
+test('desktop permissions deny media and foreign documents while retaining local notifications', () => {
+  const context = {
+    URL,
+    require(name) {
+      if (name === 'electron') return {
+        app: { setName() {}, setAppUserModelId() {}, setPath() {}, getPath: () => root,
+          getAppPath: () => root, commandLine: { getSwitchValue: () => '' },
+          whenReady: () => ({ then() {} }), on() {} },
+        ipcMain: { on() {}, handle() {} }
+      };
+      return require(name);
+    }
+  };
+  vm.runInNewContext(read('desktop/main.cjs') + '\nglobalThis.permissionTest = canUsePermission;', context);
+  const contents = { getURL: () => pathToFileURL(path.join(root, 'index.html')).href };
+  assert.equal(context.permissionTest(contents, 'notifications', { isMainFrame: true }, contents), true);
+  for (const permission of ['media', 'geolocation', 'clipboard-read', 'display-capture', 'unknown']) {
+    assert.equal(context.permissionTest(contents, permission, {}, contents), false);
+  }
+  assert.equal(context.permissionTest(contents, 'notifications', { requestingUrl: 'https://example.invalid/' }, contents), false);
+  assert.equal(context.permissionTest(contents, 'notifications', { isMainFrame: false }, contents), false);
+  assert.equal(context.permissionTest(null, 'notifications', {}, contents), false);
 });
