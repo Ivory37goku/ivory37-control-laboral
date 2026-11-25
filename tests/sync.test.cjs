@@ -51,6 +51,42 @@ const key = (collection, id) => collection + '|' + id;
 const metadata = (modified, deleted) => ({ modified: modified || {}, deleted: deleted || {} });
 const plain = value => JSON.parse(JSON.stringify(value));
 
+test('offline installments reconcile by ID and competing edits retain unrelated receipts', () => {
+  const { mergeData } = createSyncHarness().core;
+  const meta = { modified: {}, deleted: {} };
+  const row = (id, importe) => ({ id, importe, fecha: '2026-11-10' });
+  const data = abonos => ({ pagos: [{ id: 'payroll', tipo: 'nomina_auto', importe: 1000, abonos }] });
+  const base = data([row('existing', 50)]);
+  const addResult = mergeData(data([row('existing', 50), row('mobile', 100)]), data([row('existing', 50), row('pc', 200)]), meta, meta, base);
+  assert.equal(addResult.data.pagos[0].abonos.reduce((sum, part) => sum + part.importe, 0), 350);
+  assert.equal(addResult.conflicts.length, 0);
+  const conflictResult = mergeData(data([row('existing', 60), row('mobile', 100)]), data([row('existing', 70), row('pc', 200)]), meta, meta, base);
+  assert.equal(conflictResult.conflicts.length, 1);
+  assert.equal(conflictResult.conflicts[0].chosen.abonos.reduce((sum, part) => sum + part.importe, 0), 360);
+  assert.equal(conflictResult.conflicts[0].alternate.abonos.reduce((sum, part) => sum + part.importe, 0), 370);
+  const deletion = mergeData(data([]), data([row('existing', 50), row('pc', 200)]), meta, meta, base);
+  assert.equal(deletion.data.pagos[0].abonos.map(part => part.id).join(','), 'pc');
+  assert.equal(deletion.conflicts.length, 0);
+});
+
+test('field-by-field resolution preserves the selected mix and refuses to overwrite a newer edit', () => {
+  const { core, sync, localStorage } = createSyncHarness();
+  const local = { ...base, jornadas: [{ ...base.jornadas[0], salida: '17:00' }] };
+  const remote = { ...base, jornadas: [{ ...base.jornadas[0], notas: 'Desde PC' }] };
+  const merged = core.mergeData(local, remote, metadata(), metadata(), base);
+  const conflict = merged.conflicts[0];
+  localStorage.setItem('ivory37_cloud_sync_conflicts_v1', JSON.stringify([conflict]));
+  const storageKey = '工V龱尺ㄚ㇌7_data_v1';
+  const mixed = { ...conflict.chosen, notas: 'Desde PC' };
+  localStorage.setItem(storageKey, JSON.stringify({ ...local, jornadas: [{ ...local.jornadas[0], salida: '18:00' }] }));
+  assert.equal(sync.resolveConflict(conflict.id, mixed), false);
+  localStorage.setItem(storageKey, JSON.stringify(local));
+  assert.equal(sync.resolveConflict(conflict.id, mixed), true);
+  const [saved] = JSON.parse(localStorage.getItem(storageKey)).jornadas;
+  assert.equal(saved.salida, '17:00');
+  assert.equal(saved.notas, 'Desde PC');
+});
+
 test('logical revisions advance past an observed future clock for edits and deletions', () => {
   const h = createSyncHarness();
   const future = 9000000000000;

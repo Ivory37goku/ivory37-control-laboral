@@ -33,5 +33,20 @@
     return round2(Math.max(0, minutes - pause) / 60);
   }
 
-  return { toMinutes, minutesBetween, hoursBetween, netHoursBetween };
+  function interruptionMinutes(start, end, intervals) {
+    const duration = minutesBetween(start, end);
+    if (duration == null) return null;
+    let previousEnd = 0;
+    let total = 0;
+    for (const interval of intervals) {
+      const from = minutesBetween(start, interval.desde);
+      const to = minutesBetween(start, interval.hasta);
+      if (from == null || to == null || from < previousEnd || to <= from || to > duration) return null;
+      total += to - from;
+      previousEnd = to;
+    }
+    return total;
+  }
+
+  return { toMinutes, minutesBetween, hoursBetween, netHoursBetween, interruptionMinutes };
 });

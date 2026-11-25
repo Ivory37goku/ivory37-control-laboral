@@ -1,5 +1,19 @@
 # Cambios
 
+## 3.3.23 — Abonos y resolución de conflictos
+
+- Edición, eliminación e historial recuperable de abonos.
+- Reconciliación de abonos por identificador y combinación de campos de jornadas con vista previa de horas.
+- Capturas renovadas con datos ficticios.
+
+## 3.3.22 — Cierre mensual y jornadas flexibles
+
+- Cierre mensual con abonos, comparación de meses, fecha real de cobro, correcciones, anticipos, retenciones y complementos con tarifas fechadas.
+- Turnos partidos, pausas en directo, plantillas, reparto de horas por proyecto, compensación con descanso e historial de edición.
+- Resumen por periodo, pendientes, consulta de calendario, modo exterior y accesos directos Android.
+- Copias cifradas verificables, importación con vista previa, demostración aislada y diagnóstico sin datos personales.
+- Informes con opciones de privacidad, exportación mensual y justificantes locales.
+
 ## 3.3.21 — Aurora en toda la aplicación
 
 - Acabado visual común para Resumen, Jornadas, Viajes, Pagos y Ajustes.

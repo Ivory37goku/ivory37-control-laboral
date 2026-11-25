@@ -25,16 +25,24 @@ const fixture={jornadas,viajes:[
  {id:'trip-nov-2',fecha:'2026-11-19',concepto:'Desplazamiento · taller sur',importe:12.8,pagado:0,notas:'Transporte y aparcamiento.'}
 ],pagos:[
  {id:'pay-sept',fecha:'2026-09-30',mes_key:'2026-09',concepto:'Nómina septiembre de 2026',importe:900,tipo:'nomina_auto',confirmado:true,horas_normales_mes:72,dias_laborables:9},
- {id:'pay-oct',fecha:'2026-10-31',mes_key:'2026-10',concepto:'Nómina octubre de 2026',importe:1200,tipo:'nomina_auto',confirmado:true,horas_normales_mes:96,dias_laborables:12}
+ {id:'pay-oct',fecha:'2026-10-31',mes_key:'2026-10',concepto:'Nómina octubre de 2026',importe:1200,tipo:'nomina_auto',confirmado:true,horas_normales_mes:96,dias_laborables:12},
+ {id:'pay-nov',fecha:'2026-11-28',mes_key:'2026-11',concepto:'Nómina noviembre de 2026',importe:1200,tipo:'nomina_auto',confirmado:false,manual_edit:true,
+   abonos:[{id:'demo-abono-a',fecha:'2026-11-16',importe:300},{id:'demo-abono-b',fecha:'2026-11-23',importe:150}],
+   historial_abonos:[{id:'demo-correction',fecha:'2026-11-24T10:00:00Z',anterior:{id:'demo-abono-b',fecha:'2026-11-23',importe:125},siguiente:{id:'demo-abono-b',fecha:'2026-11-23',importe:150}}]}
 ],ausencias:[{id:'calendar-1',fecha:'2026-11-09',tipo:'vacaciones',concepto:'Día de vacaciones',notas:'Ejemplo ficticio.',grupo:'vacaciones-demo'},{id:'calendar-2',fecha:'2026-11-20',tipo:'descanso',concepto:'Descanso programado',notas:'Anotación de calendario.',grupo:'descanso-demo'}],ajustes:Object.entries(settings).map(([clave,valor])=>({clave,valor}))};
 app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'control-laboral-readme-')));
 app.whenReady().then(async()=>{
  const win=new BrowserWindow({show:false,width:1440,height:1000,webPreferences:{offscreen:true,nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:false}});
  const execute=code=>win.webContents.executeJavaScript(code);
- const shot=async name=>{await pause(1200);fs.writeFileSync(path.join(out,name),(await win.webContents.capturePage()).toJPEG(88));};
+ win.webContents.debugger.attach('1.3');
+ const capture=async()=> {
+   const {data}=await win.webContents.debugger.sendCommand('Page.captureScreenshot',{format:'png',fromSurface:true});
+   return require('electron').nativeImage.createFromBuffer(Buffer.from(data,'base64'));
+ };
+ const shot=async name=>{await pause(900);fs.writeFileSync(path.join(out,name),(await capture()).toJPEG(88));};
  const tab=async name=>{await execute(`document.querySelector('[data-action="tab"][data-tab="${name}"]').click()`);await pause(650);};
  const scroll=async selector=>{await execute(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'start',behavior:'instant'});window.scrollBy(0,-12);`);await pause(100);};
- const crop=async(selector,name)=>{await scroll(selector);const r=await execute(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:Math.max(0,Math.floor(r.x)),y:Math.max(0,Math.floor(r.y)),width:Math.ceil(r.width),height:Math.min(innerHeight-Math.max(0,Math.floor(r.y)),Math.ceil(r.height))};})()`);fs.writeFileSync(path.join(out,name),(await win.webContents.capturePage(r)).toJPEG(90));};
+ const crop=async(selector,name)=>{await scroll(selector);await shot(name);};
  try {
   await win.loadFile(path.join(root,'index.html'));
   await execute(`(async()=>{await window.IVORY37Storage.ready; window.IVORY37Storage.setItem(${JSON.stringify(KEY)},${JSON.stringify(JSON.stringify(fixture))}); await window.IVORY37Storage.flush();})()`);
@@ -44,6 +52,11 @@ app.whenReady().then(async()=>{
   await shot('windows.jpg');await shot('dashboard.jpg');
   await crop('.dash-overtime','extras-mensuales.jpg');
   for(const name of ['jornadas','pagos','viajes','ajustes']){await tab(name);await shot(name+'.jpg');}
+  await tab('pagos');
+  await execute(`document.querySelector('[data-action="confirm-payroll"][data-id="pay-nov"]').click();document.querySelector('#modal details').open=true;`);
+  await shot('historial-abonos.jpg');
+  await execute(`document.querySelector('#modal [data-action="close-modal"]').click();`);
+  await tab('ajustes');
   await crop('#cloud-password-help','password-policy-hint.jpg');
   await execute(`document.getElementById('cloud-password').closest('article').scrollIntoView({block:'start',behavior:'instant'})`);await shot('nube.jpg');
   await tab('jornadas');

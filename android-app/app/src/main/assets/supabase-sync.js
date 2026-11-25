@@ -175,6 +175,39 @@
     return (hash >>> 0).toString(36);
   }
 
+  function mergeInstallments(left, right, base) {
+    if (!base || left.confirmado || right.confirmado || base.confirmado) return null;
+    if (![left, right, base].some(row => Array.isArray(row.abonos))) return null;
+    const header = row => {
+      const copy = { ...row };
+      delete copy.abonos;
+      delete copy.historial_abonos;
+      delete copy.manual_edit;
+      return copy;
+    };
+    if (!sameBusinessRecord(header(left), header(right))) return null;
+    const asMap = rows => new Map((rows || []).map(row => [String(row.id), row]));
+    const a = asMap(left.abonos), b = asMap(right.abonos), original = asMap(base.abonos);
+    const chosen = [], alternate = [];
+    for (const id of [...new Set([...a.keys(), ...b.keys(), ...original.keys()])].sort()) {
+      const l = a.get(id) || null, r = b.get(id) || null, old = original.get(id) || null;
+      const leftChanged = !sameBusinessRecord(l, old);
+      const rightChanged = !sameBusinessRecord(r, old);
+      const first = leftChanged ? l : r;
+      const second = rightChanged ? r : l;
+      if (first) chosen.push(first);
+      if (second) alternate.push(second);
+    }
+    const cents = rows => rows.reduce((sum, row) => sum + Math.round(Number(row.importe) * 100), 0);
+    const limit = Math.round(Number(left.importe) * 100);
+    if (cents(chosen) > limit || cents(alternate) > limit) return null;
+    const history = [...asMap([...(left.historial_abonos || []), ...(right.historial_abonos || [])]).values()]
+      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id))).slice(-50);
+    const payment = { ...left, manual_edit: Boolean(left.manual_edit || right.manual_edit) };
+    if (history.length) payment.historial_abonos = history;
+    return { chosen: { ...payment, abonos: chosen }, alternate: { ...payment, abonos: alternate } };
+  }
+
   function collectConflicts(local, remote, localMeta, remoteMeta, baseInput) {
     var base = normalizeData(baseInput || {});
     var found = [];
@@ -194,8 +227,10 @@
         // device's working copy and expose the cloud edit as the alternative;
         // device clocks must not silently decide which jornada disappears.
         var winner = 'local';
-        var chosen = localItem;
-        var alternate = remoteItem;
+        var installments = collection === 'pagos' && mergeInstallments(localItem, remoteItem, baseItem);
+        var chosen = installments ? installments.chosen : localItem;
+        var alternate = installments ? installments.alternate : remoteItem;
+        if (sameBusinessRecord(chosen, alternate)) return;
         found.push({
           id: key + ':' + localRevision + ':' + remoteRevision + ':' + smallHash(localItem) + ':' + smallHash(remoteItem),
           collection: collection, itemId: id, createdAt: Date.now(), winner: winner,
@@ -327,7 +362,10 @@
           else { selected = remoteItem; selectedAt = remoteRevision; }
         } else if (localItem) { selected = localItem; selectedAt = localRevision; }
         else if (remoteItem) { selected = remoteItem; selectedAt = remoteRevision; }
-        if (selected && deletedAt <= selectedAt) merged[collection].push(selected);
+        if (selected && deletedAt <= selectedAt) {
+          const installments = collection === 'pagos' && localItem && remoteItem && mergeInstallments(localItem, remoteItem, baseItem);
+          merged[collection].push(installments ? installments.chosen : selected);
+        }
       });
     });
     return { data: normalizeData(merged), meta: combinedMeta, conflicts: collectConflicts(local, remote, localMeta, remoteMeta, baseInput) };
@@ -493,6 +531,7 @@
     var pending = conflictLog.filter(function (item) { return !item.resolved; }).length;
     if (pending) showStatus('Sincronizado · ' + pending + ' conflicto(s) por revisar', 'error');
     else if (!quiet || changed) showStatus('Sincronizado', 'ok');
+    window.dispatchEvent(new CustomEvent('ivory37:sync-acknowledged'));
   }
 
   function syncNow(options) {
@@ -730,12 +769,15 @@
   function resolveConflict(id, restoreAlternate) {
     var conflicts = cleanConflicts(readJson(CONFLICT_KEY, []));
     var conflict = conflicts.find(function (item) { return item.id === String(id); });
-    if (!conflict) return false;
+    if (!conflict || conflict.resolved) return false;
     var data = normalizeData(readJson(LOCAL_KEY, {}));
     if (restoreAlternate) {
       var rows = data[conflict.collection] || [];
       var index = rows.findIndex(function (item) { return conflict.collection === 'ausencias' ? String(item.fecha) === conflict.itemId : String(item.id) === conflict.itemId; });
-      if (index >= 0) rows[index] = clone(conflict.alternate);
+      const custom = typeof restoreAlternate === 'object';
+      if (custom && (conflict.collection !== 'jornadas' || index < 0 || !sameBusinessRecord(rows[index], conflict.chosen))) return false;
+      if (conflict.collection === 'pagos' && index >= 0 && !sameBusinessRecord(rows[index], conflict.chosen)) return false;
+      if (index >= 0) rows[index] = clone(custom ? restoreAlternate : conflict.alternate);
       else rows.push(clone(conflict.alternate));
       data[conflict.collection] = rows;
       writeJson(LOCAL_KEY, data);
@@ -748,7 +790,13 @@
     return true;
   }
 
-  window.IVORY37CloudSync = { init: init, queue: queue, syncNow: syncNow, getConflicts: function () { return cleanConflicts(readJson(CONFLICT_KEY, [])); }, resolveConflict: resolveConflict };
+  function jornadaSyncStatus(record) {
+    if (!session || !session.user || localStorage.getItem(OWNER_KEY) !== session.user.id) return 'Guardada en este dispositivo';
+    const acknowledged = sharedBaseSnapshot && sharedBaseSnapshot.jornadas.find(row => String(row.id) === String(record.id));
+    return lastSuccess && acknowledged && sameBusinessRecord(acknowledged, record) ? 'Sincronizada' : 'Pendiente de sincronizar';
+  }
+
+  window.IVORY37CloudSync = { jornadaSyncStatus: jornadaSyncStatus, init: init, queue: queue, syncNow: syncNow, getConflicts: function () { return cleanConflicts(readJson(CONFLICT_KEY, [])); }, resolveConflict: resolveConflict };
   window.addEventListener('ivory37:cloud-data', function (event) {
     if (!event.detail) return;
     var current = normalizeData(event.detail);

@@ -16,7 +16,7 @@ test('Android packaged web scripts match web release', () => {
 
 test('Android runs the installed app bundle and migrates hosted data only once', () => {
   const activity = read('android-app/app/src/main/java/com/ivory37/controllaboral/MainActivity.java');
-  assert.match(activity, /webView\.loadUrl\(pendingShadowMigration \? LOCAL_URL \+ "\?nativeRestore=1" : LOCAL_URL\)/);
+  assert.match(activity, /webView\.loadUrl\(pendingShadowMigration \? LOCAL_URL \+ "\?nativeRestore=1" : localStartUrl\(\)\)/);
   assert.match(activity, /LOCAL_STORAGE_MIGRATED_KEY/);
   assert.match(activity, /completeLocalStorageMigration/);
   assert.doesNotMatch(activity, /HOSTED_URL|HOSTED_HOST|beginHostedApp/);

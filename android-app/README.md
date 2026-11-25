@@ -31,3 +31,6 @@ Esta compilación conserva deliberadamente **la clave de firma heredada de las A
 WebView sirve los archivos incluidos en la APK con `WebViewAssetLoader`. La sincronización opcional utiliza Supabase por HTTPS. Los cambios del panel llegan a Android al reconstruir la APK.
 
 El proyecto necesita internet la primera vez para descargar Gradle y las dependencias de compilación. La APK final no lo necesita para abrir la app.
+## APK de prueba 3.3.23
+
+`gradlew.bat assemblePreview` genera una APK con depuración desactivada y el identificador `com.ivory37.controllaboral.preview`. Aparece como **Control Laboral · Prueba** y puede convivir con la instalación anterior. Empieza con su propio almacenamiento. Para actualizar la instalación habitual hace falta firmar con el certificado de esa instalación.

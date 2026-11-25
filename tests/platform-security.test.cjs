@@ -74,6 +74,20 @@ test('Android disables system backup, cleartext traffic and enforces network sec
   assert.match(netConf, /certificates src="system"/);
 });
 
+test('Android reminders use exact alarms with an explicit inexact fallback', () => {
+  const manifest = read('android-app/app/src/main/AndroidManifest.xml');
+  const receiver = read('android-app/app/src/main/java/com/ivory37/controllaboral/ReminderReceiver.java');
+  const activity = read('android-app/app/src/main/java/com/ivory37/controllaboral/MainActivity.java');
+  const html = read('index.html');
+  assert.match(manifest, /android\.permission\.SCHEDULE_EXACT_ALARM/);
+  assert.match(receiver, /canScheduleExactAlarms\(\)/);
+  assert.match(receiver, /setExactAndAllowWhileIdle/);
+  assert.match(receiver, /setAndAllowWhileIdle/);
+  assert.match(activity, /ACTION_REQUEST_SCHEDULE_EXACT_ALARM/);
+  assert.match(html, /Permitir hora exacta/);
+  assert.match(html, /Android puede retrasarlos/);
+});
+
 test('Web and Android HTML define a strict Content Security Policy meta tag', () => {
   for (const htmlPath of ['index.html', 'android-app/app/src/main/assets/index.html']) {
     const html = read(htmlPath);

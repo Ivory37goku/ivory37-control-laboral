@@ -1,6 +1,19 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+
+test('encrypted backup opens with the correct password and detects changes', async () => {
+  const tools = require('../backup-tools.js');
+  const original = JSON.stringify({ jornadas: [{ notas: 'Privado' }] });
+  const password = 'una-clave-larga-42';
+  const ciphertext = await tools.encrypt(original, password);
+  assert.equal(ciphertext.includes('Privado'), false);
+  const envelope = JSON.parse(ciphertext);
+  assert.equal(await tools.decrypt(envelope, password), original);
+  await assert.rejects(tools.decrypt(envelope, 'incorrecta-42'));
+  envelope.data = (envelope.data[0] === 'A' ? 'B' : 'A') + envelope.data.slice(1);
+  await assert.rejects(tools.decrypt(envelope, password));
+});
 const backupTools = require('../backup-tools.js');
 
 const isDateKey = value => {

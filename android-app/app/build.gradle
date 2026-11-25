@@ -10,8 +10,8 @@ android {
         applicationId 'com.ivory37.controllaboral'
         minSdk 24
         targetSdk 34
-        versionCode 30
-        versionName '3.3.21'
+        versionCode 32
+        versionName '3.3.23'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
@@ -23,6 +23,12 @@ android {
             signingConfig signingConfigs.debug
             debuggable false
             jniDebuggable false
+        }
+        preview {
+            initWith release
+            applicationIdSuffix '.preview'
+            versionNameSuffix '-preview'
+            matchingFallbacks = ['release']
         }
         audit {
             initWith debug

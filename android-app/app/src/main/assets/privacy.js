@@ -1,6 +1,7 @@
 /* Optional local screen lock. This is not encryption of the device profile. */
 (function () {
   'use strict';
+  if (new URLSearchParams(location.search).get('demo') === '1') return;
   const storage = window.IVORY37Storage;
   const key = 'ivory37_local_lock_v1';
   let blockedUntil = 0;

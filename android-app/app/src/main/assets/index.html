@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0f0d">
-  <meta name="app-version" content="3.3.21">
+  <meta name="app-version" content="3.3.23">
 <meta name="description" content="Control de jornadas, horas extra, viajes y nóminas. Funciona sin conexión y sincroniza tus dispositivos con tu cuenta.">
 <meta name="application-name" content="Control Laboral">
 <meta property="og:title" content="Control Laboral">
@@ -1713,10 +1713,12 @@ body::before {
     </header>
 
     <main id="main">
+      <div class="card" id="demo-banner" role="status" hidden><strong>Demostración · Datos ficticios</strong> <button class="btn ghost sm" type="button" data-action="exit-demo">Volver a mis datos</button></div>
 
       <!-- ============ DASHBOARD 3.0 ============ -->
       <section class="panel aurora-dashboard aurora-refined" data-tab-panel="dashboard">
 
+        <article class="card period-summary"><label class="field"><span>Actividad del periodo</span><select class="input" id="dashboard-period"><option value="today">Hoy</option><option value="week">Semana</option><option value="month">Mes</option></select></label><p id="dashboard-period-summary" aria-live="polite"></p><div id="dashboard-period-chart" class="period-chart" aria-label="Horas por día" hidden></div></article>
         <div class="dash-hero">
           <div class="dash-hero-top">
             <div>
@@ -1737,6 +1739,7 @@ body::before {
             <span class="big" id="hero-today-hours">0,00 h</span>
             <span class="meta" id="hero-today-meta">Sin fichar</span>
             <div class="today-clock-actions">
+            <button type="button" class="btn ghost" id="hero-pause" data-action="live-pause" hidden>Iniciar pausa</button>
             <button class="btn primary aurora-clock-button" type="button" data-action="clock-in" id="hero-clock-action">
               <svg class="i" aria-hidden="true"><use href="#i-login"></use></svg>
               <span>Fichar entrada</span>
@@ -1748,6 +1751,7 @@ body::before {
           </div>
         </div>
 
+        <section id="review-queue" class="card" hidden></section>
         <div class="qa-grid">
           <button class="qa-btn" type="button" data-action="add-extra-quick" style="--tone:#fbbf24">
             <span class="qa-icon"><svg class="i"><use href="#i-bolt"></use></svg></span>
@@ -1904,6 +1908,7 @@ body::before {
 
       <!-- ============ JORNADAS ============ -->
       <section class="panel" data-tab-panel="jornadas" hidden>
+        <label class="field"><span>Filtrar por mes</span><input class="input" type="month" id="jornadas-month"></label><label class="field"><span>Empresa, obra o proyecto</span><input class="input" type="search" id="jornadas-project"></label><button class="btn ghost sm" type="button" data-action="save-shift-template">Crear plantilla de jornada</button><button class="btn ghost sm" type="button" data-action="export-project-hours">Exportar horas por proyecto</button>
         <header class="page-head">
           <div><p class="eyebrow">Registro</p><h1>Jornadas</h1></div>
           <div class="head-actions">
@@ -1917,6 +1922,8 @@ body::before {
 
         <article class="card" style="margin-bottom:16px">
           <div class="chart-head"><div><h2>Calendario e incidencias</h2><p class="hint" style="margin:3px 0 0">Registra descansos, vacaciones, bajas y festivos. No modifica jornadas ni calcula derechos salariales.</p></div><button class="btn ghost sm" type="button" data-action="new-calendar-entry"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg> Añadir fecha</button></div>
+          <label class="field"><span>Consultar un día</span><input type="date" class="input" id="calendar-inspect"></label>
+          <div id="calendar-day-detail"></div>
           <div class="list" id="calendar-list"></div>
           <div class="empty" id="calendar-empty" hidden></div>
         </article>
@@ -1964,6 +1971,7 @@ body::before {
 
       <!-- ============ PAGOS ============ -->
       <section class="panel" data-tab-panel="pagos" hidden>
+        <article class="card" id="monthly-closing"></article>
         <header class="page-head">
           <div><p class="eyebrow">Finanzas</p><h1>Pagos</h1></div>
           <div class="head-actions"><button class="btn ghost" type="button" data-action="recalc"><svg class="i" aria-hidden="true"><use href="#i-refresh"></use></svg> Recalcular</button></div>
@@ -2116,9 +2124,9 @@ body::before {
           <details style="margin-top:16px"><summary>Recuperar contraseña</summary><p class="hint">Solicita el correo de recuperación. Abre su enlace y pega aquí la dirección final de la página, o el código si tu correo lo incluye. Nunca compartas ese enlace.</p><button class="btn ghost sm" id="cloud-reset" type="button">Enviar recuperación</button><label class="field"><span>Código o dirección final de recuperación</span><input class="input" id="cloud-recovery-token" type="password" autocomplete="off"></label><label class="field"><span>Nueva contraseña</span><input class="input" id="cloud-new-password" type="password" autocomplete="new-password"></label><button class="btn primary sm" id="cloud-update-password" type="button">Cambiar contraseña</button></details><div id="sync-conflicts" class="list" style="margin-top:12px" aria-live="polite"></div>
         </article>
 
-        <article class="card" style="margin-top:16px"><h2>Privacidad y recordatorios</h2><p class="hint">Activa los avisos desde el botón de notificaciones. En Android funcionan con la app cerrada; el ahorro de batería puede retrasarlos. Se usa tu horario habitual y se comprueba el último fichaje conocido en este dispositivo.</p><button class="btn ghost sm" id="disable-reminders" type="button">Desactivar recordatorios</button><div id="local-lock-settings"></div><h3>Versión y actualizaciones</h3><button class="btn ghost sm" id="check-release" type="button">Comprobar actualización</button><p id="release-status" role="status">Las actualizaciones se instalan conservando el perfil de datos.</p><a class="btn primary sm" id="release-download" hidden rel="noopener noreferrer">Abrir descarga oficial</a></article>
+        <article class="card" style="margin-top:16px"><h2>Privacidad y recordatorios</h2><p class="hint">Activa los avisos desde el botón de notificaciones. En Android funcionan con la app cerrada; el ahorro de batería puede retrasarlos. Se usa tu horario habitual y se comprueba el último fichaje conocido en este dispositivo.</p><button class="btn ghost sm" id="disable-reminders" type="button">Desactivar recordatorios</button><label class="switch"><input type="checkbox" id="outdoor-toggle"><span><b>Modo exterior</b><small>Más contraste y botones de fichaje más grandes.</small></span></label><label class="field"><span>Objetivo semanal (horas)</span><input id="weekly-goal" class="input" type="number" min="1" max="168" step="0.5"></label><label class="switch"><input type="checkbox" id="extras-first"><span><b>Mostrar primero las horas extra</b></span></label><label class="switch"><input type="checkbox" id="review-month-end"><span><b>Recordatorio de revisión al final del mes</b></span></label><div id="local-lock-settings"></div><h3>Versión y actualizaciones</h3><button class="btn ghost sm" id="check-release" type="button">Comprobar actualización</button><p id="release-status" role="status">Las actualizaciones se instalan conservando el perfil de datos.</p><a class="btn primary sm" id="release-download" hidden rel="noopener noreferrer">Abrir descarga oficial</a></article>
         <article class="card" id="data-card" style="margin-top:16px">
-          <h2 style="margin-bottom:14px">Datos y copias</h2><button class="btn ghost sm" type="button" data-action="restore-previous">Restaurar copia previa</button><button class="btn ghost sm" id="undo-delete" type="button" hidden>Deshacer último borrado</button>
+          <h2 style="margin-bottom:14px">Datos y copias</h2><button class="btn ghost sm" type="button" data-action="enter-demo">Probar con datos ficticios</button><button class="btn ghost sm" type="button" data-action="export-encrypted">Guardar copia cifrada</button><button class="btn ghost sm" type="button" data-action="safe-diagnostics">Exportar diagnóstico sin datos personales</button><button class="btn ghost sm" type="button" data-action="restore-previous">Restaurar copia previa</button><button class="btn ghost sm" id="undo-delete" type="button" hidden>Deshacer último borrado</button>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
             <button class="btn ghost" type="button" data-action="export-json"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg> Backup JSON</button>
             <label class="btn ghost" style="cursor:pointer"><svg class="i" aria-hidden="true"><use href="#i-upload"></use></svg> Restaurar<input type="file" id="import-file" accept="application/json,.json" hidden></label>
@@ -2137,9 +2145,10 @@ body::before {
           <h2 style="margin-bottom:10px">Avisos</h2>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn ghost" type="button" data-action="request-notif"><svg class="i" aria-hidden="true"><use href="#i-bell"></use></svg> Activar recordatorios</button>
-            <span class="muted small" id="notif-state">Sin comprobar</span>
+            <span class="muted small">Notificaciones: <b id="notif-state">Sin comprobar</b> · Horario: <b id="reminder-timing-state">Sin comprobar</b></span>
+            <button class="btn ghost sm" id="request-exact-reminders" type="button" data-action="request-exact-reminders" hidden>Permitir hora exacta</button>
           </div>
-          <p class="hint" style="margin:8px 0 0">Aviso a las 08:00 si no has fichado y a las 16:00 si no has cerrado la jornada. Requiere que la app esté abierta.</p>
+          <p class="hint" style="margin:8px 0 0">Usa las horas de entrada y salida de tu horario habitual. En Android, el acceso «Alarmas y recordatorios» permite avisar a la hora exacta incluso con la app cerrada. Si no lo concedes, los avisos seguirán activos, pero Android puede retrasarlos por el ahorro de batería.</p>
         </article>
 
         <p class="muted small" style="margin-top:18px">Versión <span id="app-version"></span> · Datos locales y sincronización opcional · Funciona sin conexión</p>

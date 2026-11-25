@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  Código documentado <strong>3.3.21</strong>
+  Código documentado <strong>3.3.23</strong>
   &nbsp;·&nbsp; <a href="LICENSE">Licencia MIT</a>
   &nbsp;·&nbsp; Creado por <strong>工V龱尺ㄚ㇌7</strong>
 </p>
@@ -53,6 +53,10 @@ Control Laboral reúne el tiempo trabajado y el seguimiento económico en un pan
 <a id="novedades"></a>
 ## Una jornada más clara. Una base más cuidada.
 
+La **3.3.23** permite editar y eliminar abonos, recuperar correcciones anteriores y combinar campos de una jornada en conflicto con una vista previa de las horas. Los abonos separados de una misma nómina se conservan al reconciliar cambios sin conexión. La 3.3.22 incorporó cierre mensual, turnos partidos, pausas en directo, compensación con descanso y copias cifradas.
+
+![Historial de abonos con importes ficticios](docs/historial-abonos.jpg)
+
 La **3.3.21** extiende Aurora a toda la aplicación: panel más ordenado en móvil, horas extra protagonistas y formularios, listados y ajustes con el mismo acabado. Conserva el guardado duradero y las protecciones de la 3.3.20. [Ver la revisión visual y la prueba de recuperación gratuita](docs/AURORA-3.3.21.md).
 
 <table>
@@ -71,7 +75,7 @@ La **3.3.21** extiende Aurora a toda la aplicación: panel más ordenado en móv
 **También en esta entrega:** migración verificada a IndexedDB, copia previa recuperable, deshacer borrados, PIN local opcional, recuperación de contraseña, recordatorios nativos Android y consulta de versiones publicadas. Consulta el [informe de fiabilidad y sus límites](docs/RELIABILITY-3.3.20.md). Se conserva la validación de copias con un límite conjunto de 50.000 registros, actualización de la copia nativa tras restaurar y APK con depuración desactivada, conservando su firma anterior.
 
 <p align="center">
-  <strong>86 pruebas de regresión</strong> &nbsp;·&nbsp;
+  <strong>92 pruebas de regresión</strong> &nbsp;·&nbsp;
   <strong>26 comprobaciones RLS en Supabase</strong> &nbsp;·&nbsp;
   <strong>0 avisos en la auditoría npm</strong><br>
   <sub>Resultados del alcance documentado. Las pruebas RLS se realizaron en la revisión 3.3.16. La suite y los recorridos de fiabilidad corresponden a la 3.3.20; los detalles y límites están documentados en su informe.</sub>
@@ -80,7 +84,7 @@ La **3.3.21** extiende Aurora a toda la aplicación: panel más ordenado en móv
 <a id="capturas"></a>
 ## Así se ve Control Laboral
 
-**Vista de escritorio · Panel Aurora · 3.3.21**
+**Vista de escritorio · Panel Aurora · 3.3.23**
 
 <img src="docs/windows.jpg" alt="Aplicación Windows con el panel Aurora y datos ficticios de jornadas, extras y cobros" width="100%">
 
@@ -319,7 +323,7 @@ El resultado queda en `android-app/app/build/outputs/apk/release/app-release.apk
 
 ### Comprobaciones
 
-`npm run check` valida la sintaxis y ejecuta las **86 pruebas** de horas, tarifas, calendario, copias, exportación, sincronización simulada, sesiones y regresiones de guardado y nóminas. La [auditoría de seguimiento 3.3.19](docs/AUDIT-3.3.19.md) detalla las correcciones de importes, PDF y avisos nativos, conservación de jornadas, UUID y caché de tarifas, además de los pendientes.
+`npm run check` valida la sintaxis y ejecuta las **92 pruebas** de horas, tarifas, calendario, copias, exportación, sincronización simulada, sesiones y regresiones de guardado y nóminas. La [auditoría de seguimiento 3.3.19](docs/AUDIT-3.3.19.md) detalla las correcciones de importes, PDF y avisos nativos, conservación de jornadas, UUID y caché de tarifas, además de los pendientes.
 
 `npm run test:reliability` prueba migración, aborto de transacciones, concurrencia entre ventanas, almacenamiento de 7 MB con reinicio y PIN. El recorrido de interfaz está en `scripts/qa-ui.cjs` y se ejecuta con `npm run test:ui`; la prueba RLS transaccional, en `supabase/tests/rls-isolation.sql`. El paquete Android de auditoría usa un identificador separado para mantener aislados los datos de prueba. `npm run sync:android` copia los recursos web; Gradle también lo ejecuta antes de compilar.
 

@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
-/** One-shot inexact alarms: no continuously running service or paid provider. */
+/** One-shot alarms: exact when Android grants access, inexact otherwise. */
 public final class ReminderReceiver extends BroadcastReceiver {
     private static final String PREFS = "labor_reminders";
     private static final String CHANNEL = "control_laboral_reminders";
@@ -47,7 +47,12 @@ public final class ReminderReceiver extends BroadcastReceiver {
                 next.set(Calendar.HOUR_OF_DAY, minute / 60); next.set(Calendar.MINUTE, minute % 60);
                 next.set(Calendar.SECOND, 0); next.set(Calendar.MILLISECOND, 0);
                 if (next.getTimeInMillis() <= System.currentTimeMillis()) next.add(Calendar.DATE, 1);
-                alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pending);
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()) {
+                    alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pending);
+                } else {
+                    // Keep reminders useful when the user declines Android's special exact-alarm access.
+                    alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), pending);
+                }
             }
         } catch (Exception ignored) { /* Unconfigured installations have no alarms. */ }
     }

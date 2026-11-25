@@ -15,12 +15,19 @@ async function scenarios(evaluate, reload) {
   assert.deepEqual(first,{count:1,action:'clock-in'});
   await run(`document.getElementById('hero-clock-action').click();`);
   assert.equal(await run(`return document.getElementById('hero-clock-action').dataset.action;`),'clock-out');
+  await run(`document.getElementById('hero-pause').click();`);
+  assert.equal(await run(`return document.getElementById('hero-clock-state').textContent;`), 'En pausa');
+  await reload();
+  assert.equal(await run(`return document.getElementById('hero-pause').textContent;`), 'Volver al trabajo');
+  await run(`document.getElementById('hero-pause').click();`);
   await run(`document.getElementById('hero-clock-action').click();`);
   assert.equal(await run(`return document.getElementById('hero-clock-action').hidden;`),true);
   assert.equal(await run(`return document.getElementById('hero-manual-action').dataset.action;`),'edit-jornada');
   await run(`document.getElementById('hero-manual-action').click();const fields={'f-entrada':'08:00','f-salida':'17:00','f-normales':'8','f-extra':'1','f-pausa':'0','f-estado':'confirmado','f-notas':'<img id="qa-xss" src=x onerror="window.qaXSS=true">'};for(const [id,value] of Object.entries(fields))document.getElementById(id).value=value;document.getElementById('modal-save').click();`);
   const saved = await run(`const d=JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)}));return {count:d.jornadas.length,extra:d.jornadas[0].horas_extra,normal:d.jornadas[0].horas_normales};`);
   assert.deepEqual(saved,{count:1,extra:1,normal:8});
+  await run(`document.getElementById('hero-manual-action').click(); document.getElementById('f-salida').value='21:00'; document.getElementById('shift-gaps').value='12:00-16:00'; document.getElementById('modal-save').click();`);
+  assert.deepEqual(await run(`const shift=JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).jornadas[0]; return [shift.horas_normales,shift.horas_extra,shift.interrupciones.length];`), [8,1,1]);
   await run(`document.querySelector('[data-tab-panel="dashboard"] [data-action="new-trip"]').click();document.getElementById('t-concepto').value='Visita ficticia';document.getElementById('t-importe').value='12,50';document.getElementById('t-notas').value='<img id="qa-xss-trip" src=x onerror="window.qaXSS=true">';document.getElementById('modal-save').click();`);
   for (const tab of ['jornadas','viajes','pagos','ajustes','dashboard']) {
     const result=await run(`document.querySelector('[data-action="tab"][data-tab="${tab}"]').click();return {visible:[...document.querySelectorAll('[data-tab-panel]')].filter(el=>!el.hidden).map(el=>el.dataset.tabPanel),overflow:document.documentElement.scrollWidth>innerWidth+1,xss:Boolean(document.getElementById('qa-xss')||document.getElementById('qa-xss-trip')||window.qaXSS)};`);
@@ -28,6 +35,20 @@ async function scenarios(evaluate, reload) {
   }
   await run(`document.querySelector('[data-action="tab"][data-tab="pagos"]').click();document.querySelector('[data-action="confirm-payroll"]').click();`);
   assert.equal(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos.some(row=>row.confirmado);`), true);
+  await run(`document.querySelector('[data-action="unconfirm-payroll"]').click();`);
+  await run(`document.querySelector('[data-action="partial-payroll"]').click();document.getElementById('partial-amount').value='25,50';document.getElementById('modal-save').click();`);
+  assert.equal(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos[0].abonos[0].importe;`), 25.5);
+  assert.match(await run(`return document.getElementById('monthly-closing').textContent;`), /25,50/);
+  await run(`document.querySelector('[data-action="confirm-payroll"]').click();document.querySelector('[data-action="edit-installment"]').click();document.getElementById('partial-amount').value='30,25';document.getElementById('modal-save').click();`);
+  assert.equal(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos[0].abonos[0].importe;`), 30.25);
+  await run(`document.querySelector('[data-action="confirm-payroll"]').click();document.getElementById('partial-amount').value='5';document.getElementById('modal-save').click();`);
+  await run(`document.querySelector('[data-action="confirm-payroll"]').click();const rows=document.querySelectorAll('[data-action="edit-installment"]');rows[1].click();document.getElementById('modal-delete').click();`);
+  await run(`document.getElementById('modal-save').click();`);
+  assert.deepEqual(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos[0].abonos.map(a=>a.importe);`), [30.25]);
+  await run(`document.querySelector('[data-action="confirm-payroll"]').click();const restore=[...document.querySelectorAll('[data-action="restore-installment"]')].find(button=>button.parentElement.textContent.includes('25,50'));restore.click();`);
+  await run(`return 0;`);
+  assert.deepEqual(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos[0].abonos.map(a=>a.importe);`), [25.5]);
+  await run(`document.querySelector('[data-action="edit-installment"]').click();document.getElementById('partial-amount').value='30,25';document.getElementById('modal-save').click();`);
   await run(`document.querySelector('[data-action="tab"][data-tab="viajes"]').click();document.querySelector('[data-action="delete-trip"]').click();document.getElementById('modal-save').click();`);
   assert.equal(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).viajes.length;`), 0);
   await run(`document.querySelector('[data-action="tab"][data-tab="ajustes"]').click();document.getElementById('undo-delete').click();`);
@@ -40,6 +61,7 @@ async function scenarios(evaluate, reload) {
   await reload();
   const restored=await run(`const d=JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)}));return {jornadas:d.jornadas.length,viajes:d.viajes.length,extra:d.jornadas[0].horas_extra,importe:d.viajes[0].importe,modal:document.getElementById('modal').hidden};`);
   assert.deepEqual(restored,{jornadas:1,viajes:1,extra:1,importe:12.5,modal:true});
+  assert.equal(await run(`return JSON.parse(window.IVORY37Storage.getItem(${JSON.stringify(KEY)})).pagos[0].abonos[0].importe;`), 30.25);
   return {clock:'PASS',manualEdit:'PASS',payrollConfirmation:'PASS',deleteAndUndo:'PASS',fiveTabs:'PASS',htmlEscaping:'PASS',backupRestoreAndRestart:'PASS',restored};
 }
 async function android() {
@@ -108,6 +130,13 @@ async function desktop() {
   const evaluate=expression=>window.webContents.executeJavaScript(expression);
   const reload=async()=>{await window.loadFile(path.resolve(__dirname,'../index.html'));};
   try {await reload();const result=await scenarios(evaluate,reload);
+    const liveBeforeDemo = await evaluate(`window.IVORY37Storage.getItem(${JSON.stringify(KEY)})`);
+    await window.loadFile(path.resolve(__dirname,'../index.html'), { query: { demo: '1' } });
+    assert.equal(await evaluate("document.getElementById('demo-banner').hidden"), false);
+    await evaluate("document.getElementById('hero-clock-action').click()");
+    await pause(100);
+    await reload();
+    assert.equal(await evaluate(`(async()=>{await window.IVORY37Storage.ready;return window.IVORY37Storage.getItem(${JSON.stringify(KEY)});})()`), liveBeforeDemo);
     for(const width of [320,768,1440]){window.setSize(width,960);await pause(150);assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth+1'),false,'width '+width);}
     require('node:fs').writeFileSync(path.resolve(__dirname,'../.codex-attachments/audit-desktop.png'),(await window.webContents.capturePage()).toPNG());
     assert.deepEqual(errors,[]);console.log(JSON.stringify({platform:'Electron',...result,responsive:[320,390,768,1440]}));
