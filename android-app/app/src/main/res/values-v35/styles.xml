@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Android 15 fuerza edge-to-edge con targetSdk 35; se mantiene el diseño actual. -->
+    <style name='AppTheme' parent='android:style/Theme.Material.NoActionBar'>
+        <item name='android:fontFamily'>sans</item>
+        <item name='android:colorAccent'>#A6D94A</item>
+        <item name='android:statusBarColor'>#0A0F0D</item>
+        <item name='android:navigationBarColor'>#0A0F0D</item>
+        <item name='android:windowLightStatusBar'>false</item>
+        <item name='android:windowActionModeOverlay'>true</item>
+        <item name='android:windowBackground'>#0A0F0D</item>
+        <item name='android:windowOptOutEdgeToEdgeEnforcement'>true</item>
+    </style>
+</resources>

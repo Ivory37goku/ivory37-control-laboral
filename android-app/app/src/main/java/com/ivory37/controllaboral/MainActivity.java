@@ -59,6 +59,7 @@ public final class MainActivity extends Activity {
     private String pendingSaveMime;
     private String pendingSaveRequestId;
     private volatile boolean pendingShadowMigration;
+    private volatile boolean trustedPage;
     private boolean showingLocalFailure;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -145,6 +146,11 @@ public final class MainActivity extends Activity {
                 .build();
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                trustedPage = url != null && isLocalPage(Uri.parse(url));
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 Uri uri = Uri.parse(url);
@@ -419,6 +425,7 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public void requestNotifications() {
+            if (!trustedPage) return;
             runOnUiThread(() -> {
                 SharedPreferences prefs = getSharedPreferences("android_bridge", MODE_PRIVATE);
                 prefs.edit().putBoolean("notification_requested", true).apply();
@@ -435,11 +442,13 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public void showNotification(String title, String body) {
+            if (!trustedPage) return;
             runOnUiThread(() -> showNativeNotification(title, body));
         }
 
         @JavascriptInterface
         public void saveFile(String encoded, String fileName, String mimeType, String requestId) {
+            if (!trustedPage) return;
             if (encoded == null || encoded.length() > (MAX_DOWNLOAD_BYTES * 4L / 3L) + 16) {
                 pendingSaveRequestId = requestId;
                 notifySaveResult(false);
@@ -466,11 +475,13 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public String getLocalStorageSnapshot() {
+            if (!trustedPage) return "{}";
             return getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).getString(STORAGE_SHADOW_KEY, "{}");
         }
 
         @JavascriptInterface
         public boolean saveLocalStorage(String snapshot) {
+            if (!trustedPage) return false;
             if (snapshot == null || snapshot.length() > MAX_DOWNLOAD_BYTES) return false;
             try {
                 new org.json.JSONObject(snapshot);
@@ -483,6 +494,7 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public void completeLocalStorageMigration() {
+            if (!trustedPage) return;
             getSharedPreferences(BRIDGE_PREFS, MODE_PRIVATE).edit()
                     .putBoolean(LOCAL_STORAGE_MIGRATED_KEY, true).apply();
             pendingShadowMigration = false;
@@ -490,6 +502,7 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public void printReport() {
+            if (!trustedPage) return;
             runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT < 19 || webView == null) {
                     Toast.makeText(MainActivity.this, "La impresión no está disponible en este dispositivo.", Toast.LENGTH_LONG).show();

@@ -68,7 +68,7 @@
     return Number.isFinite(n) ? n : fail;
   };
 
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function uid() { try { if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID(); } catch (_) {} return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
   function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function parseKey(key) { const parts = String(key).split('-').map(Number); const d = new Date(0); d.setHours(0, 0, 0, 0); d.setFullYear(parts[0], (parts[1] || 1) - 1, parts[2] || 1); return d; }
   function monthKey(date) { return dateKey(date).slice(0, 7); }
@@ -177,10 +177,12 @@
         if (!savedData || typeof savedData !== 'object' || Array.isArray(savedData) || hasInvalidDates(savedData)) throw new Error('Los datos guardados no son válidos.');
         const previous = storageSnapshot();
         try {
-          localStorage.clear();
+          // Primero se escriben las claves nuevas y solo después se retiran las sobrantes:
+          // si el proceso se interrumpe, nunca queda el almacenamiento vacío.
           Object.keys(saved).forEach((key) => {
             if (typeof saved[key] === 'string' && key.length < 512) localStorage.setItem(key, saved[key]);
           });
+          Object.keys(previous).forEach((key) => { if (!Object.prototype.hasOwnProperty.call(saved, key)) localStorage.removeItem(key); });
         } catch (restoreError) {
           try {
             localStorage.clear();
